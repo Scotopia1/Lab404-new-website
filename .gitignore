@@ -82,6 +82,24 @@ temp/
 # ===========================================
 .serena/
 .playwright-mcp/
+.claude/
+
+# ===========================================
+# Generated documentation (Claude/AI)
+# ===========================================
+ADMIN_TEST_PLAN.md
+ANTIGRAVITY_PROMPT.md
+API_DOCUMENTATION.md
+API_ENDPOINTS_REFERENCE.md
+API_IMPLEMENTATION_PLAN.md
+API_TYPES.md
+FEATURE_CHECKLIST.md
+FIXING_PLAN.md
+FOLDER_STRUCTURE.md
+PROJECT_PLAN.md
+SECURITY_CHECKLIST.md
+SECURITY_RULEBOOK.md
+TASK_TRACKER.md
 
 # ===========================================
 # Misc
