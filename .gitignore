@@ -11,6 +11,8 @@ dist/
 build/
 .next/
 out/
+apps/api/output/
+apps/api/api-dist/
 
 # ===========================================
 # Environment files
@@ -120,3 +122,5 @@ nul
 # ===========================================
 package-lock.json
 yarn.lock
+
+.vercel
