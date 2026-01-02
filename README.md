@@ -7,18 +7,6 @@ A modern, secure e-commerce platform for Lab404Electronics, built with a paralle
 - **Claude Code**: Backend API (Express.js) + Admin Dashboard (Next.js)
 - **Antigravity AI**: Customer Website (Next.js)
 
-## Quick Links
-
-| Document | Description |
-|----------|-------------|
-| [PROJECT_PLAN.md](./PROJECT_PLAN.md) | Full project specification & API documentation |
-| [TASK_TRACKER.md](./TASK_TRACKER.md) | Task status & coordination between AIs |
-| [SECURITY_RULEBOOK.md](./SECURITY_RULEBOOK.md) | Security requirements & rules |
-| [FEATURE_CHECKLIST.md](./FEATURE_CHECKLIST.md) | Checklist for implementing features |
-| [ANTIGRAVITY_PROMPT.md](./ANTIGRAVITY_PROMPT.md) | Prompt for Antigravity AI |
-| [FOLDER_STRUCTURE.md](./FOLDER_STRUCTURE.md) | Project folder structure |
-| [API_TYPES.md](./API_TYPES.md) | TypeScript interfaces |
-
 ## Technology Stack
 
 ### Backend API
