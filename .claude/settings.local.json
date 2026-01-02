@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(for port in 4000 3001 3000)",
+      "Bash(do netstat -ano)",
+      "Bash(findstr:*)",
+      "Bash(done)",
+      "Bash(netstat:*)"
+    ]
+  }
+}

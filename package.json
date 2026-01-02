@@ -1,0 +1,31 @@
+{
+  "name": "lab404-electronics",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "turbo dev",
+    "dev:api": "turbo dev --filter=@lab404/api",
+    "dev:admin": "turbo dev --filter=@lab404/admin",
+    "dev:web": "turbo dev --filter=@lab404/web",
+    "build": "turbo build",
+    "lint": "turbo lint",
+    "lint:fix": "turbo lint:fix",
+    "type-check": "turbo type-check",
+    "clean": "turbo clean && rm -rf node_modules",
+    "db:generate": "turbo db:generate --filter=@lab404/database",
+    "db:migrate": "turbo db:migrate --filter=@lab404/database",
+    "db:push": "turbo db:push --filter=@lab404/database",
+    "db:seed": "turbo db:seed --filter=@lab404/database",
+    "db:studio": "turbo db:studio --filter=@lab404/database"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "postgres": "^3.4.7",
+    "turbo": "^2.3.0",
+    "typescript": "^5.3.0"
+  },
+  "packageManager": "pnpm@9.0.0",
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

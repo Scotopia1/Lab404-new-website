@@ -1,0 +1,15 @@
+
+> lab404-website@0.1.0 lint C:\Users\johnn\Documents\Private-work\The Elites\Partnerships\Anthony gemayel\Lab404-New\apps\lab404-website
+> eslint
+
+
+C:\Users\johnn\Documents\Private-work\The Elites\Partnerships\Anthony gemayel\Lab404-New\apps\lab404-website\src\components\forms\login-form.tsx
+   26:12  warning  'submitError' is assigned a value but never used                 @typescript-eslint/no-unused-vars
+  105:24  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+
+C:\Users\johnn\Documents\Private-work\The Elites\Partnerships\Anthony gemayel\Lab404-New\apps\lab404-website\src\components\forms\register-form.tsx
+  3:10  warning  'useState' is defined but never used  @typescript-eslint/no-unused-vars
+
+Ô£û 3 problems (1 error, 2 warnings)
+
+ÔÇëELIFECYCLEÔÇë Command failed with exit code 1.
