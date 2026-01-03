@@ -295,6 +295,47 @@ productsRoutes.get('/:slug', async (req, res, next) => {
 // ===========================================
 
 /**
+ * GET /api/products/admin/:id
+ * Get product by ID (Admin only - returns any status)
+ */
+productsRoutes.get('/admin/:id', requireAuth, requireAdmin, async (req, res, next) => {
+  try {
+    const db = getDb();
+    const id = req.params['id'] as string;
+
+    const [product] = await db
+      .select()
+      .from(products)
+      .where(eq(products.id, id));
+
+    if (!product) {
+      throw new NotFoundError('Product not found');
+    }
+
+    // Get category
+    let category;
+    if (product.categoryId) {
+      [category] = await db
+        .select({ id: categories.id, name: categories.name, slug: categories.slug })
+        .from(categories)
+        .where(eq(categories.id, product.categoryId));
+    }
+
+    sendSuccess(res, {
+      ...product,
+      basePrice: Number(product.basePrice),
+      costPrice: product.costPrice ? Number(product.costPrice) : undefined,
+      compareAtPrice: product.compareAtPrice ? Number(product.compareAtPrice) : undefined,
+      weight: product.weight ? Number(product.weight) : undefined,
+      inStock: product.stockQuantity > 0 || product.allowBackorder,
+      category,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
  * POST /api/products
  * Create a new product (Admin only)
  */

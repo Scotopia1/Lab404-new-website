@@ -212,20 +212,16 @@ export default function ProductsPage() {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuItem asChild>
-              <Link href={`/products/${row.original.id}`}>
+              <Link href={`/products/${row.original.id}/edit`}>
                 <Pencil className="mr-2 h-4 w-4" />
                 Edit
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
-              <a
-                href={`/products/${row.original.slug}`}
-                target="_blank"
-                rel="noopener"
-              >
+              <Link href={`/products/${row.original.id}`}>
                 <Eye className="mr-2 h-4 w-4" />
                 View
-              </a>
+              </Link>
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => setDeleteId(row.original.id)}

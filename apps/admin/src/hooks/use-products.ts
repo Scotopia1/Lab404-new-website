@@ -179,14 +179,14 @@ export function useAdminProducts(params: ProductsParams = {}) {
   });
 }
 
-export function useProduct(idOrSlug: string) {
+export function useProduct(id: string) {
   return useQuery({
-    queryKey: ["products", idOrSlug],
+    queryKey: ["products", id],
     queryFn: async () => {
-      const res = await api.get<ApiResponse<Product>>(`/products/${idOrSlug}`);
+      const res = await api.get<ApiResponse<Product>>(`/products/admin/${id}`);
       return res.data.data;
     },
-    enabled: !!idOrSlug,
+    enabled: !!id,
   });
 }
 

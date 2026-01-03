@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { useForm, useFieldArray } from "react-hook-form";
+import { useParams, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useForm, useFieldArray, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import {
@@ -21,7 +21,9 @@ import {
   Settings,
   FileText,
   Star,
+  Eye,
 } from "lucide-react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -49,7 +51,7 @@ import {
 } from "@/components/ui/collapsible";
 import { Breadcrumbs } from "@/components/layout/breadcrumbs";
 import { GoogleImageSearch } from "@/components/google-image-search";
-import { useCreateProduct } from "@/hooks/use-products";
+import { useProduct, useUpdateProduct } from "@/hooks/use-products";
 import { useCategories } from "@/hooks/use-categories";
 import { slugify } from "@/lib/utils";
 
@@ -65,7 +67,7 @@ const productSchema = z.object({
   brand: z.string().optional(),
   categoryId: z.string().optional(),
 
-  // Pricing - use coerce to handle string inputs from form
+  // Pricing
   basePrice: z.coerce.number().min(0, "Price must be positive"),
   costPrice: z.coerce.number().min(0).optional(),
   compareAtPrice: z.coerce.number().min(0).optional(),
@@ -84,7 +86,7 @@ const productSchema = z.object({
   trackInventory: z.boolean(),
   allowBackorder: z.boolean(),
 
-  // Media - allow empty strings to be filtered out before submission
+  // Media
   images: z.array(z.object({
     url: z.string(),
     alt: z.string().optional(),
@@ -186,9 +188,13 @@ const tagSuggestions = [
   "power-supply",
 ];
 
-export default function NewProductPage() {
+export default function EditProductPage() {
+  const params = useParams();
   const router = useRouter();
-  const createProduct = useCreateProduct();
+  const id = params.id as string;
+
+  const { data: product, isLoading: productLoading } = useProduct(id);
+  const updateProduct = useUpdateProduct();
   const { data: categories } = useCategories();
 
   const [tagInput, setTagInput] = useState("");
@@ -196,15 +202,16 @@ export default function NewProductPage() {
   const [specKey, setSpecKey] = useState("");
   const [specValue, setSpecValue] = useState("");
   const [showGoogleImageSearch, setShowGoogleImageSearch] = useState(false);
-  const [thumbnailIndex, setThumbnailIndex] = useState(0); // First image is default thumbnail
+  const [thumbnailIndex, setThumbnailIndex] = useState(0);
+  const [formInitialized, setFormInitialized] = useState(false);
 
   const {
     register,
     handleSubmit,
     watch,
     setValue,
-    getValues,
     control,
+    reset,
     formState: { errors, isSubmitting },
   } = useForm<ProductFormData>({
     resolver: zodResolver(productSchema),
@@ -235,12 +242,93 @@ export default function NewProductPage() {
     name: "videos",
   });
 
+  // Load product data into form
+  useEffect(() => {
+    if (product) {
+      console.log("Loading product data:", {
+        status: product.status,
+        categoryId: product.categoryId,
+        category: product.category,
+      });
+
+      // Ensure images have proper structure
+      const images = (product.images || []).map(img => ({
+        url: img.url || "",
+        alt: img.alt || "",
+      }));
+
+      // Ensure videos have proper structure
+      const videos = (product.videos || []).map(vid => ({
+        url: vid.url || "",
+        title: vid.title || "",
+      }));
+
+      // Handle dimensions - ensure proper object structure
+      const dimensions = product.dimensions ? {
+        width: product.dimensions.width || undefined,
+        height: product.dimensions.height || undefined,
+        depth: product.dimensions.depth || undefined,
+      } : undefined;
+
+      reset({
+        name: product.name || "",
+        slug: product.slug || "",
+        description: product.description || "",
+        shortDescription: product.shortDescription || "",
+        sku: product.sku || "",
+        barcode: product.barcode || "",
+        brand: product.brand || "",
+        categoryId: product.categoryId || "",
+        basePrice: product.basePrice || 0,
+        costPrice: product.costPrice || undefined,
+        compareAtPrice: product.compareAtPrice || undefined,
+        weight: product.weight || undefined,
+        dimensions,
+        stockQuantity: product.stockQuantity ?? 0,
+        lowStockThreshold: product.lowStockThreshold ?? 5,
+        trackInventory: product.trackInventory ?? true,
+        allowBackorder: product.allowBackorder ?? false,
+        images,
+        videos,
+        thumbnailUrl: product.thumbnailUrl || "",
+        tags: product.tags || [],
+        features: product.features || [],
+        specifications: product.specifications || {},
+        metaTitle: product.metaTitle || "",
+        metaDescription: product.metaDescription || "",
+        status: product.status || "draft",
+        isFeatured: product.isFeatured ?? false,
+        isDigital: product.isDigital ?? false,
+        requiresShipping: product.requiresShipping ?? true,
+        supplierId: product.supplierId || "",
+        supplierSku: product.supplierSku || "",
+        externalUrl: product.externalUrl || "",
+      });
+
+      // Find thumbnail index
+      if (product.thumbnailUrl && images.length > 0) {
+        const idx = images.findIndex(img => img.url === product.thumbnailUrl);
+        if (idx >= 0) setThumbnailIndex(idx);
+      }
+
+      console.log("Form reset with status:", product.status, "categoryId:", product.categoryId);
+      setFormInitialized(true);
+    }
+  }, [product, reset]);
+
+  // Debug: Log when categories load
+  useEffect(() => {
+    if (categories) {
+      console.log("Categories loaded:", categories.map(c => ({ id: c.id, name: c.name })));
+    }
+  }, [categories]);
+
   const tags = watch("tags") || [];
   const features = watch("features") || [];
   const specifications = watch("specifications") || {};
 
   const onSubmit = async (data: ProductFormData) => {
-    // Filter out empty images and videos - only keep entries with valid URLs
+    // Filter out empty images and videos
     const filteredImages = (data.images || [])
       .filter(img => img.url && img.url.trim())
       .map(img => ({ url: img.url.trim(), alt: img.alt || undefined }));
@@ -257,7 +345,7 @@ export default function NewProductPage() {
       return val;
     };
 
-    // Clean up dimensions - remove if all values are empty/zero
+    // Clean up dimensions
     const cleanDimensions = () => {
       const dims = data.dimensions;
       if (!dims) return undefined;
@@ -266,7 +354,6 @@ export default function NewProductPage() {
       const height = positiveOrUndefined(dims.height);
       const depth = positiveOrUndefined(dims.depth);
 
-      // Only include dimensions if at least one value is set
       if (width || height || depth) {
         return { width, height, depth };
       }
@@ -275,64 +362,44 @@ export default function NewProductPage() {
 
     // Transform data to match API expectations
     const apiData = {
-      // Required fields
       name: data.name,
       slug: data.slug,
-      basePrice: data.basePrice > 0 ? data.basePrice : 0.01, // API requires positive, default to minimum
-
-      // Optional string fields
+      basePrice: data.basePrice > 0 ? data.basePrice : 0.01,
       description: data.description || undefined,
       shortDescription: data.shortDescription || undefined,
       sku: data.sku || undefined,
       barcode: data.barcode || undefined,
       brand: data.brand || undefined,
       categoryId: data.categoryId || undefined,
-
-      // Optional positive number fields - API requires positive() when present
       costPrice: positiveOrUndefined(data.costPrice),
       compareAtPrice: positiveOrUndefined(data.compareAtPrice),
       weight: positiveOrUndefined(data.weight),
-
-      // Dimensions object
       dimensions: cleanDimensions(),
-
-      // Inventory - these have defaults in API so safe to send
       stockQuantity: data.stockQuantity || 0,
       lowStockThreshold: data.lowStockThreshold || 5,
       trackInventory: data.trackInventory,
       allowBackorder: data.allowBackorder,
-
-      // Media - filtered arrays
       images: filteredImages,
       videos: filteredVideos,
-      // Use the selected thumbnail image, or default to first image
       thumbnailUrl: filteredImages.length > 0
         ? filteredImages[Math.min(thumbnailIndex, filteredImages.length - 1)]?.url
         : undefined,
-
-      // Tags, features, specifications
       tags: data.tags || [],
       features: data.features || [],
       specifications: data.specifications || {},
-
-      // SEO
       metaTitle: data.metaTitle || undefined,
       metaDescription: data.metaDescription || undefined,
-
-      // Status flags
       status: data.status,
       isFeatured: data.isFeatured,
       isDigital: data.isDigital,
       requiresShipping: data.requiresShipping,
-
-      // Supplier
       supplierId: data.supplierId || undefined,
       supplierSku: data.supplierSku || undefined,
       externalUrl: data.externalUrl && data.externalUrl.trim() ? data.externalUrl.trim() : undefined,
     };
 
-    await createProduct.mutateAsync(apiData);
-    router.push("/products");
+    await updateProduct.mutateAsync({ id, data: apiData });
+    router.push(`/products/${id}`);
   };
 
   // Handle tag input
@@ -380,29 +447,46 @@ export default function NewProductPage() {
 
   // Handle images selected from Google Image Search
   const handleGoogleImagesSelected = (imageUrls: string[]) => {
-    // Filter out empty images and add new ones
-    const currentImages = imageFields.filter(img => {
-      const url = watch(`images.${imageFields.indexOf(img)}.url`);
-      return url && url.trim();
-    });
-
-    // Add each new image URL
     imageUrls.forEach((url) => {
       appendImage({ url, alt: "" });
     });
-
     setShowGoogleImageSearch(false);
   };
+
+  if (productLoading || !formInitialized) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!product) {
+    return (
+      <div className="text-center py-12">
+        <h2 className="text-xl font-semibold">Product not found</h2>
+        <Button asChild className="mt-4">
+          <Link href="/products">Back to Products</Link>
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
       <Breadcrumbs />
 
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">New Product</h1>
-        <p className="text-muted-foreground">
-          Add a new product to your catalog with all details
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Edit Product</h1>
+          <p className="text-muted-foreground">Update product details</p>
+        </div>
+        <Button variant="outline" asChild>
+          <Link href={`/products/${id}`}>
+            <Eye className="mr-2 h-4 w-4" />
+            View Preview
+          </Link>
+        </Button>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
@@ -426,7 +510,6 @@ export default function NewProductPage() {
                           setValue("slug", slugify(e.target.value));
                         }
                       })}
-                      placeholder="Arduino Uno R3"
                     />
                     {errors.name && (
                       <p className="text-sm text-destructive">{errors.name.message}</p>
@@ -434,7 +517,7 @@ export default function NewProductPage() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="slug">URL Slug *</Label>
-                    <Input id="slug" {...register("slug")} placeholder="arduino-uno-r3" />
+                    <Input id="slug" {...register("slug")} />
                     {errors.slug && (
                       <p className="text-sm text-destructive">{errors.slug.message}</p>
                     )}
@@ -446,7 +529,6 @@ export default function NewProductPage() {
                   <Input
                     id="shortDescription"
                     {...register("shortDescription")}
-                    placeholder="Brief product summary (max 500 chars)"
                     maxLength={500}
                   />
                 </div>
@@ -457,22 +539,21 @@ export default function NewProductPage() {
                     id="description"
                     rows={5}
                     {...register("description")}
-                    placeholder="Detailed product description..."
                   />
                 </div>
 
                 <div className="grid gap-4 sm:grid-cols-3">
                   <div className="space-y-2">
                     <Label htmlFor="sku">SKU</Label>
-                    <Input id="sku" {...register("sku")} placeholder="ARD-UNO-R3" />
+                    <Input id="sku" {...register("sku")} />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="barcode">Barcode</Label>
-                    <Input id="barcode" {...register("barcode")} placeholder="0123456789012" />
+                    <Input id="barcode" {...register("barcode")} />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="brand">Brand</Label>
-                    <Input id="brand" {...register("brand")} placeholder="Arduino" />
+                    <Input id="brand" {...register("brand")} />
                   </div>
                 </div>
               </div>
@@ -493,7 +574,6 @@ export default function NewProductPage() {
                     step="0.01"
                     min="0"
                     {...register("basePrice")}
-                    placeholder="0.00"
                   />
                   {errors.basePrice && (
                     <p className="text-sm text-destructive">{errors.basePrice.message}</p>
@@ -507,7 +587,6 @@ export default function NewProductPage() {
                     step="0.01"
                     min="0"
                     {...register("compareAtPrice")}
-                    placeholder="Original price for discounts"
                   />
                 </div>
                 <div className="space-y-2">
@@ -518,7 +597,6 @@ export default function NewProductPage() {
                     step="0.01"
                     min="0"
                     {...register("costPrice")}
-                    placeholder="Your cost (internal)"
                   />
                 </div>
               </div>
@@ -589,7 +667,6 @@ export default function NewProductPage() {
                       step="0.01"
                       min="0"
                       {...register("weight")}
-                      placeholder="0"
                     />
                   </div>
                   <div className="space-y-2">
@@ -600,7 +677,6 @@ export default function NewProductPage() {
                       step="0.1"
                       min="0"
                       {...register("dimensions.width")}
-                      placeholder="0"
                     />
                   </div>
                   <div className="space-y-2">
@@ -611,7 +687,6 @@ export default function NewProductPage() {
                       step="0.1"
                       min="0"
                       {...register("dimensions.height")}
-                      placeholder="0"
                     />
                   </div>
                   <div className="space-y-2">
@@ -622,7 +697,6 @@ export default function NewProductPage() {
                       step="0.1"
                       min="0"
                       {...register("dimensions.depth")}
-                      placeholder="0"
                     />
                   </div>
                 </div>
@@ -698,7 +772,6 @@ export default function NewProductPage() {
                                   : "border-dashed border-muted-foreground/25 hover:border-muted-foreground/50"
                               }`}
                               onClick={() => imageUrl && setThumbnailIndex(index)}
-                              title={imageUrl ? "Click to set as thumbnail" : ""}
                             >
                               {imageUrl ? (
                                 <img
@@ -724,7 +797,6 @@ export default function NewProductPage() {
                                   size="icon"
                                   className="h-8 w-8"
                                   onClick={() => setThumbnailIndex(index)}
-                                  title="Set as thumbnail"
                                 >
                                   <Star className="h-4 w-4" />
                                 </Button>
@@ -736,7 +808,6 @@ export default function NewProductPage() {
                                 className="h-8 w-8"
                                 onClick={() => {
                                   removeImage(index);
-                                  // Adjust thumbnail index if needed
                                   if (index < thumbnailIndex) {
                                     setThumbnailIndex(prev => Math.max(0, prev - 1));
                                   } else if (index === thumbnailIndex && imageFields.length > 1) {
@@ -753,7 +824,6 @@ export default function NewProductPage() {
                                 <Star className="h-3 w-3 fill-current" /> Thumbnail
                               </div>
                             )}
-                            {/* Image number badge (only if not thumbnail) */}
                             {(!isThumbnail || !imageUrl) && (
                               <div className="absolute top-1 left-1 bg-black/70 text-white text-xs px-1.5 py-0.5 rounded">
                                 {index + 1}
@@ -769,12 +839,11 @@ export default function NewProductPage() {
                     <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center">
                       <ImageIcon className="h-10 w-10 mx-auto text-muted-foreground/50 mb-2" />
                       <p className="text-sm text-muted-foreground">No images added yet</p>
-                      <p className="text-xs text-muted-foreground mt-1">Click "Search Images" or "Add Image" to get started</p>
                     </div>
                   ) : (
                     <>
                     <p className="text-xs text-muted-foreground">
-                      Click on an image to set it as the thumbnail. The first image is selected by default.
+                      Click on an image to set it as the thumbnail.
                     </p>
                     <div className="space-y-2">
                       {imageFields.map((field, index) => (
@@ -936,7 +1005,7 @@ export default function NewProductPage() {
                           key={index}
                           className="flex items-center justify-between bg-muted/50 p-2 rounded"
                         >
-                          <span className="text-sm">• {feature}</span>
+                          <span className="text-sm">{feature}</span>
                           <Button
                             type="button"
                             variant="ghost"
@@ -965,7 +1034,7 @@ export default function NewProductPage() {
                   <Input
                     value={specKey}
                     onChange={(e) => setSpecKey(e.target.value)}
-                    placeholder="Specification name (e.g., Voltage)"
+                    placeholder="Specification name"
                   />
                   <Input
                     value={specValue}
@@ -976,7 +1045,7 @@ export default function NewProductPage() {
                         addSpecification();
                       }
                     }}
-                    placeholder="Value (e.g., 5V)"
+                    placeholder="Value"
                   />
                   <Button type="button" variant="outline" onClick={addSpecification}>
                     Add
@@ -1027,7 +1096,6 @@ export default function NewProductPage() {
                     id="metaTitle"
                     {...register("metaTitle")}
                     maxLength={60}
-                    placeholder="SEO title (defaults to product name)"
                   />
                 </div>
                 <div className="space-y-2">
@@ -1042,7 +1110,6 @@ export default function NewProductPage() {
                     {...register("metaDescription")}
                     maxLength={160}
                     rows={3}
-                    placeholder="SEO description for search results"
                   />
                 </div>
               </div>
@@ -1058,27 +1125,15 @@ export default function NewProductPage() {
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="supplierId">Supplier ID</Label>
-                  <Input
-                    id="supplierId"
-                    {...register("supplierId")}
-                    placeholder="Supplier identifier"
-                  />
+                  <Input id="supplierId" {...register("supplierId")} />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="supplierSku">Supplier SKU</Label>
-                  <Input
-                    id="supplierSku"
-                    {...register("supplierSku")}
-                    placeholder="Supplier's product code"
-                  />
+                  <Input id="supplierSku" {...register("supplierSku")} />
                 </div>
                 <div className="space-y-2 sm:col-span-2">
                   <Label htmlFor="externalUrl">External URL</Label>
-                  <Input
-                    id="externalUrl"
-                    {...register("externalUrl")}
-                    placeholder="https://alibaba.com/product/..."
-                  />
+                  <Input id="externalUrl" {...register("externalUrl")} />
                 </div>
               </div>
             </FormSection>
@@ -1092,29 +1147,39 @@ export default function NewProductPage() {
                 <CardTitle>Status</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <Select
-                  value={watch("status")}
-                  onValueChange={(value) =>
-                    setValue("status", value as "draft" | "active" | "archived")
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="draft">Draft</SelectItem>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="archived">Archived</SelectItem>
-                  </SelectContent>
-                </Select>
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    id="isFeatured"
-                    checked={watch("isFeatured")}
-                    onCheckedChange={(checked) => setValue("isFeatured", checked)}
-                  />
-                  <Label htmlFor="isFeatured">Featured product</Label>
-                </div>
+                <Controller
+                  control={control}
+                  name="status"
+                  render={({ field }) => (
+                    <Select
+                      value={field.value}
+                      onValueChange={field.onChange}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="draft">Draft</SelectItem>
+                        <SelectItem value="active">Active</SelectItem>
+                        <SelectItem value="archived">Archived</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+                <Controller
+                  control={control}
+                  name="isFeatured"
+                  render={({ field }) => (
+                    <div className="flex items-center space-x-2">
+                      <Switch
+                        id="isFeatured"
+                        checked={field.value ?? false}
+                        onCheckedChange={field.onChange}
+                      />
+                      <Label htmlFor="isFeatured">Featured product</Label>
+                    </div>
+                  )}
+                />
               </CardContent>
             </Card>
 
@@ -1124,18 +1189,28 @@ export default function NewProductPage() {
                 <CardTitle>Category</CardTitle>
               </CardHeader>
               <CardContent>
-                <Select onValueChange={(value) => setValue("categoryId", value)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories?.map((cat) => (
-                      <SelectItem key={cat.id} value={cat.id}>
-                        {cat.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Controller
+                  control={control}
+                  name="categoryId"
+                  render={({ field }) => (
+                    <Select
+                      value={field.value || "none"}
+                      onValueChange={(value) => field.onChange(value === "none" ? "" : value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">No category</SelectItem>
+                        {categories?.map((cat) => (
+                          <SelectItem key={cat.id} value={cat.id}>
+                            {cat.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
               </CardContent>
             </Card>
 
@@ -1174,21 +1249,9 @@ export default function NewProductPage() {
         <div className="flex gap-4 sticky bottom-4 bg-background p-4 border rounded-lg shadow-lg">
           <Button type="submit" disabled={isSubmitting} className="flex-1 sm:flex-none">
             {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Create Product
+            Save Changes
           </Button>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => {
-              const data = getValues();
-              setValue("status", "draft");
-              handleSubmit(onSubmit)();
-            }}
-            disabled={isSubmitting}
-          >
-            Save as Draft
-          </Button>
-          <Button type="button" variant="ghost" onClick={() => router.back()}>
+          <Button type="button" variant="outline" onClick={() => router.back()}>
             Cancel
           </Button>
         </div>
