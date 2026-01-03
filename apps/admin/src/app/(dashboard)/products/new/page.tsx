@@ -52,25 +52,6 @@ import { useCreateProduct } from "@/hooks/use-products";
 import { useCategories } from "@/hooks/use-categories";
 import { slugify } from "@/lib/utils";
 
-// Helper to handle optional number inputs that may be empty strings
-const optionalPositiveNumber = z.preprocess(
-  (val) => {
-    if (val === "" || val === undefined || val === null) return undefined;
-    const num = Number(val);
-    return isNaN(num) ? undefined : num;
-  },
-  z.number().positive().optional()
-);
-
-const optionalNonNegativeNumber = z.preprocess(
-  (val) => {
-    if (val === "" || val === undefined || val === null) return undefined;
-    const num = Number(val);
-    return isNaN(num) ? undefined : num;
-  },
-  z.number().min(0).optional()
-);
-
 // Comprehensive product schema matching the API
 const productSchema = z.object({
   // Basic info
@@ -83,22 +64,22 @@ const productSchema = z.object({
   brand: z.string().optional(),
   categoryId: z.string().optional(),
 
-  // Pricing - basePrice is required, others optional
-  basePrice: z.coerce.number().min(0.01, "Price must be greater than 0"),
-  costPrice: optionalPositiveNumber,
-  compareAtPrice: optionalPositiveNumber,
+  // Pricing - use coerce to handle string inputs from form
+  basePrice: z.coerce.number().min(0, "Price must be positive"),
+  costPrice: z.coerce.number().min(0).optional(),
+  compareAtPrice: z.coerce.number().min(0).optional(),
 
   // Physical attributes
-  weight: optionalPositiveNumber,
+  weight: z.coerce.number().min(0).optional(),
   dimensions: z.object({
-    width: optionalPositiveNumber,
-    height: optionalPositiveNumber,
-    depth: optionalPositiveNumber,
+    width: z.coerce.number().min(0).optional(),
+    height: z.coerce.number().min(0).optional(),
+    depth: z.coerce.number().min(0).optional(),
   }).optional(),
 
   // Inventory
-  stockQuantity: z.coerce.number().int().min(0).default(0),
-  lowStockThreshold: z.coerce.number().int().min(0).default(5),
+  stockQuantity: z.coerce.number().int().min(0),
+  lowStockThreshold: z.coerce.number().int().min(0),
   trackInventory: z.boolean(),
   allowBackorder: z.boolean(),
 
@@ -106,17 +87,17 @@ const productSchema = z.object({
   images: z.array(z.object({
     url: z.string(),
     alt: z.string().optional(),
-  })).default([]),
+  })),
   videos: z.array(z.object({
     url: z.string(),
     title: z.string().optional(),
-  })).default([]),
+  })),
   thumbnailUrl: z.string().optional(),
 
   // Organization
-  tags: z.array(z.string()).default([]),
-  features: z.array(z.string()).default([]),
-  specifications: z.record(z.string()).default({}),
+  tags: z.array(z.string()),
+  features: z.array(z.string()),
+  specifications: z.record(z.string()),
 
   // SEO
   metaTitle: z.string().max(60).optional(),
