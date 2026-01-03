@@ -47,6 +47,12 @@ export const config = {
     webhookSecret: process.env['STRIPE_WEBHOOK_SECRET'] || '',
   },
 
+  // Google APIs
+  google: {
+    apiKey: process.env['GOOGLE_API_KEY'] || '',
+    searchEngineId: process.env['GOOGLE_SEARCH_ENGINE_ID'] || '',
+  },
+
   // Store defaults
   store: {
     name: process.env['STORE_NAME'] || 'Lab404Electronics',

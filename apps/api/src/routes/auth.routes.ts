@@ -303,7 +303,7 @@ authRoutes.post(
 
       // For demo purposes, use a hardcoded admin
       // In production, use Neon Auth or proper admin user management
-      if (email === 'admin@lab404electronics.com' && password === 'Lab404Admin2024!') {
+      if (email === 'admin@lab404electronics.com' && password === 'Admin123456') {
         const token = generateToken({
           userId: 'admin_1',
           email: email,

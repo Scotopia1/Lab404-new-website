@@ -19,6 +19,7 @@ import { uploadRoutes } from './upload.routes';
 import { healthRoutes } from './health.routes';
 import notificationsRoutes from './notifications.routes';
 import { searchRoutes } from './search.routes';
+import { googleImagesRoutes } from './google-images.routes';
 
 export const router = Router();
 
@@ -88,6 +89,9 @@ router.use('/upload', uploadRoutes);
 // Notifications (Admin only)
 router.use('/notifications', notificationsRoutes);
 
+// Google Images (Admin only)
+router.use('/google-images', googleImagesRoutes);
+
 // ===========================================
 // API Info
 // ===========================================
@@ -119,6 +123,7 @@ router.get('/', (_req, res) => {
       import: '/api/import',
       upload: '/api/upload',
       notifications: '/api/notifications',
+      googleImages: '/api/google-images',
     },
   });
 });

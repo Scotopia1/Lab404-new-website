@@ -1,0 +1,679 @@
+"use client";
+
+import React, { useState, useCallback } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
+import {
+  Search,
+  Image as ImageIcon,
+  Check,
+  Copy,
+  Loader2,
+  AlertCircle,
+  ChevronLeft,
+  ChevronRight,
+  X,
+} from "lucide-react";
+import { api } from "@/lib/api-client";
+import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+
+// Interfaces
+interface GoogleImage {
+  url: string;
+  thumbnailUrl: string;
+  title: string;
+  width: number;
+  height: number;
+  size: number;
+  fileType: string;
+  contextUrl: string;
+  source: string;
+  displaySize: string;
+}
+
+interface GoogleImageSearchResponse {
+  images: GoogleImage[];
+  pagination: {
+    total: number;
+    limit: number;
+    offset: number;
+    page: number;
+    totalPages: number;
+    hasMore: boolean;
+  };
+  searchInfo: {
+    query: string;
+    searchTime: number;
+    totalResults: number;
+  };
+}
+
+interface GoogleImageSearchProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSelectImages: (imageUrls: string[]) => void;
+  multiSelect?: boolean;
+  maxSelections?: number;
+  initialQuery?: string;
+}
+
+export function GoogleImageSearch({
+  open,
+  onOpenChange,
+  onSelectImages,
+  multiSelect = true,
+  maxSelections = 10,
+  initialQuery = "",
+}: GoogleImageSearchProps) {
+  // State management
+  const [query, setQuery] = useState(initialQuery);
+  const [debouncedQuery, setDebouncedQuery] = useState(initialQuery);
+  const [selectedImages, setSelectedImages] = useState<Set<string>>(new Set());
+  const [currentPage, setCurrentPage] = useState(1);
+  const [hoveredImage, setHoveredImage] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState("");
+
+  // Filter state
+  const [filters, setFilters] = useState({
+    imageSize: "medium" as
+      | "icon"
+      | "small"
+      | "medium"
+      | "large"
+      | "xlarge"
+      | "xxlarge"
+      | "huge",
+    imageType: "photo" as
+      | "clipart"
+      | "face"
+      | "lineart"
+      | "stock"
+      | "photo"
+      | "animated",
+    fileType: "" as "" | "jpg" | "png" | "gif" | "bmp" | "svg" | "webp" | "ico",
+  });
+
+  // Debounce search query
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedQuery(query);
+      setCurrentPage(1);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [query]);
+
+  // Reset on open
+  React.useEffect(() => {
+    if (open) {
+      setQuery(initialQuery);
+      setDebouncedQuery(initialQuery);
+      setSelectedImages(new Set());
+      setCurrentPage(1);
+    }
+  }, [open, initialQuery]);
+
+  // Calculate pagination offset
+  const limit = 10;
+  const offset = (currentPage - 1) * limit;
+
+  // Fetch images from API
+  const {
+    data: searchData,
+    isLoading,
+    error,
+    refetch,
+  } = useQuery<GoogleImageSearchResponse>({
+    queryKey: [
+      "google-images",
+      debouncedQuery,
+      currentPage,
+      filters.imageSize,
+      filters.imageType,
+      filters.fileType,
+    ],
+    queryFn: async () => {
+      const params: Record<string, string | number> = {
+        query: debouncedQuery,
+        limit,
+        start: offset + 1,
+        imageSize: filters.imageSize,
+        imageType: filters.imageType,
+        safeSearch: "medium",
+      };
+
+      if (filters.fileType) {
+        params.fileType = filters.fileType;
+      }
+
+      // Call the backend API
+      const response = await api.get("/google-images/search", { params });
+
+      // Transform backend response to component format
+      const data = response.data?.data || response.data;
+      return {
+        images: (data.results || []).map((item: any) => ({
+          url: item.link,
+          thumbnailUrl: item.thumbnail || item.image?.thumbnailLink || item.link,
+          title: item.title,
+          width: item.image?.width || 0,
+          height: item.image?.height || 0,
+          size: item.image?.byteSize || 0,
+          fileType: item.mime?.split("/")[1] || "unknown",
+          contextUrl: item.image?.contextLink || item.displayLink,
+          source: item.displayLink,
+          displaySize:
+            item.image?.width && item.image?.height
+              ? `${item.image.width}x${item.image.height}`
+              : "Unknown",
+        })),
+        pagination: {
+          total: parseInt(data.totalResults) || 0,
+          limit: data.pagination?.limit || limit,
+          offset: (data.pagination?.start || 1) - 1,
+          page:
+            Math.floor(((data.pagination?.start || 1) - 1) / limit) + 1,
+          totalPages: Math.ceil(
+            parseInt(data.totalResults) / (data.pagination?.limit || limit)
+          ),
+          hasMore: data.pagination?.hasNextPage || false,
+        },
+        searchInfo: {
+          query: data.query || debouncedQuery,
+          searchTime: data.searchTime || 0,
+          totalResults: parseInt(data.totalResults) || 0,
+        },
+      };
+    },
+    enabled: !!debouncedQuery && debouncedQuery.length >= 2,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    retry: 1,
+  });
+
+  // Handlers
+  const handleToggleImage = useCallback(
+    (imageUrl: string) => {
+      setSelectedImages((prev) => {
+        const newSet = new Set(prev);
+        if (newSet.has(imageUrl)) {
+          newSet.delete(imageUrl);
+        } else {
+          if (!multiSelect) {
+            newSet.clear();
+          }
+          if (multiSelect && newSet.size >= maxSelections) {
+            toast.error(`Maximum ${maxSelections} images allowed`);
+            return prev;
+          }
+          newSet.add(imageUrl);
+        }
+        return newSet;
+      });
+    },
+    [multiSelect, maxSelections]
+  );
+
+  const handleCopyUrl = useCallback((url: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(url);
+    toast.success("Image URL copied to clipboard");
+  }, []);
+
+  const handleSelectImages = useCallback(async () => {
+    if (selectedImages.size === 0) {
+      toast.error("Please select at least one image");
+      return;
+    }
+
+    const imageUrls = Array.from(selectedImages);
+
+    try {
+      setIsUploading(true);
+      setUploadProgress(`Uploading ${imageUrls.length} image(s) to ImageKit...`);
+
+      // Upload images to ImageKit
+      const response = await api.post("/google-images/upload-to-imagekit", {
+        imageUrls,
+        folder: "/products",
+      });
+
+      const data = response.data?.data || response.data;
+
+      if (data.imagekitUrls && data.imagekitUrls.length > 0) {
+        // Return the ImageKit URLs instead of original URLs
+        onSelectImages(data.imagekitUrls);
+        toast.success(
+          `Successfully uploaded ${data.summary.success} image(s) to ImageKit`
+        );
+
+        if (data.summary.failed > 0) {
+          toast.warning(`${data.summary.failed} image(s) failed to upload`);
+        }
+      } else {
+        toast.error("Failed to upload images to ImageKit");
+        return;
+      }
+
+      setSelectedImages(new Set());
+      setQuery("");
+      setDebouncedQuery("");
+      onOpenChange(false);
+    } catch (error: any) {
+      console.error("Failed to upload images:", error);
+      toast.error(error.message || "Failed to upload images to ImageKit");
+    } finally {
+      setIsUploading(false);
+      setUploadProgress("");
+    }
+  }, [selectedImages, onSelectImages, onOpenChange]);
+
+  const handleClearSelection = useCallback(() => {
+    setSelectedImages(new Set());
+  }, []);
+
+  const handlePageChange = useCallback((newPage: number) => {
+    setCurrentPage(newPage);
+  }, []);
+
+  // Computed values
+  const images = searchData?.images || [];
+  const pagination = searchData?.pagination;
+  const searchInfo = searchData?.searchInfo;
+
+  // Error handling
+  const isQuotaExceeded =
+    (error as any)?.message?.includes("quota") ||
+    (error as any)?.message?.includes("limit");
+  const isNetworkError =
+    (error as any)?.message?.includes("network") ||
+    (error as any)?.message?.includes("fetch");
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="w-full max-w-[95vw] sm:max-w-[90vw] md:max-w-3xl lg:max-w-4xl xl:max-w-5xl h-[90vh] sm:h-[85vh] max-h-[900px] p-0 gap-0 flex flex-col">
+        <DialogHeader className="p-4 sm:p-6 pb-3 sm:pb-4 border-b flex-shrink-0">
+          <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
+            <ImageIcon className="h-4 w-4 sm:h-5 sm:w-5" />
+            Search Google Images
+          </DialogTitle>
+          <DialogDescription className="text-xs sm:text-sm">
+            Search and select images from Google.{" "}
+            {multiSelect
+              ? `Select up to ${maxSelections} images.`
+              : "Select one image."}
+          </DialogDescription>
+        </DialogHeader>
+
+        {/* Search and Filters */}
+        <div className="p-4 sm:p-6 pb-3 sm:pb-4 border-b space-y-3 sm:space-y-4 flex-shrink-0">
+          {/* Search Input */}
+          <div className="relative">
+            <Search className="absolute left-2.5 sm:left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search for images..."
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              className="pl-9 sm:pl-10 pr-9 sm:pr-10 text-sm h-9 sm:h-10"
+              autoFocus
+            />
+            {query && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="absolute right-0.5 sm:right-1 top-1/2 -translate-y-1/2 h-6 w-6 sm:h-7 sm:w-7 p-0"
+                onClick={() => {
+                  setQuery("");
+                  setDebouncedQuery("");
+                }}
+              >
+                <X className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              </Button>
+            )}
+          </div>
+
+          {/* Filters */}
+          <div className="grid grid-cols-3 gap-2 sm:gap-3">
+            <div className="space-y-1.5">
+              <Label className="text-[10px] sm:text-xs text-muted-foreground">
+                Size
+              </Label>
+              <Select
+                value={filters.imageSize}
+                onValueChange={(value: any) =>
+                  setFilters((prev) => ({ ...prev, imageSize: value }))
+                }
+              >
+                <SelectTrigger className="h-8 sm:h-9 text-xs sm:text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="icon">Icon</SelectItem>
+                  <SelectItem value="small">Small</SelectItem>
+                  <SelectItem value="medium">Medium</SelectItem>
+                  <SelectItem value="large">Large</SelectItem>
+                  <SelectItem value="xlarge">Extra Large</SelectItem>
+                  <SelectItem value="xxlarge">XXL</SelectItem>
+                  <SelectItem value="huge">Huge</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-[10px] sm:text-xs text-muted-foreground">
+                Type
+              </Label>
+              <Select
+                value={filters.imageType}
+                onValueChange={(value: any) =>
+                  setFilters((prev) => ({ ...prev, imageType: value }))
+                }
+              >
+                <SelectTrigger className="h-8 sm:h-9 text-xs sm:text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="photo">Photo</SelectItem>
+                  <SelectItem value="clipart">Clipart</SelectItem>
+                  <SelectItem value="lineart">Line Art</SelectItem>
+                  <SelectItem value="stock">Stock</SelectItem>
+                  <SelectItem value="face">Face</SelectItem>
+                  <SelectItem value="animated">Animated</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-[10px] sm:text-xs text-muted-foreground">
+                Format
+              </Label>
+              <Select
+                value={filters.fileType || "all"}
+                onValueChange={(value: any) =>
+                  setFilters((prev) => ({
+                    ...prev,
+                    fileType: value === "all" ? "" : value,
+                  }))
+                }
+              >
+                <SelectTrigger className="h-8 sm:h-9 text-xs sm:text-sm">
+                  <SelectValue placeholder="All formats" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All formats</SelectItem>
+                  <SelectItem value="jpg">JPG</SelectItem>
+                  <SelectItem value="png">PNG</SelectItem>
+                  <SelectItem value="gif">GIF</SelectItem>
+                  <SelectItem value="webp">WebP</SelectItem>
+                  <SelectItem value="svg">SVG</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Search Info */}
+          {searchInfo && (
+            <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-[10px] sm:text-xs text-muted-foreground">
+              <span>
+                Found {searchInfo.totalResults.toLocaleString()} results in{" "}
+                {searchInfo.searchTime.toFixed(2)}s
+              </span>
+              {selectedImages.size > 0 && (
+                <Badge
+                  variant="secondary"
+                  className="gap-1 text-[10px] sm:text-xs h-5 sm:h-6"
+                >
+                  <Check className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
+                  {selectedImages.size} selected
+                </Badge>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Image Grid */}
+        <ScrollArea className="flex-1 px-4 sm:px-6 overflow-y-auto">
+          <div className="py-3 sm:py-4">
+            {/* Empty State - No Query */}
+            {!debouncedQuery && (
+              <div className="flex flex-col items-center justify-center py-8 sm:py-12 text-center">
+                <ImageIcon className="h-10 w-10 sm:h-12 sm:w-12 text-muted-foreground/50 mb-2 sm:mb-3" />
+                <p className="text-xs sm:text-sm text-muted-foreground px-4">
+                  Enter a search query to find images
+                </p>
+              </div>
+            )}
+
+            {/* Loading State */}
+            {isLoading && debouncedQuery && (
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
+                {Array.from({ length: 8 }).map((_, index) => (
+                  <div key={index} className="space-y-1.5 sm:space-y-2">
+                    <Skeleton className="aspect-square rounded-lg" />
+                    <Skeleton className="h-3 sm:h-4 w-3/4" />
+                    <Skeleton className="h-2.5 sm:h-3 w-1/2" />
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Error States */}
+            {error && !isLoading && (
+              <div className="flex flex-col items-center justify-center py-8 sm:py-12 text-center px-4">
+                <AlertCircle className="h-10 w-10 sm:h-12 sm:w-12 text-destructive mb-2 sm:mb-3" />
+                <p className="font-medium text-destructive mb-1 text-sm sm:text-base">
+                  {isQuotaExceeded
+                    ? "API Quota Exceeded"
+                    : isNetworkError
+                    ? "Network Error"
+                    : "Search Failed"}
+                </p>
+                <p className="text-xs sm:text-sm text-muted-foreground mb-3 sm:mb-4 max-w-md">
+                  {isQuotaExceeded
+                    ? "The Google Images API daily quota has been exceeded. Please try again tomorrow."
+                    : isNetworkError
+                    ? "Unable to connect to the search service. Please check your connection."
+                    : "An error occurred while searching for images. Please try again."}
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => refetch()}
+                  className="text-xs sm:text-sm"
+                >
+                  Try Again
+                </Button>
+              </div>
+            )}
+
+            {/* Empty Results */}
+            {!isLoading &&
+              !error &&
+              debouncedQuery &&
+              images.length === 0 && (
+                <div className="flex flex-col items-center justify-center py-8 sm:py-12 text-center px-4">
+                  <ImageIcon className="h-10 w-10 sm:h-12 sm:w-12 text-muted-foreground/50 mb-2 sm:mb-3" />
+                  <p className="font-medium mb-1 text-sm sm:text-base">
+                    No images found
+                  </p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">
+                    Try adjusting your search query or filters
+                  </p>
+                </div>
+              )}
+
+            {/* Image Grid */}
+            {!isLoading && !error && images.length > 0 && (
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
+                {images.map((image, index) => {
+                  const isSelected = selectedImages.has(image.url);
+                  const isHovered = hoveredImage === image.url;
+
+                  return (
+                    <div key={`${image.url}-${index}`} className="group relative">
+                      <div
+                        onClick={() => handleToggleImage(image.url)}
+                        onMouseEnter={() => setHoveredImage(image.url)}
+                        onMouseLeave={() => setHoveredImage(null)}
+                        className={cn(
+                          "relative w-full aspect-square rounded-lg overflow-hidden border-2 transition-all cursor-pointer",
+                          isSelected
+                            ? "border-primary ring-2 ring-primary ring-offset-2"
+                            : "border-transparent hover:border-muted-foreground/20"
+                        )}
+                      >
+                        <img
+                          src={image.thumbnailUrl}
+                          alt={image.title}
+                          className="w-full h-full object-cover"
+                          loading="lazy"
+                        />
+
+                        {/* Selection Overlay */}
+                        <div
+                          className={cn(
+                            "absolute inset-0 bg-black/50 flex items-center justify-center transition-opacity",
+                            isSelected || isHovered ? "opacity-100" : "opacity-0"
+                          )}
+                        >
+                          {isSelected && (
+                            <div className="bg-primary text-primary-foreground rounded-full p-2">
+                              <Check className="h-5 w-5" />
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Copy Button */}
+                        {isHovered && !isSelected && (
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            className="absolute top-1.5 sm:top-2 right-1.5 sm:right-2 h-6 w-6 sm:h-8 sm:w-8 p-0"
+                            onClick={(e) => handleCopyUrl(image.url, e)}
+                          >
+                            <Copy className="h-3 w-3 sm:h-4 sm:w-4" />
+                          </Button>
+                        )}
+                      </div>
+
+                      {/* Image Info */}
+                      <div className="mt-1.5 sm:mt-2 space-y-0.5 sm:space-y-1">
+                        <p
+                          className="text-[10px] sm:text-xs font-medium line-clamp-1"
+                          title={image.title}
+                        >
+                          {image.title}
+                        </p>
+                        <div className="flex items-center gap-1.5 sm:gap-2 text-[9px] sm:text-xs text-muted-foreground">
+                          <span className="hidden sm:inline">
+                            {image.displaySize}
+                          </span>
+                          <span className="hidden sm:inline">-</span>
+                          <span className="uppercase">{image.fileType}</span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </ScrollArea>
+
+        {/* Pagination */}
+        {pagination && pagination.totalPages > 1 && !isLoading && !error && (
+          <div className="border-t px-4 sm:px-6 py-3 flex items-center justify-between flex-shrink-0 bg-background/95 backdrop-blur-sm">
+            <div className="text-sm text-muted-foreground">
+              Page {pagination.page} of {Math.min(pagination.totalPages, 10)}
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={!pagination || currentPage === 1}
+                className="h-9 px-3 text-sm"
+              >
+                <ChevronLeft className="h-4 w-4" />
+                <span className="hidden sm:inline ml-1">Previous</span>
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={!pagination || !pagination.hasMore || currentPage >= 10}
+                className="h-9 px-3 text-sm"
+              >
+                <span className="hidden sm:inline mr-1">Next</span>
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Footer */}
+        <DialogFooter className="border-t px-4 sm:px-6 py-3 sm:py-4 flex-shrink-0 bg-background mt-auto">
+          {isUploading ? (
+            <div className="flex items-center justify-center w-full gap-3 py-2">
+              <Loader2 className="h-5 w-5 animate-spin text-primary" />
+              <span className="text-sm text-muted-foreground">{uploadProgress}</span>
+            </div>
+          ) : (
+            <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between w-full gap-2 sm:gap-0">
+              <div className="flex items-center justify-center sm:justify-start">
+                {selectedImages.size > 0 && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleClearSelection}
+                    className="text-muted-foreground text-xs sm:text-sm h-8 sm:h-9"
+                  >
+                    Clear Selection
+                  </Button>
+                )}
+              </div>
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <Button
+                  variant="outline"
+                  onClick={() => onOpenChange(false)}
+                  className="flex-1 sm:flex-initial text-xs sm:text-sm h-9"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleSelectImages}
+                  disabled={selectedImages.size === 0}
+                  className="flex-1 sm:flex-initial text-xs sm:text-sm h-9"
+                >
+                  <Check className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2" />
+                  Upload & Select {selectedImages.size > 0 ? `(${selectedImages.size})` : ""}
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}

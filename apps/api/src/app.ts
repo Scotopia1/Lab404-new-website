@@ -17,6 +17,9 @@ import { router } from './routes';
 export function createApp() {
   const app = express();
 
+  // Trust proxy for Vercel/cloud deployments
+  app.set('trust proxy', 1);
+
   // ===========================================
   // Security Middleware
   // ===========================================

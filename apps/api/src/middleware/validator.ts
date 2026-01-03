@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { ZodSchema, ZodError } from 'zod';
 import { ValidationError } from '../utils/errors';
+import { logger } from '../utils/logger';
 
 /**
  * Request validation middleware factory
@@ -21,7 +22,16 @@ export function validate<T>(schema: ZodSchema<T>, source: 'body' | 'query' | 'pa
         const details = error.errors.map((e) => ({
           field: e.path.join('.'),
           message: e.message,
+          code: e.code,
         }));
+
+        // Log detailed validation errors for debugging
+        logger.error('Validation failed', {
+          path: req.path,
+          method: req.method,
+          errors: details,
+          receivedData: source === 'body' ? JSON.stringify(req.body).substring(0, 1000) : undefined,
+        });
 
         next(new ValidationError('Validation failed', details));
       } else {

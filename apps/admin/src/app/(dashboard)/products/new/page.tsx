@@ -47,9 +47,29 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { Breadcrumbs } from "@/components/layout/breadcrumbs";
+import { GoogleImageSearch } from "@/components/google-image-search";
 import { useCreateProduct } from "@/hooks/use-products";
 import { useCategories } from "@/hooks/use-categories";
 import { slugify } from "@/lib/utils";
+
+// Helper to handle optional number inputs that may be empty strings
+const optionalPositiveNumber = z.preprocess(
+  (val) => {
+    if (val === "" || val === undefined || val === null) return undefined;
+    const num = Number(val);
+    return isNaN(num) ? undefined : num;
+  },
+  z.number().positive().optional()
+);
+
+const optionalNonNegativeNumber = z.preprocess(
+  (val) => {
+    if (val === "" || val === undefined || val === null) return undefined;
+    const num = Number(val);
+    return isNaN(num) ? undefined : num;
+  },
+  z.number().min(0).optional()
+);
 
 // Comprehensive product schema matching the API
 const productSchema = z.object({
@@ -63,40 +83,40 @@ const productSchema = z.object({
   brand: z.string().optional(),
   categoryId: z.string().optional(),
 
-  // Pricing
-  basePrice: z.coerce.number().min(0, "Price must be positive"),
-  costPrice: z.coerce.number().min(0).optional(),
-  compareAtPrice: z.coerce.number().min(0).optional(),
+  // Pricing - basePrice is required, others optional
+  basePrice: z.coerce.number().min(0.01, "Price must be greater than 0"),
+  costPrice: optionalPositiveNumber,
+  compareAtPrice: optionalPositiveNumber,
 
   // Physical attributes
-  weight: z.coerce.number().min(0).optional(),
+  weight: optionalPositiveNumber,
   dimensions: z.object({
-    width: z.coerce.number().min(0).optional(),
-    height: z.coerce.number().min(0).optional(),
-    depth: z.coerce.number().min(0).optional(),
+    width: optionalPositiveNumber,
+    height: optionalPositiveNumber,
+    depth: optionalPositiveNumber,
   }).optional(),
 
   // Inventory
-  stockQuantity: z.coerce.number().int().min(0),
-  lowStockThreshold: z.coerce.number().int().min(0),
+  stockQuantity: z.coerce.number().int().min(0).default(0),
+  lowStockThreshold: z.coerce.number().int().min(0).default(5),
   trackInventory: z.boolean(),
   allowBackorder: z.boolean(),
 
-  // Media
+  // Media - allow empty strings to be filtered out before submission
   images: z.array(z.object({
-    url: z.string().url("Invalid URL"),
+    url: z.string(),
     alt: z.string().optional(),
-  })),
+  })).default([]),
   videos: z.array(z.object({
-    url: z.string().url("Invalid URL"),
+    url: z.string(),
     title: z.string().optional(),
-  })),
-  thumbnailUrl: z.string().url().optional().or(z.literal("")),
+  })).default([]),
+  thumbnailUrl: z.string().optional(),
 
   // Organization
-  tags: z.array(z.string()),
-  features: z.array(z.string()),
-  specifications: z.record(z.string()),
+  tags: z.array(z.string()).default([]),
+  features: z.array(z.string()).default([]),
+  specifications: z.record(z.string()).default({}),
 
   // SEO
   metaTitle: z.string().max(60).optional(),
@@ -111,7 +131,7 @@ const productSchema = z.object({
   // Supplier
   supplierId: z.string().optional(),
   supplierSku: z.string().optional(),
-  externalUrl: z.string().url().optional().or(z.literal("")),
+  externalUrl: z.string().optional(),
 });
 
 type ProductFormData = z.infer<typeof productSchema>;
@@ -193,6 +213,7 @@ export default function NewProductPage() {
   const [featureInput, setFeatureInput] = useState("");
   const [specKey, setSpecKey] = useState("");
   const [specValue, setSpecValue] = useState("");
+  const [showGoogleImageSearch, setShowGoogleImageSearch] = useState(false);
 
   const {
     register,
@@ -236,16 +257,92 @@ export default function NewProductPage() {
   const specifications = watch("specifications") || {};
 
   const onSubmit = async (data: ProductFormData) => {
+    // Filter out empty images and videos - only keep entries with valid URLs
+    const filteredImages = (data.images || [])
+      .filter(img => img.url && img.url.trim())
+      .map(img => ({ url: img.url.trim(), alt: img.alt || undefined }));
+
+    const filteredVideos = (data.videos || [])
+      .filter(vid => vid.url && vid.url.trim())
+      .map(vid => ({ url: vid.url.trim(), title: vid.title || undefined }));
+
+    // Helper to convert 0/NaN/empty to undefined for optional positive number fields
+    const positiveOrUndefined = (val: number | undefined): number | undefined => {
+      if (val === undefined || val === null || isNaN(val) || val <= 0) {
+        return undefined;
+      }
+      return val;
+    };
+
+    // Clean up dimensions - remove if all values are empty/zero
+    const cleanDimensions = () => {
+      const dims = data.dimensions;
+      if (!dims) return undefined;
+
+      const width = positiveOrUndefined(dims.width);
+      const height = positiveOrUndefined(dims.height);
+      const depth = positiveOrUndefined(dims.depth);
+
+      // Only include dimensions if at least one value is set
+      if (width || height || depth) {
+        return { width, height, depth };
+      }
+      return undefined;
+    };
+
     // Transform data to match API expectations
     const apiData = {
-      ...data,
-      basePrice: data.basePrice,
-      costPrice: data.costPrice || undefined,
-      compareAtPrice: data.compareAtPrice || undefined,
-      weight: data.weight || undefined,
-      thumbnailUrl: data.thumbnailUrl || undefined,
-      externalUrl: data.externalUrl || undefined,
+      // Required fields
+      name: data.name,
+      slug: data.slug,
+      basePrice: data.basePrice > 0 ? data.basePrice : 0.01, // API requires positive, default to minimum
+
+      // Optional string fields
+      description: data.description || undefined,
+      shortDescription: data.shortDescription || undefined,
+      sku: data.sku || undefined,
+      barcode: data.barcode || undefined,
+      brand: data.brand || undefined,
       categoryId: data.categoryId || undefined,
+
+      // Optional positive number fields - API requires positive() when present
+      costPrice: positiveOrUndefined(data.costPrice),
+      compareAtPrice: positiveOrUndefined(data.compareAtPrice),
+      weight: positiveOrUndefined(data.weight),
+
+      // Dimensions object
+      dimensions: cleanDimensions(),
+
+      // Inventory - these have defaults in API so safe to send
+      stockQuantity: data.stockQuantity || 0,
+      lowStockThreshold: data.lowStockThreshold || 5,
+      trackInventory: data.trackInventory,
+      allowBackorder: data.allowBackorder,
+
+      // Media - filtered arrays
+      images: filteredImages,
+      videos: filteredVideos,
+      thumbnailUrl: data.thumbnailUrl && data.thumbnailUrl.trim() ? data.thumbnailUrl.trim() : undefined,
+
+      // Tags, features, specifications
+      tags: data.tags || [],
+      features: data.features || [],
+      specifications: data.specifications || {},
+
+      // SEO
+      metaTitle: data.metaTitle || undefined,
+      metaDescription: data.metaDescription || undefined,
+
+      // Status flags
+      status: data.status,
+      isFeatured: data.isFeatured,
+      isDigital: data.isDigital,
+      requiresShipping: data.requiresShipping,
+
+      // Supplier
+      supplierId: data.supplierId || undefined,
+      supplierSku: data.supplierSku || undefined,
+      externalUrl: data.externalUrl && data.externalUrl.trim() ? data.externalUrl.trim() : undefined,
     };
 
     await createProduct.mutateAsync(apiData);
@@ -293,6 +390,22 @@ export default function NewProductPage() {
     const newSpecs = { ...specifications };
     delete newSpecs[keyToRemove];
     setValue("specifications", newSpecs);
+  };
+
+  // Handle images selected from Google Image Search
+  const handleGoogleImagesSelected = (imageUrls: string[]) => {
+    // Filter out empty images and add new ones
+    const currentImages = imageFields.filter(img => {
+      const url = watch(`images.${imageFields.indexOf(img)}.url`);
+      return url && url.trim();
+    });
+
+    // Add each new image URL
+    imageUrls.forEach((url) => {
+      appendImage({ url, alt: "" });
+    });
+
+    setShowGoogleImageSearch(false);
   };
 
   return (
@@ -564,21 +677,82 @@ export default function NewProductPage() {
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <Label>Product Images</Label>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => appendImage({ url: "", alt: "" })}
-                    >
-                      <Plus className="h-4 w-4 mr-1" /> Add Image
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setShowGoogleImageSearch(true)}
+                      >
+                        <Search className="h-4 w-4 mr-1" /> Search Images
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => appendImage({ url: "", alt: "" })}
+                      >
+                        <Plus className="h-4 w-4 mr-1" /> Add Image
+                      </Button>
+                    </div>
                   </div>
+
+                  {/* Image Preview Grid */}
+                  {imageFields.length > 0 && (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                      {imageFields.map((field, index) => {
+                        const imageUrl = watch(`images.${index}.url`);
+                        return (
+                          <div key={field.id} className="relative group">
+                            <div className="aspect-square rounded-lg border-2 border-dashed border-muted-foreground/25 overflow-hidden bg-muted/50">
+                              {imageUrl ? (
+                                <img
+                                  src={imageUrl}
+                                  alt={watch(`images.${index}.alt`) || `Product image ${index + 1}`}
+                                  className="w-full h-full object-cover"
+                                  onError={(e) => {
+                                    (e.target as HTMLImageElement).src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='1'%3E%3Crect x='3' y='3' width='18' height='18' rx='2' ry='2'/%3E%3Ccircle cx='8.5' cy='8.5' r='1.5'/%3E%3Cpolyline points='21 15 16 10 5 21'/%3E%3C/svg%3E";
+                                  }}
+                                />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center">
+                                  <ImageIcon className="h-8 w-8 text-muted-foreground/50" />
+                                </div>
+                              )}
+                            </div>
+                            {/* Overlay with actions */}
+                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center gap-2">
+                              <Button
+                                type="button"
+                                variant="secondary"
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={() => removeImage(index)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                            {/* Image number badge */}
+                            <div className="absolute top-1 left-1 bg-black/70 text-white text-xs px-1.5 py-0.5 rounded">
+                              {index + 1}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
                   {imageFields.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">No images added yet</p>
+                    <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center">
+                      <ImageIcon className="h-10 w-10 mx-auto text-muted-foreground/50 mb-2" />
+                      <p className="text-sm text-muted-foreground">No images added yet</p>
+                      <p className="text-xs text-muted-foreground mt-1">Click "Search Images" or "Add Image" to get started</p>
+                    </div>
                   ) : (
                     <div className="space-y-2">
                       {imageFields.map((field, index) => (
                         <div key={field.id} className="flex gap-2 items-start">
+                          <span className="text-xs text-muted-foreground mt-2.5 w-6">{index + 1}.</span>
                           <div className="flex-1 grid gap-2 sm:grid-cols-2">
                             <Input
                               {...register(`images.${index}.url`)}
@@ -1001,6 +1175,16 @@ export default function NewProductPage() {
           </Button>
         </div>
       </form>
+
+      {/* Google Image Search Dialog */}
+      <GoogleImageSearch
+        open={showGoogleImageSearch}
+        onOpenChange={setShowGoogleImageSearch}
+        onSelectImages={handleGoogleImagesSelected}
+        multiSelect={true}
+        maxSelections={10}
+        initialQuery={watch("name") || ""}
+      />
     </div>
   );
 }
