@@ -20,6 +20,7 @@ import {
   Search,
   Settings,
   FileText,
+  Star,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -195,6 +196,7 @@ export default function NewProductPage() {
   const [specKey, setSpecKey] = useState("");
   const [specValue, setSpecValue] = useState("");
   const [showGoogleImageSearch, setShowGoogleImageSearch] = useState(false);
+  const [thumbnailIndex, setThumbnailIndex] = useState(0); // First image is default thumbnail
 
   const {
     register,
@@ -303,7 +305,10 @@ export default function NewProductPage() {
       // Media - filtered arrays
       images: filteredImages,
       videos: filteredVideos,
-      thumbnailUrl: data.thumbnailUrl && data.thumbnailUrl.trim() ? data.thumbnailUrl.trim() : undefined,
+      // Use the selected thumbnail image, or default to first image
+      thumbnailUrl: filteredImages.length > 0
+        ? filteredImages[Math.min(thumbnailIndex, filteredImages.length - 1)]?.url
+        : undefined,
 
       // Tags, features, specifications
       tags: data.tags || [],
@@ -683,9 +688,18 @@ export default function NewProductPage() {
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                       {imageFields.map((field, index) => {
                         const imageUrl = watch(`images.${index}.url`);
+                        const isThumbnail = index === thumbnailIndex;
                         return (
                           <div key={field.id} className="relative group">
-                            <div className="aspect-square rounded-lg border-2 border-dashed border-muted-foreground/25 overflow-hidden bg-muted/50">
+                            <div
+                              className={`aspect-square rounded-lg border-2 overflow-hidden bg-muted/50 cursor-pointer transition-all ${
+                                isThumbnail
+                                  ? "border-primary ring-2 ring-primary/20"
+                                  : "border-dashed border-muted-foreground/25 hover:border-muted-foreground/50"
+                              }`}
+                              onClick={() => imageUrl && setThumbnailIndex(index)}
+                              title={imageUrl ? "Click to set as thumbnail" : ""}
+                            >
                               {imageUrl ? (
                                 <img
                                   src={imageUrl}
@@ -703,20 +717,48 @@ export default function NewProductPage() {
                             </div>
                             {/* Overlay with actions */}
                             <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center gap-2">
+                              {!isThumbnail && imageUrl && (
+                                <Button
+                                  type="button"
+                                  variant="secondary"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  onClick={() => setThumbnailIndex(index)}
+                                  title="Set as thumbnail"
+                                >
+                                  <Star className="h-4 w-4" />
+                                </Button>
+                              )}
                               <Button
                                 type="button"
                                 variant="secondary"
                                 size="icon"
                                 className="h-8 w-8"
-                                onClick={() => removeImage(index)}
+                                onClick={() => {
+                                  removeImage(index);
+                                  // Adjust thumbnail index if needed
+                                  if (index < thumbnailIndex) {
+                                    setThumbnailIndex(prev => Math.max(0, prev - 1));
+                                  } else if (index === thumbnailIndex && imageFields.length > 1) {
+                                    setThumbnailIndex(0);
+                                  }
+                                }}
                               >
                                 <Trash2 className="h-4 w-4" />
                               </Button>
                             </div>
-                            {/* Image number badge */}
-                            <div className="absolute top-1 left-1 bg-black/70 text-white text-xs px-1.5 py-0.5 rounded">
-                              {index + 1}
-                            </div>
+                            {/* Thumbnail badge */}
+                            {isThumbnail && imageUrl && (
+                              <div className="absolute top-1 left-1 bg-primary text-primary-foreground text-xs px-1.5 py-0.5 rounded flex items-center gap-1">
+                                <Star className="h-3 w-3 fill-current" /> Thumbnail
+                              </div>
+                            )}
+                            {/* Image number badge (only if not thumbnail) */}
+                            {(!isThumbnail || !imageUrl) && (
+                              <div className="absolute top-1 left-1 bg-black/70 text-white text-xs px-1.5 py-0.5 rounded">
+                                {index + 1}
+                              </div>
+                            )}
                           </div>
                         );
                       })}
@@ -730,6 +772,10 @@ export default function NewProductPage() {
                       <p className="text-xs text-muted-foreground mt-1">Click "Search Images" or "Add Image" to get started</p>
                     </div>
                   ) : (
+                    <>
+                    <p className="text-xs text-muted-foreground">
+                      Click on an image to set it as the thumbnail. The first image is selected by default.
+                    </p>
                     <div className="space-y-2">
                       {imageFields.map((field, index) => (
                         <div key={field.id} className="flex gap-2 items-start">
@@ -755,17 +801,8 @@ export default function NewProductPage() {
                         </div>
                       ))}
                     </div>
+                    </>
                   )}
-                </div>
-
-                {/* Thumbnail */}
-                <div className="space-y-2">
-                  <Label htmlFor="thumbnailUrl">Thumbnail URL</Label>
-                  <Input
-                    id="thumbnailUrl"
-                    {...register("thumbnailUrl")}
-                    placeholder="https://example.com/thumbnail.jpg"
-                  />
                 </div>
 
                 {/* Videos */}
