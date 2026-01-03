@@ -88,8 +88,8 @@ export default function CustomerDetailPage() {
                     <p>
                       {addr.firstName} {addr.lastName}
                     </p>
-                    <p>{addr.address1}</p>
-                    {addr.address2 && <p>{addr.address2}</p>}
+                    <p>{addr.addressLine1}</p>
+                    {addr.addressLine2 && <p>{addr.addressLine2}</p>}
                     <p>
                       {addr.city}, {addr.state} {addr.postalCode}
                     </p>

@@ -518,6 +518,203 @@ customersRoutes.delete('/:id', requireAuth, requireAdmin, async (req, res, next)
   }
 });
 
+// ===========================================
+// Admin Customer Address Routes
+// ===========================================
+
+/**
+ * GET /api/customers/:id/addresses
+ * Get customer addresses (Admin only)
+ */
+customersRoutes.get('/:id/addresses', requireAuth, requireAdmin, async (req, res, next) => {
+  try {
+    const db = getDb();
+    const customerId = req.params['id'] as string;
+
+    // Verify customer exists
+    const [customer] = await db
+      .select({ id: customers.id })
+      .from(customers)
+      .where(eq(customers.id, customerId));
+
+    if (!customer) {
+      throw new NotFoundError('Customer not found');
+    }
+
+    const customerAddresses = await db
+      .select()
+      .from(addresses)
+      .where(eq(addresses.customerId, customerId));
+
+    sendSuccess(res, customerAddresses);
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * POST /api/customers/:id/addresses
+ * Add address to customer (Admin only)
+ */
+customersRoutes.post(
+  '/:id/addresses',
+  requireAuth,
+  requireAdmin,
+  validateBody(addressSchema),
+  async (req, res, next) => {
+    try {
+      const db = getDb();
+      const customerId = req.params['id'] as string;
+      const data = req.body;
+
+      // Verify customer exists
+      const [customer] = await db
+        .select({ id: customers.id })
+        .from(customers)
+        .where(eq(customers.id, customerId));
+
+      if (!customer) {
+        throw new NotFoundError('Customer not found');
+      }
+
+      // If setting as default, unset other defaults of same type
+      if (data.isDefault) {
+        await db
+          .update(addresses)
+          .set({ isDefault: false })
+          .where(
+            and(
+              eq(addresses.customerId, customerId),
+              eq(addresses.type, data.type)
+            )
+          );
+      }
+
+      const addressResult = await db
+        .insert(addresses)
+        .values({
+          customerId,
+          ...data,
+        })
+        .returning();
+      const address = addressResult[0];
+
+      sendCreated(res, address);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+/**
+ * PUT /api/customers/:id/addresses/:addressId
+ * Update customer address (Admin only)
+ */
+customersRoutes.put(
+  '/:id/addresses/:addressId',
+  requireAuth,
+  requireAdmin,
+  validateBody(addressSchema.partial()),
+  async (req, res, next) => {
+    try {
+      const db = getDb();
+      const customerId = req.params['id'] as string;
+      const addressId = req.params['addressId'] as string;
+      const data = req.body;
+
+      // Verify customer exists
+      const [customer] = await db
+        .select({ id: customers.id })
+        .from(customers)
+        .where(eq(customers.id, customerId));
+
+      if (!customer) {
+        throw new NotFoundError('Customer not found');
+      }
+
+      // Verify address belongs to customer
+      const [existing] = await db
+        .select()
+        .from(addresses)
+        .where(
+          and(
+            eq(addresses.id, addressId),
+            eq(addresses.customerId, customerId)
+          )
+        );
+
+      if (!existing) {
+        throw new NotFoundError('Address not found');
+      }
+
+      // If setting as default, unset other defaults of same type
+      if (data.isDefault) {
+        await db
+          .update(addresses)
+          .set({ isDefault: false })
+          .where(
+            and(
+              eq(addresses.customerId, customerId),
+              eq(addresses.type, data.type || existing.type)
+            )
+          );
+      }
+
+      const addressResult = await db
+        .update(addresses)
+        .set({
+          ...data,
+          updatedAt: new Date(),
+        })
+        .where(eq(addresses.id, addressId))
+        .returning();
+      const address = addressResult[0];
+
+      sendSuccess(res, address);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+/**
+ * DELETE /api/customers/:id/addresses/:addressId
+ * Delete customer address (Admin only)
+ */
+customersRoutes.delete(
+  '/:id/addresses/:addressId',
+  requireAuth,
+  requireAdmin,
+  async (req, res, next) => {
+    try {
+      const db = getDb();
+      const customerId = req.params['id'] as string;
+      const addressId = req.params['addressId'] as string;
+
+      // Verify address belongs to customer
+      const [existing] = await db
+        .select({ id: addresses.id })
+        .from(addresses)
+        .where(
+          and(
+            eq(addresses.id, addressId),
+            eq(addresses.customerId, customerId)
+          )
+        );
+
+      if (!existing) {
+        throw new NotFoundError('Address not found');
+      }
+
+      await db.delete(addresses).where(eq(addresses.id, addressId));
+
+      sendNoContent(res);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
 /**
  * GET /api/customers/:id/orders
  * Get customer orders (Admin only)

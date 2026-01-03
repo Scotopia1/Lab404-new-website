@@ -7,7 +7,7 @@ import { promoCodes } from './promoCodes';
 // Enums
 export const orderStatusEnum = pgEnum('order_status', ['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled']);
 export const paymentStatusEnum = pgEnum('payment_status', ['pending', 'paid', 'refunded', 'failed']);
-export const paymentMethodEnum = pgEnum('payment_method', ['cod', 'stripe', 'paypal']);
+export const paymentMethodEnum = pgEnum('payment_method', ['cod', 'stripe', 'paypal', 'bank_transfer', 'cash']);
 
 // Address type for JSON columns
 type AddressJson = {
@@ -57,6 +57,8 @@ export const orders = pgTable('orders', {
   // Shipping
   shippingMethod: varchar('shipping_method', { length: 100 }),
   trackingNumber: varchar('tracking_number', { length: 255 }),
+  confirmedAt: timestamp('confirmed_at'),
+  processingAt: timestamp('processing_at'),
   shippedAt: timestamp('shipped_at'),
   deliveredAt: timestamp('delivered_at'),
 

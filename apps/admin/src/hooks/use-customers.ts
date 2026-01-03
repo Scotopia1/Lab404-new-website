@@ -4,15 +4,34 @@ import { toast } from "sonner";
 
 export interface CustomerAddress {
   id: string;
+  customerId: string;
   type: "shipping" | "billing";
   isDefault: boolean;
   firstName: string;
   lastName: string;
-  address1: string;
-  address2?: string;
+  company?: string;
+  addressLine1: string;
+  addressLine2?: string;
   city: string;
-  state: string;
-  postalCode: string;
+  state?: string;
+  postalCode?: string;
+  country: string;
+  phone?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AddressInput {
+  type: "shipping" | "billing";
+  isDefault?: boolean;
+  firstName: string;
+  lastName: string;
+  company?: string;
+  addressLine1: string;
+  addressLine2?: string;
+  city: string;
+  state?: string;
+  postalCode?: string;
   country: string;
   phone?: string;
 }
@@ -111,6 +130,104 @@ export function useDeactivateCustomer() {
     },
     onError: (error: Error) => {
       toast.error(error.message || "Failed to deactivate customer");
+    },
+  });
+}
+
+// ===========================================
+// Customer Address Hooks
+// ===========================================
+
+export function useCustomerAddresses(customerId: string | null) {
+  return useQuery({
+    queryKey: ["customers", customerId, "addresses"],
+    queryFn: async () => {
+      const res = await api.get<ApiResponse<CustomerAddress[]>>(
+        `/customers/${customerId}/addresses`
+      );
+      return res.data.data;
+    },
+    enabled: !!customerId,
+  });
+}
+
+export function useAddCustomerAddress() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      customerId,
+      data,
+    }: {
+      customerId: string;
+      data: AddressInput;
+    }) => {
+      const res = await api.post<ApiResponse<CustomerAddress>>(
+        `/customers/${customerId}/addresses`,
+        data
+      );
+      return res.data.data;
+    },
+    onSuccess: (_, { customerId }) => {
+      queryClient.invalidateQueries({ queryKey: ["customers", customerId] });
+      queryClient.invalidateQueries({ queryKey: ["customers", customerId, "addresses"] });
+      toast.success("Address added successfully");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to add address");
+    },
+  });
+}
+
+export function useUpdateCustomerAddress() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      customerId,
+      addressId,
+      data,
+    }: {
+      customerId: string;
+      addressId: string;
+      data: Partial<AddressInput>;
+    }) => {
+      const res = await api.put<ApiResponse<CustomerAddress>>(
+        `/customers/${customerId}/addresses/${addressId}`,
+        data
+      );
+      return res.data.data;
+    },
+    onSuccess: (_, { customerId }) => {
+      queryClient.invalidateQueries({ queryKey: ["customers", customerId] });
+      queryClient.invalidateQueries({ queryKey: ["customers", customerId, "addresses"] });
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to update address");
+    },
+  });
+}
+
+export function useDeleteCustomerAddress() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      customerId,
+      addressId,
+    }: {
+      customerId: string;
+      addressId: string;
+    }) => {
+      await api.delete(`/customers/${customerId}/addresses/${addressId}`);
+    },
+    onSuccess: (_, { customerId }) => {
+      queryClient.invalidateQueries({ queryKey: ["customers", customerId] });
+      queryClient.invalidateQueries({ queryKey: ["customers", customerId, "addresses"] });
+      toast.success("Address deleted successfully");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to delete address");
     },
   });
 }

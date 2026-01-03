@@ -10,9 +10,24 @@ import {
   CheckCircle,
   XCircle,
   Package,
+  Search,
+  Plus,
+  StickyNote,
+  Loader2,
 } from "lucide-react";
 import { DataTable, BulkAction } from "@/components/data-table/data-table";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -30,9 +45,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { OrderStatusBadge } from "@/components/shared/status-badge";
+import { OrderStatusBadge, PaymentStatusBadge } from "@/components/shared/status-badge";
 import { Breadcrumbs } from "@/components/layout/breadcrumbs";
-import { useOrders, Order, OrderStatus } from "@/hooks/use-orders";
+import { useOrders, useDebounce, useUpdateOrder, Order, OrderStatus, PaymentStatus } from "@/hooks/use-orders";
 import { formatCurrency, formatDateTime } from "@/lib/utils";
 import { api } from "@/lib/api-client";
 import { toast } from "sonner";
@@ -42,17 +57,28 @@ export default function OrdersPage() {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(20);
   const [status, setStatus] = useState<OrderStatus | "all">("all");
+  const [paymentStatus, setPaymentStatus] = useState<PaymentStatus | "all">("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const debouncedSearch = useDebounce(searchQuery, 300);
   const [bulkStatusUpdate, setBulkStatusUpdate] = useState<{
     ids: string[];
     status: OrderStatus;
+  } | null>(null);
+  const [notesDialog, setNotesDialog] = useState<{
+    orderId: string;
+    orderNumber: string;
+    notes: string;
   } | null>(null);
 
   const { data, isLoading } = useOrders({
     page,
     limit,
     status: status === "all" ? undefined : status,
+    paymentStatus: paymentStatus === "all" ? undefined : paymentStatus,
+    search: debouncedSearch || undefined,
   });
 
+  const updateOrder = useUpdateOrder();
   const queryClient = useQueryClient();
 
   const handleBulkStatusUpdate = async () => {
@@ -60,7 +86,7 @@ export default function OrdersPage() {
     try {
       await Promise.all(
         bulkStatusUpdate.ids.map((id) =>
-          api.patch(`/orders/${id}/status`, { status: bulkStatusUpdate.status })
+          api.put(`/orders/${id}`, { status: bulkStatusUpdate.status })
         )
       );
       queryClient.invalidateQueries({ queryKey: ["orders"] });
@@ -107,6 +133,15 @@ export default function OrdersPage() {
     a.click();
     window.URL.revokeObjectURL(url);
     toast.success(`${orders.length} orders exported`);
+  };
+
+  const handleSaveNotes = async () => {
+    if (!notesDialog) return;
+    await updateOrder.mutateAsync({
+      id: notesDialog.orderId,
+      data: { adminNotes: notesDialog.notes },
+    });
+    setNotesDialog(null);
   };
 
   const bulkActions: BulkAction<Order>[] = [
@@ -183,6 +218,11 @@ export default function OrdersPage() {
       cell: ({ row }) => <OrderStatusBadge status={row.original.status} />,
     },
     {
+      accessorKey: "paymentStatus",
+      header: "Payment",
+      cell: ({ row }) => <PaymentStatusBadge status={row.original.paymentStatus} />,
+    },
+    {
       accessorKey: "total",
       header: "Total",
       cell: ({ row }) => formatCurrency(row.original.total),
@@ -195,11 +235,27 @@ export default function OrdersPage() {
     {
       id: "actions",
       cell: ({ row }) => (
-        <Button variant="ghost" size="icon" asChild>
-          <Link href={`/orders/${row.original.id}`}>
-            <Eye className="h-4 w-4" />
-          </Link>
-        </Button>
+        <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() =>
+              setNotesDialog({
+                orderId: row.original.id,
+                orderNumber: row.original.orderNumber,
+                notes: row.original.adminNotes || "",
+              })
+            }
+            title="Quick Notes"
+          >
+            <StickyNote className="h-4 w-4" />
+          </Button>
+          <Button variant="ghost" size="icon" asChild>
+            <Link href={`/orders/${row.original.id}`}>
+              <Eye className="h-4 w-4" />
+            </Link>
+          </Button>
+        </div>
       ),
     },
   ];
@@ -215,33 +271,69 @@ export default function OrdersPage() {
             View and manage customer orders
           </p>
         </div>
-        <Select
-          value={status}
-          onValueChange={(v) => {
-            setStatus(v as OrderStatus | "all");
-            setPage(1);
-          }}
-        >
-          <SelectTrigger className="w-[150px]">
-            <SelectValue placeholder="Filter status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Orders</SelectItem>
-            <SelectItem value="pending">Pending</SelectItem>
-            <SelectItem value="confirmed">Confirmed</SelectItem>
-            <SelectItem value="processing">Processing</SelectItem>
-            <SelectItem value="shipped">Shipped</SelectItem>
-            <SelectItem value="delivered">Delivered</SelectItem>
-            <SelectItem value="cancelled">Cancelled</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="flex gap-2">
+          <Button asChild>
+            <Link href="/orders/new">
+              <Plus className="mr-2 h-4 w-4" />
+              Create Order
+            </Link>
+          </Button>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Search by customer name, email, or order #..."
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setPage(1);
+              }}
+              className="w-[300px] pl-9"
+            />
+          </div>
+          <Select
+            value={status}
+            onValueChange={(v) => {
+              setStatus(v as OrderStatus | "all");
+              setPage(1);
+            }}
+          >
+            <SelectTrigger className="w-[150px]">
+              <SelectValue placeholder="Order status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Statuses</SelectItem>
+              <SelectItem value="pending">Pending</SelectItem>
+              <SelectItem value="confirmed">Confirmed</SelectItem>
+              <SelectItem value="processing">Processing</SelectItem>
+              <SelectItem value="shipped">Shipped</SelectItem>
+              <SelectItem value="delivered">Delivered</SelectItem>
+              <SelectItem value="cancelled">Cancelled</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select
+            value={paymentStatus}
+            onValueChange={(v) => {
+              setPaymentStatus(v as PaymentStatus | "all");
+              setPage(1);
+            }}
+          >
+            <SelectTrigger className="w-[150px]">
+              <SelectValue placeholder="Payment status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Payments</SelectItem>
+              <SelectItem value="pending">Pending</SelectItem>
+              <SelectItem value="paid">Paid</SelectItem>
+              <SelectItem value="refunded">Refunded</SelectItem>
+              <SelectItem value="failed">Failed</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       <DataTable
         columns={columns}
         data={data?.data || []}
-        searchKey="orderNumber"
-        searchPlaceholder="Search orders..."
         isLoading={isLoading}
         pagination={data?.meta}
         onPageChange={setPage}
@@ -286,6 +378,45 @@ export default function OrdersPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Quick Notes Dialog */}
+      <Dialog open={!!notesDialog} onOpenChange={() => setNotesDialog(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Admin Notes - Order #{notesDialog?.orderNumber}</DialogTitle>
+            <DialogDescription>
+              Add internal notes for this order. These notes are only visible to admins.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="admin-notes">Notes</Label>
+              <Textarea
+                id="admin-notes"
+                value={notesDialog?.notes || ""}
+                onChange={(e) =>
+                  setNotesDialog((prev) =>
+                    prev ? { ...prev, notes: e.target.value } : null
+                  )
+                }
+                placeholder="Enter admin notes..."
+                rows={5}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setNotesDialog(null)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveNotes} disabled={updateOrder.isPending}>
+              {updateOrder.isPending && (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              )}
+              Save Notes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
