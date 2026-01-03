@@ -182,20 +182,28 @@ productsRoutes.get('/', validateQuery(productFiltersSchema), async (req, res, ne
         status: products.status,
         isFeatured: products.isFeatured,
         categoryId: products.categoryId,
+        categoryName: categories.name,
+        categorySlug: categories.slug,
       })
       .from(products)
+      .leftJoin(categories, eq(products.categoryId, categories.id))
       .where(and(...conditions))
       .orderBy(sortOrder === 'desc' ? desc(products.createdAt) : asc(products.createdAt))
       .limit(limit)
       .offset(offset);
 
-    // Add computed inStock field and ensure images is an array
+    // Add computed inStock field, category object, and ensure images is an array
     const productsWithStock = productList.map(p => ({
       ...p,
       basePrice: Number(p.basePrice),
       compareAtPrice: p.compareAtPrice ? Number(p.compareAtPrice) : undefined,
       images: p.images || [],
       inStock: p.stockQuantity > 0,
+      category: p.categoryId && p.categoryName ? {
+        id: p.categoryId,
+        name: p.categoryName,
+        slug: p.categorySlug,
+      } : null,
     }));
 
     sendSuccess(res, productsWithStock, 200, createPaginationMeta(page, limit, Number(count)));
