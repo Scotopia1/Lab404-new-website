@@ -144,27 +144,34 @@ export default function ProductsPage() {
     {
       accessorKey: "name",
       header: "Product",
-      cell: ({ row }) => (
-        <div className="flex items-center gap-3">
-          {row.original.images?.[0] ? (
-            <img
-              src={row.original.images[0].url}
-              alt={row.original.name}
-              className="h-10 w-10 rounded-md object-cover"
-            />
-          ) : (
-            <div className="h-10 w-10 rounded-md bg-muted flex items-center justify-center text-xs text-muted-foreground">
-              No img
-            </div>
-          )}
-          <div>
-            <div className="font-medium">{row.original.name}</div>
-            <div className="text-sm text-muted-foreground">
-              {row.original.sku || "No SKU"}
+      cell: ({ row }) => {
+        // Use thumbnailUrl first, then fall back to first image
+        const imageUrl = row.original.thumbnailUrl || row.original.images?.[0]?.url;
+        return (
+          <div className="flex items-center gap-3">
+            {imageUrl ? (
+              <img
+                src={imageUrl}
+                alt={row.original.name}
+                className="h-10 w-10 rounded-md object-cover"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = 'none';
+                }}
+              />
+            ) : (
+              <div className="h-10 w-10 rounded-md bg-muted flex items-center justify-center text-xs text-muted-foreground">
+                No img
+              </div>
+            )}
+            <div>
+              <div className="font-medium">{row.original.name}</div>
+              <div className="text-sm text-muted-foreground">
+                {row.original.sku || "No SKU"}
+              </div>
             </div>
           </div>
-        </div>
-      ),
+        );
+      },
     },
     {
       accessorKey: "status",

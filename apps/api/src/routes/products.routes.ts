@@ -174,9 +174,11 @@ productsRoutes.get('/', validateQuery(productFiltersSchema), async (req, res, ne
         name: products.name,
         slug: products.slug,
         thumbnailUrl: products.thumbnailUrl,
+        images: products.images,
         basePrice: products.basePrice,
         compareAtPrice: products.compareAtPrice,
         stockQuantity: products.stockQuantity,
+        lowStockThreshold: products.lowStockThreshold,
         status: products.status,
         isFeatured: products.isFeatured,
         categoryId: products.categoryId,
@@ -187,11 +189,12 @@ productsRoutes.get('/', validateQuery(productFiltersSchema), async (req, res, ne
       .limit(limit)
       .offset(offset);
 
-    // Add computed inStock field
+    // Add computed inStock field and ensure images is an array
     const productsWithStock = productList.map(p => ({
       ...p,
       basePrice: Number(p.basePrice),
       compareAtPrice: p.compareAtPrice ? Number(p.compareAtPrice) : undefined,
+      images: p.images || [],
       inStock: p.stockQuantity > 0,
     }));
 
