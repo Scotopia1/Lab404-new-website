@@ -27,6 +27,7 @@ const entityIcons: Record<string, React.ComponentType<{ className?: string }>> =
   blog: FileText,
   promo_code: Ticket,
   setting: Settings,
+  settings: Settings,
   user: User,
 };
 
@@ -35,9 +36,11 @@ const actionColors: Record<string, "default" | "success" | "destructive" | "warn
   update: "info",
   delete: "destructive",
   login: "default",
-  logout: "secondary" as "default",
+  logout: "default",
   publish: "success",
   unpublish: "warning",
+  bulk_update: "info",
+  reset: "warning",
 };
 
 export default function ActivityLogsPage() {
@@ -46,99 +49,7 @@ export default function ActivityLogsPage() {
 
   const { data, isLoading } = useActivityLogs({ page, limit });
 
-  // Mock data for demonstration
-  const mockLogs: ActivityLog[] = [
-    {
-      id: "1",
-      action: "create",
-      entity: "product",
-      entityId: "prod-1",
-      adminId: "admin-1",
-      admin: { email: "admin@lab404.com", firstName: "John", lastName: "Doe" },
-      details: { productName: "Arduino Uno R3" },
-      ipAddress: "192.168.1.1",
-      createdAt: new Date().toISOString(),
-    },
-    {
-      id: "2",
-      action: "update",
-      entity: "order",
-      entityId: "ord-1",
-      adminId: "admin-1",
-      admin: { email: "admin@lab404.com", firstName: "John", lastName: "Doe" },
-      details: { orderNumber: "ORD-10001", status: "shipped" },
-      ipAddress: "192.168.1.1",
-      createdAt: new Date(Date.now() - 3600000).toISOString(),
-    },
-    {
-      id: "3",
-      action: "delete",
-      entity: "promo_code",
-      entityId: "promo-1",
-      adminId: "admin-2",
-      admin: { email: "manager@lab404.com", firstName: "Jane", lastName: "Smith" },
-      details: { code: "SUMMER20" },
-      ipAddress: "192.168.1.2",
-      createdAt: new Date(Date.now() - 7200000).toISOString(),
-    },
-    {
-      id: "4",
-      action: "publish",
-      entity: "blog",
-      entityId: "blog-1",
-      adminId: "admin-1",
-      admin: { email: "admin@lab404.com", firstName: "John", lastName: "Doe" },
-      details: { title: "Getting Started with Arduino" },
-      ipAddress: "192.168.1.1",
-      createdAt: new Date(Date.now() - 10800000).toISOString(),
-    },
-    {
-      id: "5",
-      action: "login",
-      entity: "user",
-      entityId: "admin-1",
-      adminId: "admin-1",
-      admin: { email: "admin@lab404.com", firstName: "John", lastName: "Doe" },
-      details: null,
-      ipAddress: "192.168.1.1",
-      createdAt: new Date(Date.now() - 14400000).toISOString(),
-    },
-    {
-      id: "6",
-      action: "update",
-      entity: "setting",
-      entityId: "tax-rate",
-      adminId: "admin-2",
-      admin: { email: "manager@lab404.com", firstName: "Jane", lastName: "Smith" },
-      details: { key: "taxRate", oldValue: 8, newValue: 10 },
-      ipAddress: "192.168.1.2",
-      createdAt: new Date(Date.now() - 18000000).toISOString(),
-    },
-    {
-      id: "7",
-      action: "create",
-      entity: "category",
-      entityId: "cat-1",
-      adminId: "admin-1",
-      admin: { email: "admin@lab404.com", firstName: "John", lastName: "Doe" },
-      details: { name: "Sensors" },
-      ipAddress: "192.168.1.1",
-      createdAt: new Date(Date.now() - 21600000).toISOString(),
-    },
-    {
-      id: "8",
-      action: "update",
-      entity: "customer",
-      entityId: "cust-1",
-      adminId: "admin-2",
-      admin: { email: "manager@lab404.com", firstName: "Jane", lastName: "Smith" },
-      details: { customer: "customer@example.com", field: "isActive", value: false },
-      ipAddress: "192.168.1.2",
-      createdAt: new Date(Date.now() - 25200000).toISOString(),
-    },
-  ];
-
-  const logs = data?.data || mockLogs;
+  const logs = data?.data || [];
 
   const columns: ColumnDef<ActivityLog>[] = [
     {
@@ -179,14 +90,14 @@ export default function ActivityLogsPage() {
       ),
     },
     {
-      accessorKey: "entity",
+      accessorKey: "entityType",
       header: "Entity",
       cell: ({ row }) => {
-        const Icon = entityIcons[row.original.entity] || Activity;
+        const Icon = entityIcons[row.original.entityType] || Activity;
         return (
           <div className="flex items-center gap-2">
             <Icon className="h-4 w-4 text-muted-foreground" />
-            <span className="capitalize">{row.original.entity.replace("_", " ")}</span>
+            <span className="capitalize">{row.original.entityType.replace("_", " ")}</span>
           </div>
         );
       },
@@ -213,6 +124,19 @@ export default function ActivityLogsPage() {
           return (
             <span>
               {details.key as string}: {String(details.oldValue)} → {String(details.newValue)}
+            </span>
+          );
+        if (details.updatedKeys)
+          return (
+            <span>
+              Updated: {(details.updatedKeys as string[]).slice(0, 3).join(", ")}
+              {(details.updatedKeys as string[]).length > 3 && "..."}
+            </span>
+          );
+        if (details.resetKeys)
+          return (
+            <span>
+              Reset: {details.resetKeys === "all" ? "All settings" : (details.resetKeys as string[]).join(", ")}
             </span>
           );
         if (details.customer)
@@ -257,7 +181,7 @@ export default function ActivityLogsPage() {
           data?.meta || {
             page: 1,
             limit: 20,
-            total: mockLogs.length,
+            total: 0,
             totalPages: 1,
           }
         }

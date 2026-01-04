@@ -66,6 +66,11 @@ const DEFAULT_SETTINGS: Record<string, { value: string; description: string; cat
   smtp_user: { value: '', description: 'SMTP username', category: 'email' },
   smtp_from_name: { value: 'Lab404 Electronics', description: 'From name for emails', category: 'email' },
   smtp_from_email: { value: 'noreply@lab404.com', description: 'From email address', category: 'email' },
+  email_order_confirmation: { value: 'true', description: 'Send order confirmation emails to customers', category: 'email' },
+  email_shipping_updates: { value: 'true', description: 'Send shipping status update emails to customers', category: 'email' },
+
+  // Tax Settings Extended
+  tax_enabled: { value: 'true', description: 'Enable tax calculation on orders', category: 'tax' },
 
   // Currency Settings
   default_currency: { value: 'USD', description: 'Default currency code', category: 'currency' },

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -33,36 +33,50 @@ import { Breadcrumbs } from "@/components/layout/breadcrumbs";
 import { useSettings, useBulkUpdateSettings } from "@/hooks/use-settings";
 
 const settingsSchema = z.object({
-  storeName: z.string().min(1, "Store name is required"),
-  storeEmail: z.string().email("Invalid email"),
-  storePhone: z.string().optional(),
-  storeAddress: z.string().optional(),
-  currency: z.string(),
-  taxRate: z.number().min(0).max(100),
-  taxEnabled: z.boolean(),
-  freeShippingThreshold: z.number().min(0),
-  flatShippingRate: z.number().min(0),
-  emailOrderConfirmation: z.boolean(),
-  emailShippingUpdates: z.boolean(),
-  lowStockThreshold: z.number().min(0),
+  company_name: z.string().min(1, "Store name is required"),
+  company_email: z.string().email("Invalid email"),
+  company_phone: z.string().optional(),
+  company_address: z.string().optional(),
+  default_currency: z.string(),
+  tax_rate: z.string(),
+  tax_enabled: z.string(),
+  free_shipping_threshold: z.string(),
+  default_shipping_rate: z.string(),
+  email_order_confirmation: z.string(),
+  email_shipping_updates: z.string(),
+  low_stock_threshold: z.string(),
 });
 
 type SettingsFormData = z.infer<typeof settingsSchema>;
 
 const defaultSettings: SettingsFormData = {
-  storeName: "Lab404 Electronics",
-  storeEmail: "contact@lab404.com",
-  storePhone: "+1 (555) 123-4567",
-  storeAddress: "123 Electronics Street, Tech City, TC 12345",
-  currency: "USD",
-  taxRate: 10,
-  taxEnabled: true,
-  freeShippingThreshold: 100,
-  flatShippingRate: 9.99,
-  emailOrderConfirmation: true,
-  emailShippingUpdates: true,
-  lowStockThreshold: 10,
+  company_name: "Lab404 Electronics",
+  company_email: "contact@lab404.com",
+  company_phone: "",
+  company_address: "",
+  default_currency: "USD",
+  tax_rate: "0.1",
+  tax_enabled: "true",
+  free_shipping_threshold: "100",
+  default_shipping_rate: "9.99",
+  email_order_confirmation: "true",
+  email_shipping_updates: "true",
+  low_stock_threshold: "10",
 };
+
+// Helper to get setting value from categorized API response
+function getSettingValue(
+  settings: Record<string, Record<string, { value: string }>> | undefined,
+  key: string
+): string | undefined {
+  if (!settings) return undefined;
+  for (const category of Object.values(settings)) {
+    if (category[key]) {
+      return category[key].value;
+    }
+  }
+  return undefined;
+}
 
 export default function SettingsPage() {
   const { data: settings, isLoading } = useSettings();
@@ -81,23 +95,30 @@ export default function SettingsPage() {
   });
 
   useEffect(() => {
-    if (settings && Array.isArray(settings)) {
+    if (settings && typeof settings === "object" && !Array.isArray(settings)) {
       const mapped: Partial<SettingsFormData> = {};
-      settings.forEach((s) => {
-        if (s.key in defaultSettings) {
-          (mapped as Record<string, unknown>)[s.key] = s.value;
+      for (const key of Object.keys(defaultSettings) as (keyof SettingsFormData)[]) {
+        const value = getSettingValue(settings as Record<string, Record<string, { value: string }>>, key);
+        if (value !== undefined) {
+          mapped[key] = value;
         }
-      });
+      }
       reset({ ...defaultSettings, ...mapped });
     }
   }, [settings, reset]);
 
-  const taxEnabled = watch("taxEnabled");
-  const emailOrderConfirmation = watch("emailOrderConfirmation");
-  const emailShippingUpdates = watch("emailShippingUpdates");
+  const taxEnabled = watch("tax_enabled") === "true";
+  const emailOrderConfirmation = watch("email_order_confirmation") === "true";
+  const emailShippingUpdates = watch("email_shipping_updates") === "true";
+  const currency = watch("default_currency");
 
   const onSubmit = async (data: SettingsFormData) => {
-    await updateSettings.mutateAsync(data as unknown as Record<string, unknown>);
+    // Convert form data to array format expected by API
+    const settingsArray = Object.entries(data).map(([key, value]) => ({
+      key,
+      value: String(value),
+    }));
+    await updateSettings.mutateAsync({ settings: settingsArray });
   };
 
   return (
@@ -149,33 +170,33 @@ export default function SettingsPage() {
 
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="storeName">Store Name</Label>
-                <Input id="storeName" {...register("storeName")} />
-                {errors.storeName && (
+                <Label htmlFor="company_name">Store Name</Label>
+                <Input id="company_name" {...register("company_name")} />
+                {errors.company_name && (
                   <p className="text-sm text-destructive">
-                    {errors.storeName.message}
+                    {errors.company_name.message}
                   </p>
                 )}
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="storeEmail">Email</Label>
-                <Input id="storeEmail" type="email" {...register("storeEmail")} />
-                {errors.storeEmail && (
+                <Label htmlFor="company_email">Email</Label>
+                <Input id="company_email" type="email" {...register("company_email")} />
+                {errors.company_email && (
                   <p className="text-sm text-destructive">
-                    {errors.storeEmail.message}
+                    {errors.company_email.message}
                   </p>
                 )}
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="storePhone">Phone</Label>
-                <Input id="storePhone" {...register("storePhone")} />
+                <Label htmlFor="company_phone">Phone</Label>
+                <Input id="company_phone" {...register("company_phone")} />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="storeAddress">Address</Label>
-                <Textarea id="storeAddress" rows={2} {...register("storeAddress")} />
+                <Label htmlFor="company_address">Address</Label>
+                <Textarea id="company_address" rows={2} {...register("company_address")} />
               </div>
             </div>
           </Card>
@@ -196,10 +217,10 @@ export default function SettingsPage() {
 
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="currency">Currency</Label>
+                <Label htmlFor="default_currency">Currency</Label>
                 <Select
-                  defaultValue="USD"
-                  onValueChange={(v) => setValue("currency", v)}
+                  value={currency}
+                  onValueChange={(v) => setValue("default_currency", v, { shouldDirty: true })}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -223,19 +244,23 @@ export default function SettingsPage() {
                 </div>
                 <Switch
                   checked={taxEnabled}
-                  onCheckedChange={(v) => setValue("taxEnabled", v)}
+                  onCheckedChange={(v) => setValue("tax_enabled", v ? "true" : "false", { shouldDirty: true })}
                 />
               </div>
 
               {taxEnabled && (
                 <div className="space-y-2">
-                  <Label htmlFor="taxRate">Tax Rate (%)</Label>
+                  <Label htmlFor="tax_rate">Tax Rate (%)</Label>
                   <Input
-                    id="taxRate"
+                    id="tax_rate"
                     type="number"
                     step="0.01"
-                    {...register("taxRate", { valueAsNumber: true })}
+                    value={parseFloat(watch("tax_rate") || "0") * 100}
+                    onChange={(e) => setValue("tax_rate", String(parseFloat(e.target.value) / 100), { shouldDirty: true })}
                   />
+                  <p className="text-sm text-muted-foreground">
+                    Current: {(parseFloat(watch("tax_rate") || "0") * 100).toFixed(1)}%
+                  </p>
                 </div>
               )}
             </div>
@@ -257,24 +282,24 @@ export default function SettingsPage() {
 
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="flatShippingRate">Flat Shipping Rate</Label>
+                <Label htmlFor="default_shipping_rate">Flat Shipping Rate</Label>
                 <Input
-                  id="flatShippingRate"
+                  id="default_shipping_rate"
                   type="number"
                   step="0.01"
-                  {...register("flatShippingRate", { valueAsNumber: true })}
+                  {...register("default_shipping_rate")}
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="freeShippingThreshold">
+                <Label htmlFor="free_shipping_threshold">
                   Free Shipping Threshold
                 </Label>
                 <Input
-                  id="freeShippingThreshold"
+                  id="free_shipping_threshold"
                   type="number"
                   step="0.01"
-                  {...register("freeShippingThreshold", { valueAsNumber: true })}
+                  {...register("free_shipping_threshold")}
                 />
                 <p className="text-sm text-muted-foreground">
                   Orders above this amount qualify for free shipping
@@ -307,7 +332,7 @@ export default function SettingsPage() {
                 </div>
                 <Switch
                   checked={emailOrderConfirmation}
-                  onCheckedChange={(v) => setValue("emailOrderConfirmation", v)}
+                  onCheckedChange={(v) => setValue("email_order_confirmation", v ? "true" : "false", { shouldDirty: true })}
                 />
               </div>
 
@@ -320,7 +345,7 @@ export default function SettingsPage() {
                 </div>
                 <Switch
                   checked={emailShippingUpdates}
-                  onCheckedChange={(v) => setValue("emailShippingUpdates", v)}
+                  onCheckedChange={(v) => setValue("email_shipping_updates", v ? "true" : "false", { shouldDirty: true })}
                 />
               </div>
             </div>
@@ -342,11 +367,11 @@ export default function SettingsPage() {
 
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="lowStockThreshold">Low Stock Threshold</Label>
+                <Label htmlFor="low_stock_threshold">Low Stock Threshold</Label>
                 <Input
-                  id="lowStockThreshold"
+                  id="low_stock_threshold"
                   type="number"
-                  {...register("lowStockThreshold", { valueAsNumber: true })}
+                  {...register("low_stock_threshold")}
                 />
                 <p className="text-sm text-muted-foreground">
                   Products with stock below this will be marked as low stock

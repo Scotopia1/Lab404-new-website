@@ -12,9 +12,9 @@ export interface Setting {
 export interface ActivityLog {
   id: string;
   action: string;
-  entity: string;
+  entityType: string;
   entityId: string | null;
-  adminId: string;
+  adminUserId: string;
   admin?: { email: string; firstName: string; lastName: string };
   details: unknown;
   ipAddress: string | null;
@@ -65,8 +65,8 @@ export function useBulkUpdateSettings() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (settings: Record<string, unknown>) => {
-      const res = await api.put<ApiResponse<Setting[]>>("/settings", settings);
+    mutationFn: async (data: { settings: Array<{ key: string; value: string }> }) => {
+      const res = await api.put<ApiResponse<{ updated: number }>>("/settings", data);
       return res.data.data;
     },
     onSuccess: () => {
