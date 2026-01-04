@@ -3,26 +3,95 @@ import { z } from 'zod';
 import { getDb, settings, adminActivityLogs, eq, desc, and, gte, inArray, sql } from '@lab404/database';
 import { validateBody, validateQuery } from '../middleware/validator';
 import { requireAuth, requireAdmin } from '../middleware/auth';
-import { sendSuccess, sendNoContent, createPaginationMeta, parsePaginationParams } from '../utils/response';
-import { NotFoundError, BadRequestError } from '../utils/errors';
+import { sendSuccess, createPaginationMeta, parsePaginationParams } from '../utils/response';
+import { NotFoundError } from '../utils/errors';
 
 export const settingsRoutes = Router();
 
 // ===========================================
-// Validation Schemas
+// Types for grouped settings in database
 // ===========================================
 
-const updateSettingSchema = z.object({
-  value: z.string(),
-  description: z.string().max(500).optional(),
-});
+interface BusinessSettings {
+  business_name: string;
+  business_email: string;
+  business_phone: string;
+  business_address: string;
+  currency: string;
+  currency_symbol: string;
+}
 
-const bulkUpdateSettingsSchema = z.object({
-  settings: z.array(z.object({
-    key: z.string(),
-    value: z.string(),
-  })),
-});
+interface TaxSettings {
+  tax_rate: number;
+  tax_label: string;
+  tax_enabled: boolean;
+}
+
+interface DeliverySettings {
+  delivery_fee: number;
+  delivery_enabled: boolean;
+  free_delivery_threshold: number;
+  delivery_time_min: number;
+  delivery_time_max: number;
+}
+
+interface NotificationSettings {
+  email_notifications: boolean;
+  sound_notifications: boolean;
+  low_stock_notifications: boolean;
+  new_order_notifications: boolean;
+}
+
+interface SystemSettings {
+  site_title: string;
+  site_description: string;
+  maintenance_mode: boolean;
+  allow_guest_checkout: boolean;
+  max_cart_items: number;
+}
+
+// Default values for grouped settings
+const DEFAULT_BUSINESS: BusinessSettings = {
+  business_name: 'Lab404 Electronics',
+  business_email: 'info@lab404.com',
+  business_phone: '',
+  business_address: '',
+  currency: 'USD',
+  currency_symbol: '$',
+};
+
+const DEFAULT_TAX: TaxSettings = {
+  tax_rate: 0,
+  tax_label: 'VAT',
+  tax_enabled: false,
+};
+
+const DEFAULT_DELIVERY: DeliverySettings = {
+  delivery_fee: 0,
+  delivery_enabled: false,
+  free_delivery_threshold: 0,
+  delivery_time_min: 7,
+  delivery_time_max: 14,
+};
+
+const DEFAULT_NOTIFICATIONS: NotificationSettings = {
+  email_notifications: true,
+  sound_notifications: true,
+  low_stock_notifications: true,
+  new_order_notifications: true,
+};
+
+const DEFAULT_SYSTEM: SystemSettings = {
+  site_title: 'Lab404 Electronics',
+  site_description: 'Your trusted electronics store',
+  maintenance_mode: false,
+  allow_guest_checkout: true,
+  max_cart_items: 99,
+};
+
+// ===========================================
+// Validation Schemas
+// ===========================================
 
 const activityLogFiltersSchema = z.object({
   page: z.string().optional(),
@@ -34,59 +103,94 @@ const activityLogFiltersSchema = z.object({
   endDate: z.string().optional(),
 });
 
-// Default settings with descriptions
-const DEFAULT_SETTINGS: Record<string, { value: string; description: string; category: string }> = {
-  // Company Settings
-  company_name: { value: 'Lab404 Electronics', description: 'Company name displayed on invoices and emails', category: 'company' },
-  company_email: { value: 'info@lab404.com', description: 'Primary contact email', category: 'company' },
-  company_phone: { value: '', description: 'Company phone number', category: 'company' },
-  company_address: { value: '', description: 'Company address for invoices', category: 'company' },
-  company_website: { value: '', description: 'Company website URL', category: 'company' },
-  company_logo: { value: '', description: 'URL to company logo', category: 'company' },
+// Schema for updating all admin settings at once
+const updateAdminSettingsSchema = z.object({
+  // Business/Store Info
+  business_name: z.string().min(1).optional(),
+  business_email: z.string().email().optional(),
+  business_phone: z.string().optional(),
+  business_address: z.string().optional(),
+  currency: z.string().optional(),
+  currency_symbol: z.string().optional(),
+  // Tax
+  tax_rate: z.number().min(0).max(100).optional(),
+  tax_label: z.string().optional(),
+  tax_enabled: z.boolean().optional(),
+  // Delivery/Shipping
+  delivery_fee: z.number().min(0).optional(),
+  delivery_enabled: z.boolean().optional(),
+  free_delivery_threshold: z.number().min(0).optional(),
+  // System
+  site_title: z.string().optional(),
+  site_description: z.string().optional(),
+  low_stock_threshold: z.number().min(0).optional(),
+  // Notifications
+  email_notifications: z.boolean().optional(),
+  low_stock_notifications: z.boolean().optional(),
+  new_order_notifications: z.boolean().optional(),
+});
 
-  // Tax Settings
-  tax_rate: { value: '0.11', description: 'Default tax rate (11% = 0.11)', category: 'tax' },
-  tax_name: { value: 'VAT', description: 'Tax name displayed on invoices', category: 'tax' },
-  tax_included: { value: 'false', description: 'Whether prices include tax', category: 'tax' },
+// ===========================================
+// Helper Functions
+// ===========================================
 
-  // Shipping Settings
-  free_shipping_threshold: { value: '100', description: 'Order amount for free shipping (0 to disable)', category: 'shipping' },
-  default_shipping_rate: { value: '10', description: 'Default shipping rate in USD', category: 'shipping' },
-  shipping_origin_country: { value: 'US', description: 'Shipping origin country code', category: 'shipping' },
+async function getGroupedSetting<T>(db: ReturnType<typeof getDb>, key: string, defaultValue: T): Promise<T> {
+  const [result] = await db
+    .select()
+    .from(settings)
+    .where(eq(settings.key, key));
 
-  // Order Settings
-  order_prefix: { value: 'ORD', description: 'Prefix for order numbers', category: 'orders' },
-  quotation_prefix: { value: 'QT', description: 'Prefix for quotation numbers', category: 'orders' },
-  quotation_validity_days: { value: '30', description: 'Default quotation validity in days', category: 'orders' },
-  low_stock_threshold: { value: '10', description: 'Stock level for low stock alerts', category: 'orders' },
+  if (result && result.value) {
+    return { ...defaultValue, ...(result.value as T) };
+  }
+  return defaultValue;
+}
 
-  // Email Settings
-  smtp_host: { value: '', description: 'SMTP server host', category: 'email' },
-  smtp_port: { value: '587', description: 'SMTP server port', category: 'email' },
-  smtp_user: { value: '', description: 'SMTP username', category: 'email' },
-  smtp_from_name: { value: 'Lab404 Electronics', description: 'From name for emails', category: 'email' },
-  smtp_from_email: { value: 'noreply@lab404.com', description: 'From email address', category: 'email' },
-  email_order_confirmation: { value: 'true', description: 'Send order confirmation emails to customers', category: 'email' },
-  email_shipping_updates: { value: 'true', description: 'Send shipping status update emails to customers', category: 'email' },
+async function updateGroupedSetting<T extends object>(
+  db: ReturnType<typeof getDb>,
+  key: string,
+  updates: Partial<T>,
+  description: string
+): Promise<T> {
+  // Get current value
+  const [existing] = await db
+    .select()
+    .from(settings)
+    .where(eq(settings.key, key));
 
-  // Tax Settings Extended
-  tax_enabled: { value: 'true', description: 'Enable tax calculation on orders', category: 'tax' },
+  let currentValue: T;
+  if (existing && existing.value) {
+    currentValue = existing.value as T;
+  } else {
+    // Get default based on key
+    switch (key) {
+      case 'business': currentValue = DEFAULT_BUSINESS as T; break;
+      case 'tax': currentValue = DEFAULT_TAX as T; break;
+      case 'delivery': currentValue = DEFAULT_DELIVERY as T; break;
+      case 'notifications': currentValue = DEFAULT_NOTIFICATIONS as T; break;
+      case 'system': currentValue = DEFAULT_SYSTEM as T; break;
+      default: currentValue = {} as T;
+    }
+  }
 
-  // Currency Settings
-  default_currency: { value: 'USD', description: 'Default currency code', category: 'currency' },
-  currency_symbol: { value: '$', description: 'Currency symbol', category: 'currency' },
-  currency_position: { value: 'before', description: 'Currency symbol position (before/after)', category: 'currency' },
+  // Merge updates
+  const newValue = { ...currentValue, ...updates };
 
-  // SEO Settings
-  site_title: { value: 'Lab404 Electronics', description: 'Default site title for SEO', category: 'seo' },
-  site_description: { value: '', description: 'Default meta description', category: 'seo' },
-  google_analytics_id: { value: '', description: 'Google Analytics tracking ID', category: 'seo' },
+  if (existing) {
+    await db
+      .update(settings)
+      .set({ value: newValue, updatedAt: new Date() })
+      .where(eq(settings.key, key));
+  } else {
+    await db.insert(settings).values({
+      key,
+      value: newValue,
+      description,
+    });
+  }
 
-  // Terms
-  quotation_terms: { value: '', description: 'Default terms for quotations', category: 'legal' },
-  order_terms: { value: '', description: 'Order terms and conditions', category: 'legal' },
-  privacy_policy: { value: '', description: 'Privacy policy content or URL', category: 'legal' },
-};
+  return newValue;
+}
 
 // ===========================================
 // Public Routes
@@ -94,43 +198,46 @@ const DEFAULT_SETTINGS: Record<string, { value: string; description: string; cat
 
 /**
  * GET /api/settings/public
- * Get public settings (non-sensitive)
+ * Get public settings (non-sensitive) - reads from grouped settings
  */
 settingsRoutes.get('/public', async (_req, res, next) => {
   try {
     const db = getDb();
-    const publicKeys = [
-      'company_name',
-      'company_email',
-      'company_phone',
-      'company_address',
-      'company_website',
-      'company_logo',
-      'tax_name',
-      'tax_included',
-      'free_shipping_threshold',
-      'default_shipping_rate',
-      'default_currency',
-      'currency_symbol',
-      'currency_position',
-      'site_title',
-      'site_description',
-    ];
 
-    const settingsList = await db
-      .select()
-      .from(settings)
-      .where(inArray(settings.key, publicKeys));
+    // Fetch grouped settings
+    const [businessRow, taxRow, deliveryRow, systemRow] = await Promise.all([
+      db.select().from(settings).where(eq(settings.key, 'business')),
+      db.select().from(settings).where(eq(settings.key, 'tax')),
+      db.select().from(settings).where(eq(settings.key, 'delivery')),
+      db.select().from(settings).where(eq(settings.key, 'system')),
+    ]);
 
-    // Merge with defaults
-    const result: Record<string, string> = {};
-    for (const key of publicKeys) {
-      const setting = settingsList.find(s => s.key === key);
-      const defaultSetting = DEFAULT_SETTINGS[key as keyof typeof DEFAULT_SETTINGS];
-      result[key] = (setting?.value as string) || defaultSetting?.value || '';
-    }
+    const business = businessRow[0]?.value as BusinessSettings || DEFAULT_BUSINESS;
+    const tax = taxRow[0]?.value as TaxSettings || DEFAULT_TAX;
+    const delivery = deliveryRow[0]?.value as DeliverySettings || DEFAULT_DELIVERY;
+    const system = systemRow[0]?.value as SystemSettings || DEFAULT_SYSTEM;
 
-    sendSuccess(res, result);
+    // Return flattened public settings
+    sendSuccess(res, {
+      // Business
+      company_name: business.business_name,
+      company_email: business.business_email,
+      company_phone: business.business_phone,
+      company_address: business.business_address,
+      currency: business.currency,
+      currency_symbol: business.currency_symbol,
+      // Tax
+      tax_rate: tax.tax_rate,
+      tax_label: tax.tax_label,
+      tax_enabled: tax.tax_enabled,
+      // Delivery
+      delivery_fee: delivery.delivery_fee,
+      delivery_enabled: delivery.delivery_enabled,
+      free_delivery_threshold: delivery.free_delivery_threshold,
+      // System
+      site_title: system.site_title,
+      site_description: system.site_description,
+    });
   } catch (error) {
     next(error);
   }
@@ -142,42 +249,164 @@ settingsRoutes.get('/public', async (_req, res, next) => {
 
 /**
  * GET /api/settings
- * Get all settings (Admin only)
+ * Get all settings for admin panel - returns flat structure for easy form binding
  */
 settingsRoutes.get('/', requireAuth, requireAdmin, async (_req, res, next) => {
   try {
     const db = getDb();
 
-    const settingsList = await db.select().from(settings);
+    // Fetch all grouped settings
+    const [businessRow, taxRow, deliveryRow, notificationsRow, systemRow] = await Promise.all([
+      db.select().from(settings).where(eq(settings.key, 'business')),
+      db.select().from(settings).where(eq(settings.key, 'tax')),
+      db.select().from(settings).where(eq(settings.key, 'delivery')),
+      db.select().from(settings).where(eq(settings.key, 'notifications')),
+      db.select().from(settings).where(eq(settings.key, 'system')),
+    ]);
 
-    // Merge with defaults and organize by category
-    const result: Record<string, Record<string, { value: string; description: string }>> = {};
+    const business = { ...DEFAULT_BUSINESS, ...(businessRow[0]?.value as BusinessSettings || {}) };
+    const tax = { ...DEFAULT_TAX, ...(taxRow[0]?.value as TaxSettings || {}) };
+    const delivery = { ...DEFAULT_DELIVERY, ...(deliveryRow[0]?.value as DeliverySettings || {}) };
+    const notifications = { ...DEFAULT_NOTIFICATIONS, ...(notificationsRow[0]?.value as NotificationSettings || {}) };
+    const system = { ...DEFAULT_SYSTEM, ...(systemRow[0]?.value as SystemSettings || {}) };
 
-    for (const [key, def] of Object.entries(DEFAULT_SETTINGS)) {
-      if (!result[def.category]) {
-        result[def.category] = {};
-      }
+    // Return flat structure for admin form
+    sendSuccess(res, {
+      // Store/Business Information
+      business_name: business.business_name,
+      business_email: business.business_email,
+      business_phone: business.business_phone,
+      business_address: business.business_address,
 
-      const setting = settingsList.find(s => s.key === key);
-      const categoryKey = def.category;
-      const categoryResult = result[categoryKey];
-      if (categoryResult) {
-        categoryResult[key] = {
-          value: (setting?.value as string) || def.value,
-          description: (setting?.description as string) || def.description,
-        };
-      }
-    }
+      // Currency
+      currency: business.currency,
+      currency_symbol: business.currency_symbol,
 
-    sendSuccess(res, result);
+      // Tax
+      tax_rate: tax.tax_rate,
+      tax_label: tax.tax_label,
+      tax_enabled: tax.tax_enabled,
+
+      // Delivery/Shipping
+      delivery_fee: delivery.delivery_fee,
+      delivery_enabled: delivery.delivery_enabled,
+      free_delivery_threshold: delivery.free_delivery_threshold,
+      delivery_time_min: delivery.delivery_time_min,
+      delivery_time_max: delivery.delivery_time_max,
+
+      // Notifications
+      email_notifications: notifications.email_notifications,
+      sound_notifications: notifications.sound_notifications,
+      low_stock_notifications: notifications.low_stock_notifications,
+      new_order_notifications: notifications.new_order_notifications,
+
+      // System
+      site_title: system.site_title,
+      site_description: system.site_description,
+      maintenance_mode: system.maintenance_mode,
+      allow_guest_checkout: system.allow_guest_checkout,
+      max_cart_items: system.max_cart_items,
+    });
   } catch (error) {
     next(error);
   }
 });
 
 /**
+ * PUT /api/settings
+ * Update settings - accepts flat structure and updates grouped settings
+ */
+settingsRoutes.put(
+  '/',
+  requireAuth,
+  requireAdmin,
+  validateBody(updateAdminSettingsSchema),
+  async (req, res, next) => {
+    try {
+      const db = getDb();
+      const updates = req.body;
+      const updatedGroups: string[] = [];
+
+      // Group updates by category
+      const businessUpdates: Partial<BusinessSettings> = {};
+      const taxUpdates: Partial<TaxSettings> = {};
+      const deliveryUpdates: Partial<DeliverySettings> = {};
+      const notificationUpdates: Partial<NotificationSettings> = {};
+      const systemUpdates: Partial<SystemSettings> = {};
+
+      // Map flat fields to groups
+      if (updates.business_name !== undefined) businessUpdates.business_name = updates.business_name;
+      if (updates.business_email !== undefined) businessUpdates.business_email = updates.business_email;
+      if (updates.business_phone !== undefined) businessUpdates.business_phone = updates.business_phone;
+      if (updates.business_address !== undefined) businessUpdates.business_address = updates.business_address;
+      if (updates.currency !== undefined) businessUpdates.currency = updates.currency;
+      if (updates.currency_symbol !== undefined) businessUpdates.currency_symbol = updates.currency_symbol;
+
+      if (updates.tax_rate !== undefined) taxUpdates.tax_rate = updates.tax_rate;
+      if (updates.tax_label !== undefined) taxUpdates.tax_label = updates.tax_label;
+      if (updates.tax_enabled !== undefined) taxUpdates.tax_enabled = updates.tax_enabled;
+
+      if (updates.delivery_fee !== undefined) deliveryUpdates.delivery_fee = updates.delivery_fee;
+      if (updates.delivery_enabled !== undefined) deliveryUpdates.delivery_enabled = updates.delivery_enabled;
+      if (updates.free_delivery_threshold !== undefined) deliveryUpdates.free_delivery_threshold = updates.free_delivery_threshold;
+
+      if (updates.email_notifications !== undefined) notificationUpdates.email_notifications = updates.email_notifications;
+      if (updates.low_stock_notifications !== undefined) notificationUpdates.low_stock_notifications = updates.low_stock_notifications;
+      if (updates.new_order_notifications !== undefined) notificationUpdates.new_order_notifications = updates.new_order_notifications;
+
+      if (updates.site_title !== undefined) systemUpdates.site_title = updates.site_title;
+      if (updates.site_description !== undefined) systemUpdates.site_description = updates.site_description;
+
+      // Update each group if there are changes
+      if (Object.keys(businessUpdates).length > 0) {
+        await updateGroupedSetting(db, 'business', businessUpdates, 'Business settings');
+        updatedGroups.push('business');
+      }
+
+      if (Object.keys(taxUpdates).length > 0) {
+        await updateGroupedSetting(db, 'tax', taxUpdates, 'Tax settings');
+        updatedGroups.push('tax');
+      }
+
+      if (Object.keys(deliveryUpdates).length > 0) {
+        await updateGroupedSetting(db, 'delivery', deliveryUpdates, 'Delivery settings');
+        updatedGroups.push('delivery');
+      }
+
+      if (Object.keys(notificationUpdates).length > 0) {
+        await updateGroupedSetting(db, 'notifications', notificationUpdates, 'Notification settings');
+        updatedGroups.push('notifications');
+      }
+
+      if (Object.keys(systemUpdates).length > 0) {
+        await updateGroupedSetting(db, 'system', systemUpdates, 'System settings');
+        updatedGroups.push('system');
+      }
+
+      // Log activity
+      if (updatedGroups.length > 0) {
+        await db.insert(adminActivityLogs).values({
+          adminUserId: req.user!.id,
+          action: 'update',
+          entityType: 'settings',
+          details: { updatedGroups, updatedFields: Object.keys(updates) },
+        });
+      }
+
+      sendSuccess(res, {
+        message: 'Settings updated successfully',
+        updatedGroups,
+        updatedFields: Object.keys(updates),
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+/**
  * GET /api/settings/:key
- * Get single setting (Admin only)
+ * Get a specific grouped setting (Admin only)
  */
 settingsRoutes.get('/:key', requireAuth, requireAdmin, async (req, res, next) => {
   try {
@@ -190,13 +419,19 @@ settingsRoutes.get('/:key', requireAuth, requireAdmin, async (req, res, next) =>
       .where(eq(settings.key, key));
 
     if (!setting) {
-      // Return default if exists
-      const defaultSetting = DEFAULT_SETTINGS[key];
-      if (defaultSetting) {
+      // Return default if it's a known group
+      const defaults: Record<string, unknown> = {
+        business: DEFAULT_BUSINESS,
+        tax: DEFAULT_TAX,
+        delivery: DEFAULT_DELIVERY,
+        notifications: DEFAULT_NOTIFICATIONS,
+        system: DEFAULT_SYSTEM,
+      };
+
+      if (defaults[key]) {
         return sendSuccess(res, {
           key,
-          value: defaultSetting.value,
-          description: defaultSetting.description,
+          value: defaults[key],
           isDefault: true,
         });
       }
@@ -210,160 +445,28 @@ settingsRoutes.get('/:key', requireAuth, requireAdmin, async (req, res, next) =>
 });
 
 /**
- * PUT /api/settings/:key
- * Update a setting (Admin only)
- */
-settingsRoutes.put(
-  '/:key',
-  requireAuth,
-  requireAdmin,
-  validateBody(updateSettingSchema),
-  async (req, res, next) => {
-    try {
-      const db = getDb();
-      const key = req.params['key'] as string;
-      const { value, description } = req.body;
-
-      // Validate setting key
-      const defaultSetting = DEFAULT_SETTINGS[key];
-      if (!defaultSetting) {
-        throw new BadRequestError('Invalid setting key');
-      }
-
-      // Validate specific settings
-      if (key === 'tax_rate') {
-        const rate = parseFloat(value);
-        if (isNaN(rate) || rate < 0 || rate > 1) {
-          throw new BadRequestError('Tax rate must be between 0 and 1');
-        }
-      }
-
-      // Upsert setting
-      const [existing] = await db
-        .select({ id: settings.id })
-        .from(settings)
-        .where(eq(settings.key, key));
-
-      let setting;
-
-      if (existing) {
-        [setting] = await db
-          .update(settings)
-          .set({
-            value,
-            description: description || defaultSetting.description,
-            updatedAt: new Date(),
-          })
-          .where(eq(settings.key, key))
-          .returning();
-      } else {
-        [setting] = await db
-          .insert(settings)
-          .values({
-            key,
-            value,
-            description: description || defaultSetting.description,
-          })
-          .returning();
-      }
-
-      // Log activity
-      if (setting) {
-        await db.insert(adminActivityLogs).values({
-          adminUserId: req.user!.id,
-          action: 'update',
-          entityType: 'setting',
-          entityId: setting.id,
-          details: { key, oldValue: existing ? 'hidden' : null, newValue: 'hidden' },
-        });
-      }
-
-      sendSuccess(res, setting);
-    } catch (error) {
-      next(error);
-    }
-  }
-);
-
-/**
- * PUT /api/settings
- * Bulk update settings (Admin only)
- */
-settingsRoutes.put(
-  '/',
-  requireAuth,
-  requireAdmin,
-  validateBody(bulkUpdateSettingsSchema),
-  async (req, res, next) => {
-    try {
-      const db = getDb();
-      const { settings: updates } = req.body;
-
-      const updated: Array<{ key: string; value: string }> = [];
-
-      for (const { key, value } of updates) {
-        if (!DEFAULT_SETTINGS[key]) {
-          continue; // Skip invalid keys
-        }
-
-        const [existing] = await db
-          .select({ id: settings.id })
-          .from(settings)
-          .where(eq(settings.key, key));
-
-        if (existing) {
-          await db
-            .update(settings)
-            .set({
-              value,
-              updatedAt: new Date(),
-            })
-            .where(eq(settings.key, key));
-        } else {
-          await db.insert(settings).values({
-            key,
-            value,
-            description: DEFAULT_SETTINGS[key].description,
-          });
-        }
-
-        updated.push({ key, value });
-      }
-
-      // Log activity
-      await db.insert(adminActivityLogs).values({
-        adminUserId: req.user!.id,
-        action: 'bulk_update',
-        entityType: 'settings',
-        details: { updatedKeys: updated.map(u => u.key) },
-      });
-
-      sendSuccess(res, { updated: updated.length, settings: updated });
-    } catch (error) {
-      next(error);
-    }
-  }
-);
-
-/**
  * POST /api/settings/reset
  * Reset settings to defaults (Admin only)
  */
 settingsRoutes.post('/reset', requireAuth, requireAdmin, async (req, res, next) => {
   try {
     const db = getDb();
-    const { keys } = req.body as { keys?: string[] };
+    const { groups } = req.body as { groups?: string[] };
 
-    if (keys && keys.length > 0) {
-      // Reset specific keys
-      for (const key of keys) {
-        if (DEFAULT_SETTINGS[key]) {
-          await db.delete(settings).where(eq(settings.key, key));
+    const validGroups = ['business', 'tax', 'delivery', 'notifications', 'system'];
+
+    if (groups && groups.length > 0) {
+      // Reset specific groups
+      for (const group of groups) {
+        if (validGroups.includes(group)) {
+          await db.delete(settings).where(eq(settings.key, group));
         }
       }
     } else {
-      // Reset all
-      await db.delete(settings);
+      // Reset all grouped settings
+      for (const group of validGroups) {
+        await db.delete(settings).where(eq(settings.key, group));
+      }
     }
 
     // Log activity
@@ -371,7 +474,7 @@ settingsRoutes.post('/reset', requireAuth, requireAdmin, async (req, res, next) 
       adminUserId: req.user!.id,
       action: 'reset',
       entityType: 'settings',
-      details: { resetKeys: keys || 'all' },
+      details: { resetGroups: groups || 'all' },
     });
 
     sendSuccess(res, { message: 'Settings reset to defaults' });

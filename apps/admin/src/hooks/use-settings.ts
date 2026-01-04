@@ -2,11 +2,37 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, ApiResponse } from "@/lib/api-client";
 import { toast } from "sonner";
 
-export interface Setting {
-  key: string;
-  value: unknown;
-  type: "string" | "number" | "boolean" | "json";
-  description: string | null;
+// Settings data structure from API (flat)
+export interface SettingsData {
+  // Business/Store
+  business_name: string;
+  business_email: string;
+  business_phone: string;
+  business_address: string;
+  // Currency
+  currency: string;
+  currency_symbol: string;
+  // Tax
+  tax_rate: number;
+  tax_label: string;
+  tax_enabled: boolean;
+  // Delivery/Shipping
+  delivery_fee: number;
+  delivery_enabled: boolean;
+  free_delivery_threshold: number;
+  delivery_time_min: number;
+  delivery_time_max: number;
+  // Notifications
+  email_notifications: boolean;
+  sound_notifications: boolean;
+  low_stock_notifications: boolean;
+  new_order_notifications: boolean;
+  // System
+  site_title: string;
+  site_description: string;
+  maintenance_mode: boolean;
+  allow_guest_checkout: boolean;
+  max_cart_items: number;
 }
 
 export interface ActivityLog {
@@ -21,52 +47,42 @@ export interface ActivityLog {
   createdAt: string;
 }
 
+/**
+ * Fetch all settings - returns flat structure
+ */
 export function useSettings() {
   return useQuery({
     queryKey: ["settings"],
     queryFn: async () => {
-      const res = await api.get<ApiResponse<Setting[]>>("/settings");
+      const res = await api.get<ApiResponse<SettingsData>>("/settings");
       return res.data.data;
     },
   });
 }
 
+/**
+ * Fetch a specific setting group (business, tax, delivery, etc.)
+ */
 export function useSetting(key: string) {
   return useQuery({
     queryKey: ["settings", key],
     queryFn: async () => {
-      const res = await api.get<ApiResponse<Setting>>(`/settings/${key}`);
+      const res = await api.get<ApiResponse<{ key: string; value: unknown }>>(`/settings/${key}`);
       return res.data.data;
     },
     enabled: !!key,
   });
 }
 
-export function useUpdateSetting() {
+/**
+ * Update settings - accepts partial flat structure
+ */
+export function useUpdateSettings() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ key, value }: { key: string; value: unknown }) => {
-      const res = await api.put<ApiResponse<Setting>>(`/settings/${key}`, { value });
-      return res.data.data;
-    },
-    onSuccess: (_, { key }) => {
-      queryClient.invalidateQueries({ queryKey: ["settings"] });
-      queryClient.invalidateQueries({ queryKey: ["settings", key] });
-      toast.success("Setting updated successfully");
-    },
-    onError: (error: Error) => {
-      toast.error(error.message || "Failed to update setting");
-    },
-  });
-}
-
-export function useBulkUpdateSettings() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (data: { settings: Array<{ key: string; value: string }> }) => {
-      const res = await api.put<ApiResponse<{ updated: number }>>("/settings", data);
+    mutationFn: async (updates: Partial<SettingsData>) => {
+      const res = await api.put<ApiResponse<{ message: string; updatedGroups: string[] }>>("/settings", updates);
       return res.data.data;
     },
     onSuccess: () => {
@@ -79,6 +95,30 @@ export function useBulkUpdateSettings() {
   });
 }
 
+/**
+ * Reset settings to defaults
+ */
+export function useResetSettings() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (groups?: string[]) => {
+      const res = await api.post<ApiResponse<{ message: string }>>("/settings/reset", { groups });
+      return res.data.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["settings"] });
+      toast.success("Settings reset to defaults");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to reset settings");
+    },
+  });
+}
+
+/**
+ * Fetch activity logs with pagination
+ */
 export function useActivityLogs(params: { page?: number; limit?: number } = {}) {
   return useQuery({
     queryKey: ["activity-logs", params],

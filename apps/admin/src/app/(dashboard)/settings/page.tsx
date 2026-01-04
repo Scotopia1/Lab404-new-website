@@ -30,57 +30,55 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Breadcrumbs } from "@/components/layout/breadcrumbs";
-import { useSettings, useBulkUpdateSettings } from "@/hooks/use-settings";
+import { useSettings, useUpdateSettings, SettingsData } from "@/hooks/use-settings";
 
+// Form schema matching database structure
 const settingsSchema = z.object({
-  company_name: z.string().min(1, "Store name is required"),
-  company_email: z.string().email("Invalid email"),
-  company_phone: z.string().optional(),
-  company_address: z.string().optional(),
-  default_currency: z.string(),
-  tax_rate: z.string(),
-  tax_enabled: z.string(),
-  free_shipping_threshold: z.string(),
-  default_shipping_rate: z.string(),
-  email_order_confirmation: z.string(),
-  email_shipping_updates: z.string(),
-  low_stock_threshold: z.string(),
+  // Business/Store
+  business_name: z.string().min(1, "Store name is required"),
+  business_email: z.string().email("Invalid email"),
+  business_phone: z.string(),
+  business_address: z.string(),
+  // Currency
+  currency: z.string(),
+  currency_symbol: z.string(),
+  // Tax
+  tax_rate: z.number().min(0).max(100),
+  tax_label: z.string(),
+  tax_enabled: z.boolean(),
+  // Delivery/Shipping
+  delivery_fee: z.number().min(0),
+  delivery_enabled: z.boolean(),
+  free_delivery_threshold: z.number().min(0),
+  // Notifications
+  email_notifications: z.boolean(),
+  low_stock_notifications: z.boolean(),
+  new_order_notifications: z.boolean(),
 });
 
 type SettingsFormData = z.infer<typeof settingsSchema>;
 
 const defaultSettings: SettingsFormData = {
-  company_name: "Lab404 Electronics",
-  company_email: "contact@lab404.com",
-  company_phone: "",
-  company_address: "",
-  default_currency: "USD",
-  tax_rate: "0.1",
-  tax_enabled: "true",
-  free_shipping_threshold: "100",
-  default_shipping_rate: "9.99",
-  email_order_confirmation: "true",
-  email_shipping_updates: "true",
-  low_stock_threshold: "10",
+  business_name: "Lab404 Electronics",
+  business_email: "info@lab404.com",
+  business_phone: "",
+  business_address: "",
+  currency: "USD",
+  currency_symbol: "$",
+  tax_rate: 0,
+  tax_label: "VAT",
+  tax_enabled: false,
+  delivery_fee: 0,
+  delivery_enabled: false,
+  free_delivery_threshold: 0,
+  email_notifications: true,
+  low_stock_notifications: true,
+  new_order_notifications: true,
 };
-
-// Helper to get setting value from categorized API response
-function getSettingValue(
-  settings: Record<string, Record<string, { value: string }>> | undefined,
-  key: string
-): string | undefined {
-  if (!settings) return undefined;
-  for (const category of Object.values(settings)) {
-    if (category[key]) {
-      return category[key].value;
-    }
-  }
-  return undefined;
-}
 
 export default function SettingsPage() {
   const { data: settings, isLoading } = useSettings();
-  const updateSettings = useBulkUpdateSettings();
+  const updateSettings = useUpdateSettings();
 
   const {
     register,
@@ -94,32 +92,48 @@ export default function SettingsPage() {
     defaultValues: defaultSettings,
   });
 
+  // Load settings into form when data arrives
   useEffect(() => {
-    if (settings && typeof settings === "object" && !Array.isArray(settings)) {
-      const mapped: Partial<SettingsFormData> = {};
-      for (const key of Object.keys(defaultSettings) as (keyof SettingsFormData)[]) {
-        const value = getSettingValue(settings as Record<string, Record<string, { value: string }>>, key);
-        if (value !== undefined) {
-          mapped[key] = value;
-        }
-      }
-      reset({ ...defaultSettings, ...mapped });
+    if (settings) {
+      reset({
+        business_name: settings.business_name || defaultSettings.business_name,
+        business_email: settings.business_email || defaultSettings.business_email,
+        business_phone: settings.business_phone || defaultSettings.business_phone,
+        business_address: settings.business_address || defaultSettings.business_address,
+        currency: settings.currency || defaultSettings.currency,
+        currency_symbol: settings.currency_symbol || defaultSettings.currency_symbol,
+        tax_rate: settings.tax_rate ?? defaultSettings.tax_rate,
+        tax_label: settings.tax_label || defaultSettings.tax_label,
+        tax_enabled: settings.tax_enabled ?? defaultSettings.tax_enabled,
+        delivery_fee: settings.delivery_fee ?? defaultSettings.delivery_fee,
+        delivery_enabled: settings.delivery_enabled ?? defaultSettings.delivery_enabled,
+        free_delivery_threshold: settings.free_delivery_threshold ?? defaultSettings.free_delivery_threshold,
+        email_notifications: settings.email_notifications ?? defaultSettings.email_notifications,
+        low_stock_notifications: settings.low_stock_notifications ?? defaultSettings.low_stock_notifications,
+        new_order_notifications: settings.new_order_notifications ?? defaultSettings.new_order_notifications,
+      });
     }
   }, [settings, reset]);
 
-  const taxEnabled = watch("tax_enabled") === "true";
-  const emailOrderConfirmation = watch("email_order_confirmation") === "true";
-  const emailShippingUpdates = watch("email_shipping_updates") === "true";
-  const currency = watch("default_currency");
+  // Watch form values for conditional rendering
+  const taxEnabled = watch("tax_enabled");
+  const deliveryEnabled = watch("delivery_enabled");
+  const emailNotifications = watch("email_notifications");
+  const lowStockNotifications = watch("low_stock_notifications");
+  const newOrderNotifications = watch("new_order_notifications");
+  const currency = watch("currency");
 
   const onSubmit = async (data: SettingsFormData) => {
-    // Convert form data to array format expected by API
-    const settingsArray = Object.entries(data).map(([key, value]) => ({
-      key,
-      value: String(value),
-    }));
-    await updateSettings.mutateAsync({ settings: settingsArray });
+    await updateSettings.mutateAsync(data);
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -170,33 +184,33 @@ export default function SettingsPage() {
 
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="company_name">Store Name</Label>
-                <Input id="company_name" {...register("company_name")} />
-                {errors.company_name && (
+                <Label htmlFor="business_name">Store Name</Label>
+                <Input id="business_name" {...register("business_name")} />
+                {errors.business_name && (
                   <p className="text-sm text-destructive">
-                    {errors.company_name.message}
+                    {errors.business_name.message}
                   </p>
                 )}
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="company_email">Email</Label>
-                <Input id="company_email" type="email" {...register("company_email")} />
-                {errors.company_email && (
+                <Label htmlFor="business_email">Email</Label>
+                <Input id="business_email" type="email" {...register("business_email")} />
+                {errors.business_email && (
                   <p className="text-sm text-destructive">
-                    {errors.company_email.message}
+                    {errors.business_email.message}
                   </p>
                 )}
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="company_phone">Phone</Label>
-                <Input id="company_phone" {...register("company_phone")} />
+                <Label htmlFor="business_phone">Phone</Label>
+                <Input id="business_phone" {...register("business_phone")} />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="company_address">Address</Label>
-                <Textarea id="company_address" rows={2} {...register("company_address")} />
+                <Label htmlFor="business_address">Address</Label>
+                <Textarea id="business_address" rows={2} {...register("business_address")} />
               </div>
             </div>
           </Card>
@@ -217,10 +231,10 @@ export default function SettingsPage() {
 
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="default_currency">Currency</Label>
+                <Label htmlFor="currency">Currency</Label>
                 <Select
                   value={currency}
-                  onValueChange={(v) => setValue("default_currency", v, { shouldDirty: true })}
+                  onValueChange={(v) => setValue("currency", v, { shouldDirty: true })}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -244,29 +258,39 @@ export default function SettingsPage() {
                 </div>
                 <Switch
                   checked={taxEnabled}
-                  onCheckedChange={(v) => setValue("tax_enabled", v ? "true" : "false", { shouldDirty: true })}
+                  onCheckedChange={(v) => setValue("tax_enabled", v, { shouldDirty: true })}
                 />
               </div>
 
               {taxEnabled && (
-                <div className="space-y-2">
-                  <Label htmlFor="tax_rate">Tax Rate (%)</Label>
-                  <Input
-                    id="tax_rate"
-                    type="number"
-                    step="0.01"
-                    value={parseFloat(watch("tax_rate") || "0") * 100}
-                    onChange={(e) => setValue("tax_rate", String(parseFloat(e.target.value) / 100), { shouldDirty: true })}
-                  />
-                  <p className="text-sm text-muted-foreground">
-                    Current: {(parseFloat(watch("tax_rate") || "0") * 100).toFixed(1)}%
-                  </p>
-                </div>
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="tax_rate">Tax Rate (%)</Label>
+                    <Input
+                      id="tax_rate"
+                      type="number"
+                      step="0.01"
+                      {...register("tax_rate", { valueAsNumber: true })}
+                    />
+                    <p className="text-sm text-muted-foreground">
+                      Enter as percentage (e.g., 10 for 10%)
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="tax_label">Tax Label</Label>
+                    <Input
+                      id="tax_label"
+                      {...register("tax_label")}
+                      placeholder="e.g., VAT, Sales Tax"
+                    />
+                  </div>
+                </>
               )}
             </div>
           </Card>
 
-          {/* Shipping */}
+          {/* Shipping/Delivery */}
           <Card className="p-6">
             <div className="flex items-center gap-3 mb-6">
               <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
@@ -275,34 +299,49 @@ export default function SettingsPage() {
               <div>
                 <Title>Shipping</Title>
                 <Text className="text-muted-foreground">
-                  Shipping settings
+                  Delivery settings
                 </Text>
               </div>
             </div>
 
             <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="default_shipping_rate">Flat Shipping Rate</Label>
-                <Input
-                  id="default_shipping_rate"
-                  type="number"
-                  step="0.01"
-                  {...register("default_shipping_rate")}
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label>Enable Delivery Fees</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Charge delivery fees for orders
+                  </p>
+                </div>
+                <Switch
+                  checked={deliveryEnabled}
+                  onCheckedChange={(v) => setValue("delivery_enabled", v, { shouldDirty: true })}
                 />
               </div>
 
+              {deliveryEnabled && (
+                <div className="space-y-2">
+                  <Label htmlFor="delivery_fee">Delivery Fee</Label>
+                  <Input
+                    id="delivery_fee"
+                    type="number"
+                    step="0.01"
+                    {...register("delivery_fee", { valueAsNumber: true })}
+                  />
+                </div>
+              )}
+
               <div className="space-y-2">
-                <Label htmlFor="free_shipping_threshold">
-                  Free Shipping Threshold
+                <Label htmlFor="free_delivery_threshold">
+                  Free Delivery Threshold
                 </Label>
                 <Input
-                  id="free_shipping_threshold"
+                  id="free_delivery_threshold"
                   type="number"
                   step="0.01"
-                  {...register("free_shipping_threshold")}
+                  {...register("free_delivery_threshold", { valueAsNumber: true })}
                 />
                 <p className="text-sm text-muted-foreground">
-                  Orders above this amount qualify for free shipping
+                  Orders above this amount qualify for free delivery (0 to disable)
                 </p>
               </div>
             </div>
@@ -317,7 +356,7 @@ export default function SettingsPage() {
               <div>
                 <Title>Email Notifications</Title>
                 <Text className="text-muted-foreground">
-                  Customer notification settings
+                  Notification preferences
                 </Text>
               </div>
             </div>
@@ -325,57 +364,41 @@ export default function SettingsPage() {
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <Label>Order Confirmation</Label>
+                  <Label>Email Notifications</Label>
                   <p className="text-sm text-muted-foreground">
-                    Send order confirmation emails
+                    Send email notifications to admins
                   </p>
                 </div>
                 <Switch
-                  checked={emailOrderConfirmation}
-                  onCheckedChange={(v) => setValue("email_order_confirmation", v ? "true" : "false", { shouldDirty: true })}
+                  checked={emailNotifications}
+                  onCheckedChange={(v) => setValue("email_notifications", v, { shouldDirty: true })}
                 />
               </div>
 
               <div className="flex items-center justify-between">
                 <div>
-                  <Label>Shipping Updates</Label>
+                  <Label>New Order Alerts</Label>
                   <p className="text-sm text-muted-foreground">
-                    Send shipping status updates
+                    Notify when new orders are placed
                   </p>
                 </div>
                 <Switch
-                  checked={emailShippingUpdates}
-                  onCheckedChange={(v) => setValue("email_shipping_updates", v ? "true" : "false", { shouldDirty: true })}
+                  checked={newOrderNotifications}
+                  onCheckedChange={(v) => setValue("new_order_notifications", v, { shouldDirty: true })}
                 />
               </div>
-            </div>
-          </Card>
 
-          {/* Inventory */}
-          <Card className="p-6 lg:col-span-2">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-lg">
-                <Settings className="h-5 w-5 text-red-600" />
-              </div>
-              <div>
-                <Title>Inventory</Title>
-                <Text className="text-muted-foreground">
-                  Stock management settings
-                </Text>
-              </div>
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="low_stock_threshold">Low Stock Threshold</Label>
-                <Input
-                  id="low_stock_threshold"
-                  type="number"
-                  {...register("low_stock_threshold")}
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label>Low Stock Alerts</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Notify when products are low on stock
+                  </p>
+                </div>
+                <Switch
+                  checked={lowStockNotifications}
+                  onCheckedChange={(v) => setValue("low_stock_notifications", v, { shouldDirty: true })}
                 />
-                <p className="text-sm text-muted-foreground">
-                  Products with stock below this will be marked as low stock
-                </p>
               </div>
             </div>
           </Card>
