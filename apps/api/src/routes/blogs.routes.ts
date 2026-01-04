@@ -311,6 +311,35 @@ blogsRoutes.get(
 );
 
 /**
+ * GET /api/blogs/admin/:id
+ * Get blog post by ID (Admin only)
+ */
+blogsRoutes.get(
+  '/admin/:id',
+  requireAuth,
+  requireAdmin,
+  async (req, res, next) => {
+    try {
+      const db = getDb();
+      const id = req.params['id'] as string;
+
+      const [blog] = await db
+        .select()
+        .from(blogs)
+        .where(eq(blogs.id, id));
+
+      if (!blog) {
+        throw new NotFoundError('Blog post not found');
+      }
+
+      sendSuccess(res, blog);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+/**
  * POST /api/blogs
  * Create a new blog post (Admin only)
  */
@@ -351,6 +380,9 @@ blogsRoutes.post(
         excerpt = plainText.substring(0, 200) + (plainText.length > 200 ? '...' : '');
       }
 
+      // Only set authorId if it's a valid UUID
+      const isValidUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(req.user?.id || '');
+
       const [blog] = await db
         .insert(blogs)
         .values({
@@ -364,7 +396,8 @@ blogsRoutes.post(
           publishedAt,
           metaTitle: data.metaTitle || data.title,
           metaDescription: data.metaDescription || excerpt,
-          authorId: req.user?.id,
+          authorId: isValidUuid ? req.user?.id : undefined,
+          authorName: req.user?.email?.split('@')[0] || 'Admin',
         })
         .returning();
 

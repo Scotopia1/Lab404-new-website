@@ -6,6 +6,7 @@ import { ColumnDef } from "@tanstack/react-table";
 import { MoreHorizontal, Plus, Pencil, Trash2, Eye, Globe, GlobeLock } from "lucide-react";
 import { DataTable } from "@/components/data-table/data-table";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -57,9 +58,9 @@ export default function BlogsPage() {
       header: "Title",
       cell: ({ row }) => (
         <div className="flex items-center gap-3">
-          {row.original.featuredImage ? (
+          {row.original.featuredImageUrl ? (
             <img
-              src={row.original.featuredImage}
+              src={row.original.featuredImageUrl}
               alt={row.original.title}
               className="h-10 w-16 rounded object-cover"
             />
@@ -80,12 +81,34 @@ export default function BlogsPage() {
     {
       accessorKey: "status",
       header: "Status",
-      cell: ({ row }) => <BlogStatusBadge status={row.original.status} />,
+      cell: ({ row }) => <BlogStatusBadge status={row.original.status as "draft" | "published"} />,
     },
     {
-      accessorKey: "author",
+      accessorKey: "authorName",
       header: "Author",
-      cell: ({ row }) => row.original.author || "—",
+      cell: ({ row }) => row.original.authorName || "—",
+    },
+    {
+      accessorKey: "tags",
+      header: "Tags",
+      cell: ({ row }) => {
+        const tags = row.original.tags || [];
+        if (tags.length === 0) return "—";
+        return (
+          <div className="flex flex-wrap gap-1">
+            {tags.slice(0, 2).map((tag) => (
+              <Badge key={tag} variant="outline" className="text-xs">
+                {tag}
+              </Badge>
+            ))}
+            {tags.length > 2 && (
+              <Badge variant="secondary" className="text-xs">
+                +{tags.length - 2}
+              </Badge>
+            )}
+          </div>
+        );
+      },
     },
     {
       accessorKey: "createdAt",
@@ -104,19 +127,15 @@ export default function BlogsPage() {
           <DropdownMenuContent align="end">
             <DropdownMenuItem asChild>
               <Link href={`/blogs/${row.original.id}`}>
-                <Pencil className="mr-2 h-4 w-4" />
-                Edit
+                <Eye className="mr-2 h-4 w-4" />
+                View Details
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
-              <a
-                href={`/blog/${row.original.slug}`}
-                target="_blank"
-                rel="noopener"
-              >
-                <Eye className="mr-2 h-4 w-4" />
-                View
-              </a>
+              <Link href={`/blogs/${row.original.id}/edit`}>
+                <Pencil className="mr-2 h-4 w-4" />
+                Edit
+              </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             {row.original.status === "draft" ? (

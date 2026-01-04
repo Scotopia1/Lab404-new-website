@@ -22,6 +22,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Breadcrumbs } from "@/components/layout/breadcrumbs";
 import { AddressSelector } from "@/components/orders/AddressSelector";
+import { PromoCodeSelector } from "@/components/orders/PromoCodeSelector";
 import { useCreateOrder, OrderAddress } from "@/hooks/use-orders";
 import { useProducts } from "@/hooks/use-products";
 import { useCustomers } from "@/hooks/use-customers";
@@ -739,13 +740,10 @@ export default function NewOrderPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Promo Code</Label>
-                  <Input
-                    {...register("promoCode")}
-                    placeholder="Enter promo code"
-                  />
-                </div>
+                <PromoCodeSelector
+                  value={watch("promoCode")}
+                  onChange={(code) => setValue("promoCode", code || "")}
+                />
                 <div className="space-y-2">
                   <Label>Manual Discount ($)</Label>
                   <Input

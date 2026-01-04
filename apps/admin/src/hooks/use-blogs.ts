@@ -8,11 +8,12 @@ export interface Blog {
   slug: string;
   excerpt: string | null;
   content: string;
-  featuredImage: string | null;
-  status: "draft" | "published";
+  featuredImageUrl: string | null;
+  status: "draft" | "published" | "archived";
   publishedAt: string | null;
-  author: string | null;
-  tags: string[];
+  authorId: string | null;
+  authorName: string | null;
+  tags: string[] | null;
   metaTitle: string | null;
   metaDescription: string | null;
   createdAt: string;
@@ -21,12 +22,11 @@ export interface Blog {
 
 export interface BlogInput {
   title: string;
-  slug: string;
+  slug?: string;
   excerpt?: string;
   content: string;
-  featuredImage?: string;
+  featuredImageUrl?: string;
   status?: "draft" | "published";
-  author?: string;
   tags?: string[];
   metaTitle?: string;
   metaDescription?: string;
@@ -57,7 +57,7 @@ export function useBlog(id: string) {
   return useQuery({
     queryKey: ["blogs", id],
     queryFn: async () => {
-      const res = await api.get<ApiResponse<Blog>>(`/blogs/${id}`);
+      const res = await api.get<ApiResponse<Blog>>(`/blogs/admin/${id}`);
       return res.data.data;
     },
     enabled: !!id,

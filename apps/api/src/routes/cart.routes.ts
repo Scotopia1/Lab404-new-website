@@ -377,12 +377,21 @@ cartRoutes.post('/apply-promo', validateBody(applyPromoSchema), async (req, res,
       quantity: item.quantity,
     }));
 
-    // Validate promo code
-    const preCalc = await pricingService.calculateCart(cartInput);
-    const promoValidation = await pricingService.validatePromoCode(code, preCalc.subtotal);
+    // Validate promo code and check eligibility
+    const calculation = await pricingService.calculateCart(cartInput, code);
 
-    if (!promoValidation) {
+    // Check if promo code was validated
+    if (!calculation.promoCodeId) {
       throw new BadRequestError('Invalid or expired promo code');
+    }
+
+    // Check if any items are eligible for this promo code
+    // If promo has restrictions but no items match, reject it
+    if (calculation.discountAmount === 0 && calculation.promoCode) {
+      throw new BadRequestError(
+        'This promo code does not apply to any items in your cart. ' +
+        'It may only be valid for specific products or categories.'
+      );
     }
 
     // Remove existing promo code
@@ -391,12 +400,9 @@ cartRoutes.post('/apply-promo', validateBody(applyPromoSchema), async (req, res,
     // Apply new promo code
     await db.insert(cartPromoCodes).values({
       cartId: cart.id,
-      promoCodeId: promoValidation.id,
-      code: promoValidation.code,
+      promoCodeId: calculation.promoCodeId,
+      code: calculation.promoCode!,
     });
-
-    // Return updated calculation
-    const calculation = await pricingService.calculateCart(cartInput, code);
 
     sendSuccess(res, calculation);
   } catch (error) {

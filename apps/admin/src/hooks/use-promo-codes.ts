@@ -9,11 +9,16 @@ export interface PromoCode {
   discountType: "percentage" | "fixed";
   discountValue: number;
   minimumOrderAmount: number | null;
+  maximumDiscountAmount: number | null;
   maxUses: number | null;
   usedCount: number;
+  usageLimitPerCustomer: number;
   validFrom: string | null;
   validTo: string | null;
   isActive: boolean;
+  appliesToProducts: string[] | null;
+  appliesToCategories: string[] | null;
+  customerIds: string[] | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -24,10 +29,15 @@ export interface PromoCodeInput {
   discountType: "percentage" | "fixed";
   discountValue: number;
   minimumOrderAmount?: number;
+  maximumDiscountAmount?: number;
   maxUses?: number;
+  usageLimitPerCustomer?: number;
   validFrom?: string;
   validTo?: string;
   isActive?: boolean;
+  appliesToProducts?: string[];
+  appliesToCategories?: string[];
+  customerIds?: string[];
 }
 
 export function usePromoCodes() {

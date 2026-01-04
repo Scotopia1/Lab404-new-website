@@ -19,18 +19,42 @@ const updateProfileSchema = z.object({
 });
 
 const addressSchema = z.object({
-  type: z.enum(['shipping', 'billing']),
+  type: z.enum(['shipping', 'billing'], {
+    errorMap: () => ({ message: 'Address type must be shipping or billing' })
+  }),
   isDefault: z.boolean().optional().default(false),
-  firstName: z.string().min(1).max(100),
-  lastName: z.string().min(1).max(100),
-  company: z.string().max(255).optional(),
-  addressLine1: z.string().min(1).max(255),
-  addressLine2: z.string().max(255).optional(),
-  city: z.string().min(1).max(100),
-  state: z.string().max(100).optional(),
-  postalCode: z.string().max(20).optional(),
-  country: z.string().min(1).max(100),
-  phone: z.string().max(50).optional(),
+  firstName: z.string()
+    .min(1, 'First name is required')
+    .max(100, 'First name must be less than 100 characters'),
+  lastName: z.string()
+    .min(1, 'Last name is required')
+    .max(100, 'Last name must be less than 100 characters'),
+  company: z.string()
+    .max(255, 'Company must be less than 255 characters')
+    .optional(),
+  addressLine1: z.string()
+    .min(1, 'Address is required')
+    .max(255, 'Address must be less than 255 characters'),
+  addressLine2: z.string()
+    .max(255, 'Address line 2 must be less than 255 characters')
+    .optional(),
+  city: z.string()
+    .min(1, 'City is required')
+    .max(100, 'City must be less than 100 characters'),
+  state: z.string()
+    .max(100, 'State must be less than 100 characters')
+    .optional(),
+  postalCode: z.string()
+    .max(20, 'Postal code must be less than 20 characters')
+    .optional(),
+  country: z.string()
+    .min(1, 'Country is required')
+    .max(100, 'Country must be less than 100 characters'),
+  phone: z.string()
+    .max(50, 'Phone must be less than 50 characters')
+    .regex(/^[+]?[\d\s\-().]*$/, 'Please enter a valid phone number')
+    .optional()
+    .or(z.literal('')),
 });
 
 const customerFiltersSchema = z.object({
@@ -41,10 +65,61 @@ const customerFiltersSchema = z.object({
 });
 
 const adminUpdateCustomerSchema = z.object({
-  firstName: z.string().min(1).max(100).optional(),
-  lastName: z.string().min(1).max(100).optional(),
-  phone: z.string().max(50).optional(),
+  email: z.string()
+    .email('Please enter a valid email address')
+    .max(255, 'Email must be less than 255 characters')
+    .optional(),
+  firstName: z.string()
+    .min(1, 'First name cannot be empty')
+    .max(100, 'First name must be less than 100 characters')
+    .optional(),
+  lastName: z.string()
+    .min(1, 'Last name cannot be empty')
+    .max(100, 'Last name must be less than 100 characters')
+    .optional(),
+  phone: z.string()
+    .max(50, 'Phone number must be less than 50 characters')
+    .regex(/^[+]?[\d\s\-().]*$/, 'Please enter a valid phone number')
+    .optional()
+    .or(z.literal('')),
+  isGuest: z.boolean().optional(),
   isActive: z.boolean().optional(),
+  acceptsMarketing: z.boolean().optional(),
+  notes: z.string()
+    .max(5000, 'Notes must be less than 5000 characters')
+    .optional(),
+  tags: z.array(
+    z.string().max(50, 'Each tag must be less than 50 characters')
+  ).optional(),
+});
+
+const createCustomerSchema = z.object({
+  email: z.string()
+    .min(1, 'Email is required')
+    .email('Please enter a valid email address')
+    .max(255, 'Email must be less than 255 characters'),
+  firstName: z.string()
+    .min(1, 'First name cannot be empty')
+    .max(100, 'First name must be less than 100 characters')
+    .optional(),
+  lastName: z.string()
+    .min(1, 'Last name cannot be empty')
+    .max(100, 'Last name must be less than 100 characters')
+    .optional(),
+  phone: z.string()
+    .max(50, 'Phone number must be less than 50 characters')
+    .regex(/^[+]?[\d\s\-().]*$/, 'Please enter a valid phone number')
+    .optional()
+    .or(z.literal('')),
+  isGuest: z.boolean().optional().default(false),
+  isActive: z.boolean().optional().default(true),
+  acceptsMarketing: z.boolean().optional().default(false),
+  notes: z.string()
+    .max(5000, 'Notes must be less than 5000 characters')
+    .optional(),
+  tags: z.array(
+    z.string().max(50, 'Each tag must be less than 50 characters')
+  ).optional(),
 });
 
 // ===========================================
@@ -366,16 +441,90 @@ customersRoutes.get(
           phone: customers.phone,
           isGuest: customers.isGuest,
           isActive: customers.isActive,
-          orderCount: customers.orderCount,
+          orderCount: sql<number>`COUNT(${orders.id})`.as('order_count'),
+          paidOrders: sql<number>`COUNT(CASE WHEN ${orders.paymentStatus} = 'paid' THEN 1 END)`.as('paid_orders'),
+          unpaidOrders: sql<number>`COUNT(CASE WHEN ${orders.paymentStatus} != 'paid' AND ${orders.id} IS NOT NULL THEN 1 END)`.as('unpaid_orders'),
+          totalSpent: sql<number>`COALESCE(SUM(CASE WHEN ${orders.paymentStatus} = 'paid' THEN ${orders.totalSnapshot} ELSE 0 END), 0)`.as('total_spent'),
+          debt: sql<number>`COALESCE(SUM(CASE WHEN ${orders.paymentStatus} != 'paid' THEN ${orders.totalSnapshot} ELSE 0 END), 0)`.as('debt'),
           createdAt: customers.createdAt,
         })
         .from(customers)
+        .leftJoin(orders, eq(orders.customerId, customers.id))
         .where(whereClause)
+        .groupBy(
+          customers.id,
+          customers.email,
+          customers.firstName,
+          customers.lastName,
+          customers.phone,
+          customers.isGuest,
+          customers.isActive,
+          customers.createdAt
+        )
         .orderBy(desc(customers.createdAt))
         .limit(limit)
         .offset(offset);
 
-      sendSuccess(res, customerList, 200, createPaginationMeta(page, limit, Number(count)));
+      // Map orderCount to totalOrders for frontend consistency
+      const formattedList = customerList.map(c => ({
+        ...c,
+        totalOrders: c.orderCount,
+        paidOrders: Number(c.paidOrders),
+        unpaidOrders: Number(c.unpaidOrders),
+        totalSpent: Number(c.totalSpent),
+        debt: Number(c.debt),
+        orderCount: undefined,
+      }));
+
+      sendSuccess(res, formattedList, 200, createPaginationMeta(page, limit, Number(count)));
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+/**
+ * POST /api/customers
+ * Create new customer (Admin only)
+ */
+customersRoutes.post(
+  '/',
+  requireAuth,
+  requireAdmin,
+  validateBody(createCustomerSchema),
+  async (req, res, next) => {
+    try {
+      const db = getDb();
+      const data = req.body;
+
+      // Check if email already exists
+      const [existingCustomer] = await db
+        .select({ id: customers.id })
+        .from(customers)
+        .where(eq(customers.email, data.email));
+
+      if (existingCustomer) {
+        throw new BadRequestError('A customer with this email already exists');
+      }
+
+      // Create customer
+      const customerResult = await db
+        .insert(customers)
+        .values({
+          email: data.email,
+          firstName: data.firstName || null,
+          lastName: data.lastName || null,
+          phone: data.phone || null,
+          isGuest: data.isGuest ?? false,
+          isActive: data.isActive ?? true,
+          acceptsMarketing: data.acceptsMarketing ?? false,
+          notes: data.notes || null,
+          tags: data.tags || null,
+        })
+        .returning();
+      const customer = customerResult[0];
+
+      sendCreated(res, customer);
     } catch (error) {
       next(error);
     }
@@ -421,9 +570,55 @@ customersRoutes.get('/:id', requireAuth, requireAdmin, async (req, res, next) =>
       .orderBy(desc(orders.createdAt))
       .limit(10);
 
+    // Calculate total spent (paid orders only)
+    const totalSpentResult = await db
+      .select({
+        totalSpent: sql<number>`COALESCE(SUM(CAST(${orders.totalSnapshot} AS DECIMAL)), 0)`,
+      })
+      .from(orders)
+      .where(
+        and(
+          eq(orders.customerId, id),
+          eq(orders.paymentStatus, 'paid')
+        )
+      );
+    const totalSpent = Number(totalSpentResult[0]?.totalSpent ?? 0);
+
+    // Calculate debt (unpaid orders)
+    const debtResult = await db
+      .select({
+        debt: sql<number>`COALESCE(SUM(CAST(${orders.totalSnapshot} AS DECIMAL)), 0)`,
+      })
+      .from(orders)
+      .where(
+        and(
+          eq(orders.customerId, id),
+          sql`${orders.paymentStatus} != 'paid'`
+        )
+      );
+    const debt = Number(debtResult[0]?.debt ?? 0);
+
+    // Calculate order counts
+    const orderCountsResult = await db
+      .select({
+        totalOrders: sql<number>`COUNT(*)`,
+        paidOrders: sql<number>`COUNT(CASE WHEN ${orders.paymentStatus} = 'paid' THEN 1 END)`,
+        unpaidOrders: sql<number>`COUNT(CASE WHEN ${orders.paymentStatus} != 'paid' THEN 1 END)`,
+      })
+      .from(orders)
+      .where(eq(orders.customerId, id));
+    const totalOrders = Number(orderCountsResult[0]?.totalOrders ?? 0);
+    const paidOrders = Number(orderCountsResult[0]?.paidOrders ?? 0);
+    const unpaidOrders = Number(orderCountsResult[0]?.unpaidOrders ?? 0);
+
     sendSuccess(res, {
       ...customer,
       passwordHash: undefined, // Never expose password hash
+      totalOrders,
+      paidOrders,
+      unpaidOrders,
+      totalSpent,
+      debt,
       addresses: customerAddresses,
       recentOrders: recentOrders.map(o => ({
         ...o,
@@ -459,6 +654,23 @@ customersRoutes.put(
         throw new NotFoundError('Customer not found');
       }
 
+      // Check email uniqueness if email is being updated
+      if (data.email) {
+        const [emailExists] = await db
+          .select({ id: customers.id })
+          .from(customers)
+          .where(
+            and(
+              eq(customers.email, data.email),
+              sql`${customers.id} != ${id}`
+            )
+          );
+
+        if (emailExists) {
+          throw new BadRequestError('A customer with this email already exists');
+        }
+      }
+
       const customerResult = await db
         .update(customers)
         .set({
@@ -466,19 +678,13 @@ customersRoutes.put(
           updatedAt: new Date(),
         })
         .where(eq(customers.id, id))
-        .returning({
-          id: customers.id,
-          email: customers.email,
-          firstName: customers.firstName,
-          lastName: customers.lastName,
-          phone: customers.phone,
-          isGuest: customers.isGuest,
-          isActive: customers.isActive,
-          orderCount: customers.orderCount,
-        });
+        .returning();
       const customer = customerResult[0];
 
-      sendSuccess(res, customer);
+      sendSuccess(res, {
+        ...customer,
+        passwordHash: undefined, // Never expose password hash
+      });
     } catch (error) {
       next(error);
     }
@@ -742,12 +948,12 @@ customersRoutes.get('/:id/orders', requireAuth, requireAdmin, async (req, res, n
     sendSuccess(
       res,
       orderList.map(o => ({
-        ...o,
-        subtotalSnapshot: Number(o.subtotalSnapshot),
-        taxAmountSnapshot: Number(o.taxAmountSnapshot),
-        shippingAmountSnapshot: Number(o.shippingAmountSnapshot),
-        discountAmountSnapshot: Number(o.discountAmountSnapshot),
-        totalSnapshot: Number(o.totalSnapshot),
+        id: o.id,
+        orderNumber: o.orderNumber,
+        status: o.status,
+        paymentStatus: o.paymentStatus,
+        total: Number(o.totalSnapshot),
+        createdAt: o.createdAt,
       })),
       200,
       createPaginationMeta(page, limit, Number(count))

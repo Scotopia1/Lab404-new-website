@@ -66,6 +66,8 @@ export interface CartCalculation {
   promoCode?: string;
   /** Applied promo code ID */
   promoCodeId?: UUID;
+  /** Product IDs eligible for the promo code discount (based on product/category restrictions) */
+  eligibleItemIds?: UUID[];
   /** Final total */
   total: Decimal;
   /** Currency code */

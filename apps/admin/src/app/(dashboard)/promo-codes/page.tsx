@@ -1,26 +1,29 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { ColumnDef } from "@tanstack/react-table";
-import { Plus, Pencil, Trash2, MoreHorizontal } from "lucide-react";
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  MoreHorizontal,
+  Percent,
+  DollarSign,
+  Calendar,
+  Users,
+  Package,
+  FolderTree,
+} from "lucide-react";
 import { DataTable } from "@/components/data-table/data-table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -32,66 +35,62 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Breadcrumbs } from "@/components/layout/breadcrumbs";
 import {
   usePromoCodes,
-  useCreatePromoCode,
-  useUpdatePromoCode,
   useDeletePromoCode,
   PromoCode,
 } from "@/hooks/use-promo-codes";
 import { formatCurrency, formatDate } from "@/lib/utils";
 
+function getPromoStatus(promo: PromoCode): {
+  label: string;
+  variant: "success" | "secondary" | "warning" | "destructive";
+  tooltip?: string;
+} {
+  const now = new Date();
+
+  if (!promo.isActive) {
+    return { label: "Inactive", variant: "secondary" };
+  }
+
+  if (promo.validTo && new Date(promo.validTo) < now) {
+    return {
+      label: "Expired",
+      variant: "destructive",
+      tooltip: `Expired on ${formatDate(promo.validTo)}`,
+    };
+  }
+
+  if (promo.validFrom && new Date(promo.validFrom) > now) {
+    return {
+      label: "Scheduled",
+      variant: "warning",
+      tooltip: `Starts on ${formatDate(promo.validFrom)}`,
+    };
+  }
+
+  if (promo.maxUses && promo.usedCount >= promo.maxUses) {
+    return {
+      label: "Exhausted",
+      variant: "destructive",
+      tooltip: "Usage limit reached",
+    };
+  }
+
+  return { label: "Active", variant: "success" };
+}
+
 export default function PromoCodesPage() {
-  const [isAddOpen, setIsAddOpen] = useState(false);
-  const [editPromo, setEditPromo] = useState<PromoCode | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [formData, setFormData] = useState({
-    code: "",
-    description: "",
-    discountType: "percentage" as "percentage" | "fixed",
-    discountValue: 0,
-    minimumOrderAmount: 0,
-    maxUses: 0,
-    isActive: true,
-  });
 
   const { data: promoCodes, isLoading } = usePromoCodes();
-  const createPromo = useCreatePromoCode();
-  const updatePromo = useUpdatePromoCode();
   const deletePromo = useDeletePromoCode();
-
-  const resetForm = () => {
-    setFormData({
-      code: "",
-      description: "",
-      discountType: "percentage",
-      discountValue: 0,
-      minimumOrderAmount: 0,
-      maxUses: 0,
-      isActive: true,
-    });
-  };
-
-  const handleCreate = async () => {
-    await createPromo.mutateAsync(formData);
-    setIsAddOpen(false);
-    resetForm();
-  };
-
-  const handleUpdate = async () => {
-    if (editPromo) {
-      await updatePromo.mutateAsync({ id: editPromo.id, data: formData });
-      setEditPromo(null);
-      resetForm();
-    }
-  };
 
   const handleDelete = async () => {
     if (deleteId) {
@@ -100,59 +99,212 @@ export default function PromoCodesPage() {
     }
   };
 
-  const openEdit = (promo: PromoCode) => {
-    setEditPromo(promo);
-    setFormData({
-      code: promo.code,
-      description: promo.description || "",
-      discountType: promo.discountType,
-      discountValue: promo.discountValue,
-      minimumOrderAmount: promo.minimumOrderAmount || 0,
-      maxUses: promo.maxUses || 0,
-      isActive: promo.isActive,
-    });
-  };
-
   const columns: ColumnDef<PromoCode>[] = [
     {
       accessorKey: "code",
       header: "Code",
       cell: ({ row }) => (
-        <span className="font-mono font-medium">{row.original.code}</span>
+        <div className="min-w-[120px]">
+          <Link
+            href={`/promo-codes/${row.original.id}/edit`}
+            className="font-mono font-semibold text-primary hover:underline"
+          >
+            {row.original.code}
+          </Link>
+          {row.original.description && (
+            <p className="text-xs text-muted-foreground mt-0.5 truncate max-w-[200px]">
+              {row.original.description}
+            </p>
+          )}
+        </div>
       ),
     },
     {
-      accessorKey: "discount",
-      header: "Discount",
-      cell: ({ row }) =>
-        row.original.discountType === "percentage"
-          ? `${row.original.discountValue}%`
-          : formatCurrency(row.original.discountValue),
-    },
-    {
-      accessorKey: "usage",
-      header: "Usage",
+      accessorKey: "discountType",
+      header: "Type",
       cell: ({ row }) => (
-        <span>
-          {row.original.usedCount}
-          {row.original.maxUses ? ` / ${row.original.maxUses}` : ""}
-        </span>
-      ),
-    },
-    {
-      accessorKey: "isActive",
-      header: "Status",
-      cell: ({ row }) => (
-        <Badge variant={row.original.isActive ? "success" : "secondary"}>
-          {row.original.isActive ? "Active" : "Inactive"}
+        <Badge variant="outline" className="font-normal">
+          {row.original.discountType === "percentage" ? (
+            <Percent className="h-3 w-3 mr-1" />
+          ) : (
+            <DollarSign className="h-3 w-3 mr-1" />
+          )}
+          {row.original.discountType === "percentage" ? "Percent" : "Fixed"}
         </Badge>
       ),
     },
     {
-      accessorKey: "validTo",
-      header: "Expires",
-      cell: ({ row }) =>
-        row.original.validTo ? formatDate(row.original.validTo) : "Never",
+      accessorKey: "discountValue",
+      header: "Discount",
+      cell: ({ row }) => {
+        const { discountType, discountValue, maximumDiscountAmount } = row.original;
+
+        return (
+          <div className="font-medium">
+            <span className="text-lg">
+              {discountType === "percentage"
+                ? `${discountValue}%`
+                : formatCurrency(discountValue)}
+            </span>
+            {discountType === "percentage" && maximumDiscountAmount && maximumDiscountAmount > 0 && (
+              <p className="text-xs text-muted-foreground">
+                Max: {formatCurrency(maximumDiscountAmount)}
+              </p>
+            )}
+          </div>
+        );
+      },
+    },
+    {
+      accessorKey: "minimumOrderAmount",
+      header: "Min. Order",
+      cell: ({ row }) => {
+        const min = row.original.minimumOrderAmount;
+        if (!min || min <= 0) {
+          return <span className="text-muted-foreground">—</span>;
+        }
+        return <span>{formatCurrency(min)}</span>;
+      },
+    },
+    {
+      accessorKey: "usage",
+      header: "Usage",
+      cell: ({ row }) => {
+        const { usedCount, maxUses, usageLimitPerCustomer } = row.original;
+        const isNearLimit = maxUses && usedCount >= maxUses * 0.8;
+        const isExhausted = maxUses && usedCount >= maxUses;
+
+        return (
+          <div>
+            <div className="flex items-center gap-1">
+              <span
+                className={
+                  isExhausted
+                    ? "text-destructive font-medium"
+                    : isNearLimit
+                      ? "text-orange-500 font-medium"
+                      : ""
+                }
+              >
+                {usedCount}
+              </span>
+              <span className="text-muted-foreground">
+                / {maxUses || "∞"}
+              </span>
+            </div>
+            {usageLimitPerCustomer > 1 && (
+              <p className="text-xs text-muted-foreground flex items-center gap-1">
+                <Users className="h-3 w-3" />
+                {usageLimitPerCustomer}x per user
+              </p>
+            )}
+          </div>
+        );
+      },
+    },
+    {
+      accessorKey: "validity",
+      header: "Valid Period",
+      cell: ({ row }) => {
+        const { validFrom, validTo } = row.original;
+        const now = new Date();
+
+        if (!validFrom && !validTo) {
+          return <span className="text-muted-foreground">Always</span>;
+        }
+
+        const isExpired = validTo && new Date(validTo) < now;
+        const isNotStarted = validFrom && new Date(validFrom) > now;
+
+        return (
+          <div className="text-sm">
+            {validFrom && (
+              <div className={isNotStarted ? "text-warning" : ""}>
+                <span className="text-muted-foreground">From: </span>
+                {formatDate(validFrom)}
+              </div>
+            )}
+            {validTo && (
+              <div className={isExpired ? "text-destructive" : ""}>
+                <span className="text-muted-foreground">To: </span>
+                {formatDate(validTo)}
+              </div>
+            )}
+          </div>
+        );
+      },
+    },
+    {
+      accessorKey: "restrictions",
+      header: "Restrictions",
+      cell: ({ row }) => {
+        const { appliesToProducts, appliesToCategories } = row.original;
+        const productCount = appliesToProducts?.length || 0;
+        const categoryCount = appliesToCategories?.length || 0;
+
+        if (productCount === 0 && categoryCount === 0) {
+          return <span className="text-muted-foreground text-sm">All products</span>;
+        }
+
+        return (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="flex items-center gap-2">
+                  {productCount > 0 && (
+                    <Badge variant="outline" className="gap-1 text-xs">
+                      <Package className="h-3 w-3" />
+                      {productCount}
+                    </Badge>
+                  )}
+                  {categoryCount > 0 && (
+                    <Badge variant="outline" className="gap-1 text-xs">
+                      <FolderTree className="h-3 w-3" />
+                      {categoryCount}
+                    </Badge>
+                  )}
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <div className="text-xs">
+                  {productCount > 0 && (
+                    <div>{productCount} product{productCount > 1 ? "s" : ""}</div>
+                  )}
+                  {categoryCount > 0 && (
+                    <div>{categoryCount} categor{categoryCount > 1 ? "ies" : "y"}</div>
+                  )}
+                </div>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        );
+      },
+    },
+    {
+      accessorKey: "isActive",
+      header: "Status",
+      cell: ({ row }) => {
+        const status = getPromoStatus(row.original);
+
+        if (status.tooltip) {
+          return (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Badge variant={status.variant} className="cursor-help">
+                    {status.label}
+                  </Badge>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <span className="text-xs">{status.tooltip}</span>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          );
+        }
+
+        return <Badge variant={status.variant}>{status.label}</Badge>;
+      },
     },
     {
       id: "actions",
@@ -164,9 +316,11 @@ export default function PromoCodesPage() {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => openEdit(row.original)}>
-              <Pencil className="mr-2 h-4 w-4" />
-              Edit
+            <DropdownMenuItem asChild>
+              <Link href={`/promo-codes/${row.original.id}/edit`}>
+                <Pencil className="mr-2 h-4 w-4" />
+                Edit
+              </Link>
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => setDeleteId(row.original.id)}
@@ -181,92 +335,15 @@ export default function PromoCodesPage() {
     },
   ];
 
-  const FormContent = () => (
-    <div className="space-y-4 py-4">
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="space-y-2">
-          <Label>Code</Label>
-          <Input
-            value={formData.code}
-            onChange={(e) =>
-              setFormData({ ...formData, code: e.target.value.toUpperCase() })
-            }
-            placeholder="SAVE20"
-          />
-        </div>
-        <div className="space-y-2">
-          <Label>Discount Type</Label>
-          <Select
-            value={formData.discountType}
-            onValueChange={(v) =>
-              setFormData({
-                ...formData,
-                discountType: v as "percentage" | "fixed",
-              })
-            }
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="percentage">Percentage</SelectItem>
-              <SelectItem value="fixed">Fixed Amount</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="space-y-2">
-          <Label>Discount Value</Label>
-          <Input
-            type="number"
-            value={formData.discountValue}
-            onChange={(e) =>
-              setFormData({
-                ...formData,
-                discountValue: parseFloat(e.target.value) || 0,
-              })
-            }
-          />
-        </div>
-        <div className="space-y-2">
-          <Label>Minimum Order</Label>
-          <Input
-            type="number"
-            value={formData.minimumOrderAmount}
-            onChange={(e) =>
-              setFormData({
-                ...formData,
-                minimumOrderAmount: parseFloat(e.target.value) || 0,
-              })
-            }
-          />
-        </div>
-      </div>
-      <div className="space-y-2">
-        <Label>Max Uses (0 = unlimited)</Label>
-        <Input
-          type="number"
-          value={formData.maxUses}
-          onChange={(e) =>
-            setFormData({
-              ...formData,
-              maxUses: parseInt(e.target.value) || 0,
-            })
-          }
-        />
-      </div>
-      <div className="space-y-2">
-        <Label>Description</Label>
-        <Input
-          value={formData.description}
-          onChange={(e) =>
-            setFormData({ ...formData, description: e.target.value })
-          }
-        />
-      </div>
-    </div>
-  );
+  // Calculate stats
+  const stats = promoCodes
+    ? {
+        total: promoCodes.length,
+        active: promoCodes.filter((p) => getPromoStatus(p).label === "Active").length,
+        expired: promoCodes.filter((p) => getPromoStatus(p).label === "Expired").length,
+        scheduled: promoCodes.filter((p) => getPromoStatus(p).label === "Scheduled").length,
+      }
+    : { total: 0, active: 0, expired: 0, scheduled: 0 };
 
   return (
     <div className="space-y-6">
@@ -279,56 +356,49 @@ export default function PromoCodesPage() {
             Manage discount codes and promotions
           </p>
         </div>
-        <Button onClick={() => setIsAddOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Create Promo
+        <Button asChild>
+          <Link href="/promo-codes/new">
+            <Plus className="mr-2 h-4 w-4" />
+            Create Promo Code
+          </Link>
         </Button>
+      </div>
+
+      {/* Quick Stats */}
+      <div className="grid gap-4 sm:grid-cols-4">
+        <div className="rounded-lg border bg-card p-4">
+          <div className="text-sm text-muted-foreground">Total</div>
+          <div className="text-2xl font-bold">{stats.total}</div>
+        </div>
+        <div className="rounded-lg border bg-card p-4">
+          <div className="text-sm text-muted-foreground">Active</div>
+          <div className="text-2xl font-bold text-green-600">{stats.active}</div>
+        </div>
+        <div className="rounded-lg border bg-card p-4">
+          <div className="text-sm text-muted-foreground">Scheduled</div>
+          <div className="text-2xl font-bold text-orange-500">{stats.scheduled}</div>
+        </div>
+        <div className="rounded-lg border bg-card p-4">
+          <div className="text-sm text-muted-foreground">Expired</div>
+          <div className="text-2xl font-bold text-destructive">{stats.expired}</div>
+        </div>
       </div>
 
       <DataTable
         columns={columns}
         data={promoCodes || []}
         searchKey="code"
-        searchPlaceholder="Search codes..."
+        searchPlaceholder="Search promo codes..."
         isLoading={isLoading}
       />
-
-      <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Create Promo Code</DialogTitle>
-          </DialogHeader>
-          <FormContent />
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsAddOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleCreate}>Create</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={!!editPromo} onOpenChange={() => setEditPromo(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Edit Promo Code</DialogTitle>
-          </DialogHeader>
-          <FormContent />
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditPromo(null)}>
-              Cancel
-            </Button>
-            <Button onClick={handleUpdate}>Save</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Promo Code</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this promo code?
+              Are you sure you want to delete this promo code? This action cannot
+              be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

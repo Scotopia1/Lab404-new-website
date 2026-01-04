@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Loader2, X, Search, Image as ImageIcon } from "lucide-react";
+import { Loader2, ArrowLeft, X, Search, Image as ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,12 +22,12 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Breadcrumbs } from "@/components/layout/breadcrumbs";
 import { GoogleImageSearch } from "@/components/google-image-search";
-import { useCreateBlog } from "@/hooks/use-blogs";
-import { slugify } from "@/lib/utils";
+import { useBlog, useUpdateBlog } from "@/hooks/use-blogs";
+import { formatDate } from "@/lib/utils";
 
 const blogSchema = z.object({
   title: z.string().min(1, "Title is required").max(255),
-  slug: z.string().max(255).optional().or(z.literal("")),
+  slug: z.string().min(1, "Slug is required").max(255),
   excerpt: z.string().max(500).optional().or(z.literal("")),
   content: z.string().min(1, "Content is required"),
   featuredImageUrl: z.string().url().optional().or(z.literal("")),
@@ -52,18 +52,23 @@ const tagSuggestions = [
   "comparison",
 ];
 
-export default function NewBlogPage() {
+export default function EditBlogPage() {
+  const params = useParams();
   const router = useRouter();
-  const createBlog = useCreateBlog();
+  const id = params.id as string;
   const [tagInput, setTagInput] = useState("");
   const [showGoogleImageSearch, setShowGoogleImageSearch] = useState(false);
+
+  const { data: blog, isLoading: isBlogLoading } = useBlog(id);
+  const updateBlog = useUpdateBlog();
 
   const {
     register,
     handleSubmit,
     watch,
     setValue,
-    formState: { errors, isSubmitting },
+    reset,
+    formState: { errors, isSubmitting, isDirty },
   } = useForm<BlogFormData>({
     resolver: zodResolver(blogSchema),
     defaultValues: {
@@ -79,23 +84,45 @@ export default function NewBlogPage() {
     },
   });
 
+  useEffect(() => {
+    if (blog) {
+      reset(
+        {
+          title: blog.title,
+          slug: blog.slug,
+          excerpt: blog.excerpt || "",
+          content: blog.content,
+          featuredImageUrl: blog.featuredImageUrl || "",
+          status: blog.status as "draft" | "published",
+          tags: blog.tags || [],
+          metaTitle: blog.metaTitle || "",
+          metaDescription: blog.metaDescription || "",
+        },
+        {
+          keepDirty: false,
+          keepDirtyValues: false,
+        }
+      );
+    }
+  }, [blog, reset]);
+
   const tags = watch("tags") || [];
   const featuredImageUrl = watch("featuredImageUrl");
+  const currentStatus = watch("status");
 
   const onSubmit = async (data: BlogFormData) => {
     const submitData = {
       ...data,
-      slug: data.slug || slugify(data.title),
       featuredImageUrl: data.featuredImageUrl || undefined,
     };
-    await createBlog.mutateAsync(submitData);
-    router.push("/blogs");
+    await updateBlog.mutateAsync({ id, data: submitData });
+    router.push(`/blogs/${id}`);
   };
 
   const addTag = (tag: string) => {
     const trimmedTag = tag.trim().toLowerCase();
     if (trimmedTag && !tags.includes(trimmedTag) && tags.length < 20) {
-      setValue("tags", [...tags, trimmedTag]);
+      setValue("tags", [...tags, trimmedTag], { shouldDirty: true });
     }
     setTagInput("");
   };
@@ -103,24 +130,54 @@ export default function NewBlogPage() {
   const removeTag = (tagToRemove: string) => {
     setValue(
       "tags",
-      tags.filter((t) => t !== tagToRemove)
+      tags.filter((t) => t !== tagToRemove),
+      { shouldDirty: true }
     );
   };
 
   const handleGoogleImagesSelected = (imageUrls: string[]) => {
     if (imageUrls.length > 0) {
-      setValue("featuredImageUrl", imageUrls[0]);
+      setValue("featuredImageUrl", imageUrls[0], { shouldDirty: true });
     }
     setShowGoogleImageSearch(false);
   };
+
+  if (isBlogLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!blog) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 space-y-4">
+        <p className="text-muted-foreground">Blog post not found</p>
+        <Button variant="outline" onClick={() => router.push("/blogs")}>
+          Back to Blogs
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
       <Breadcrumbs />
 
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">New Blog Post</h1>
-        <p className="text-muted-foreground">Create a new blog article</p>
+      <div className="flex items-center gap-4">
+        <Button variant="ghost" size="icon" onClick={() => router.push(`/blogs/${id}`)}>
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
+        <div className="flex-1">
+          <h1 className="text-2xl font-bold text-foreground">Edit Blog Post</h1>
+          <p className="text-muted-foreground">Update your blog article</p>
+        </div>
+        {isDirty && (
+          <Badge variant="warning" className="animate-pulse">
+            Unsaved changes
+          </Badge>
+        )}
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
@@ -136,10 +193,6 @@ export default function NewBlogPage() {
                   <Input
                     id="title"
                     {...register("title")}
-                    onChange={(e) => {
-                      register("title").onChange(e);
-                      setValue("slug", slugify(e.target.value));
-                    }}
                     className={errors.title ? "border-destructive" : ""}
                   />
                   {errors.title && (
@@ -150,11 +203,17 @@ export default function NewBlogPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="slug">Slug</Label>
-                  <Input id="slug" {...register("slug")} />
-                  <p className="text-xs text-muted-foreground">
-                    Leave empty to auto-generate from title
-                  </p>
+                  <Label htmlFor="slug">Slug *</Label>
+                  <Input
+                    id="slug"
+                    {...register("slug")}
+                    className={errors.slug ? "border-destructive" : ""}
+                  />
+                  {errors.slug && (
+                    <p className="text-sm text-destructive">
+                      {errors.slug.message}
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -165,16 +224,13 @@ export default function NewBlogPage() {
                     {...register("excerpt")}
                     placeholder="Brief summary of the post (max 500 characters)"
                   />
-                  <p className="text-xs text-muted-foreground">
-                    Leave empty to auto-generate from content
-                  </p>
                 </div>
 
                 <div className="space-y-2">
                   <Label>Content *</Label>
                   <BlogEditor
                     content={watch("content") || ""}
-                    onChange={(html) => setValue("content", html)}
+                    onChange={(html) => setValue("content", html, { shouldDirty: true })}
                     placeholder="Start writing your blog post..."
                   />
                   {errors.content && (
@@ -280,9 +336,11 @@ export default function NewBlogPage() {
               </CardHeader>
               <CardContent>
                 <Select
-                  value={watch("status")}
+                  value={currentStatus}
                   onValueChange={(value) =>
-                    setValue("status", value as "draft" | "published")
+                    setValue("status", value as "draft" | "published", {
+                      shouldDirty: true,
+                    })
                   }
                 >
                   <SelectTrigger className={errors.status ? "border-destructive" : ""}>
@@ -339,7 +397,9 @@ export default function NewBlogPage() {
                       variant="destructive"
                       size="icon"
                       className="absolute top-2 right-2 h-6 w-6"
-                      onClick={() => setValue("featuredImageUrl", "")}
+                      onClick={() =>
+                        setValue("featuredImageUrl", "", { shouldDirty: true })
+                      }
                     >
                       <X className="h-3 w-3" />
                     </Button>
@@ -357,18 +417,32 @@ export default function NewBlogPage() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Summary</CardTitle>
+                <CardTitle>Post Info</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Tags:</span>
-                  <span className="font-medium">{tags.length}</span>
+                  <span className="text-muted-foreground">Created:</span>
+                  <span className="font-medium">{formatDate(blog.createdAt)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Image:</span>
-                  <span className="font-medium">
-                    {featuredImageUrl ? "Yes" : "No"}
-                  </span>
+                  <span className="text-muted-foreground">Updated:</span>
+                  <span className="font-medium">{formatDate(blog.updatedAt)}</span>
+                </div>
+                {blog.publishedAt && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Published:</span>
+                    <span className="font-medium">
+                      {formatDate(blog.publishedAt)}
+                    </span>
+                  </div>
+                )}
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Author:</span>
+                  <span className="font-medium">{blog.authorName || "—"}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Tags:</span>
+                  <span className="font-medium">{tags.length}</span>
                 </div>
               </CardContent>
             </Card>
@@ -376,11 +450,11 @@ export default function NewBlogPage() {
         </div>
 
         <div className="flex gap-4 sticky bottom-0 bg-background py-4 border-t -mx-6 px-6">
-          <Button type="submit" disabled={isSubmitting}>
+          <Button type="submit" disabled={isSubmitting || !isDirty}>
             {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Create Post
+            Save Changes
           </Button>
-          <Button type="button" variant="outline" onClick={() => router.back()}>
+          <Button type="button" variant="outline" onClick={() => router.push(`/blogs/${id}`)}>
             Cancel
           </Button>
         </div>

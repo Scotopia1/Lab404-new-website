@@ -36,15 +36,55 @@ export interface AddressInput {
   phone?: string;
 }
 
+export interface CustomerOrder {
+  id: string;
+  orderNumber: string;
+  status: string;
+  paymentStatus: string;
+  total: number;
+  createdAt: string;
+}
+
+export interface CreateCustomerInput {
+  email: string;
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
+  isGuest?: boolean;
+  isActive?: boolean;
+  acceptsMarketing?: boolean;
+  notes?: string;
+  tags?: string[];
+}
+
+export interface UpdateCustomerInput {
+  email?: string;
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
+  isGuest?: boolean;
+  isActive?: boolean;
+  acceptsMarketing?: boolean;
+  notes?: string;
+  tags?: string[];
+}
+
 export interface Customer {
   id: string;
   email: string;
   firstName: string;
   lastName: string;
   phone: string | null;
+  isGuest?: boolean;
   isActive: boolean;
+  acceptsMarketing?: boolean;
+  notes?: string | null;
+  tags?: string[] | null;
   totalOrders: number;
+  paidOrders: number;
+  unpaidOrders: number;
   totalSpent: number;
+  debt: number;
   addresses?: CustomerAddress[];
   createdAt: string;
   updatedAt: string;
@@ -85,10 +125,28 @@ export function useCustomerOrders(id: string) {
   return useQuery({
     queryKey: ["customers", id, "orders"],
     queryFn: async () => {
-      const res = await api.get<ApiResponse<unknown[]>>(`/customers/${id}/orders`);
+      const res = await api.get<ApiResponse<CustomerOrder[]>>(`/customers/${id}/orders`);
       return res.data.data;
     },
     enabled: !!id,
+  });
+}
+
+export function useCreateCustomer() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: CreateCustomerInput) => {
+      const res = await api.post<ApiResponse<Customer>>("/customers", data);
+      return res.data.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["customers"] });
+      toast.success("Customer created successfully");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to create customer");
+    },
   });
 }
 
@@ -101,7 +159,7 @@ export function useUpdateCustomer() {
       data,
     }: {
       id: string;
-      data: Partial<{ firstName: string; lastName: string; phone: string; isActive: boolean }>;
+      data: UpdateCustomerInput;
     }) => {
       const res = await api.put<ApiResponse<Customer>>(`/customers/${id}`, data);
       return res.data.data;

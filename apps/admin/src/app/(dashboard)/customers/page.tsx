@@ -10,6 +10,8 @@ import {
   UserCheck,
   Download,
   Mail,
+  Plus,
+  Pencil,
 } from "lucide-react";
 import { DataTable, BulkAction } from "@/components/data-table/data-table";
 import { Button } from "@/components/ui/button";
@@ -189,6 +191,15 @@ export default function CustomersPage() {
       cell: ({ row }) => formatCurrency(row.original.totalSpent),
     },
     {
+      accessorKey: "debt",
+      header: "Debt",
+      cell: ({ row }) => (
+        <span className={row.original.debt > 0 ? "text-destructive font-medium" : ""}>
+          {formatCurrency(row.original.debt)}
+        </span>
+      ),
+    },
+    {
       accessorKey: "createdAt",
       header: "Joined",
       cell: ({ row }) => formatDate(row.original.createdAt),
@@ -207,6 +218,12 @@ export default function CustomersPage() {
               <Link href={`/customers/${row.original.id}`}>
                 <Eye className="mr-2 h-4 w-4" />
                 View Details
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href={`/customers/${row.original.id}/edit`}>
+                <Pencil className="mr-2 h-4 w-4" />
+                Edit
               </Link>
             </DropdownMenuItem>
             {row.original.isActive && (
@@ -228,11 +245,19 @@ export default function CustomersPage() {
     <div className="space-y-6">
       <Breadcrumbs />
 
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Customers</h1>
-        <p className="text-muted-foreground">
-          View and manage customer accounts
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Customers</h1>
+          <p className="text-muted-foreground">
+            View and manage customer accounts
+          </p>
+        </div>
+        <Button asChild>
+          <Link href="/customers/new">
+            <Plus className="mr-2 h-4 w-4" />
+            New Customer
+          </Link>
+        </Button>
       </div>
 
       <DataTable

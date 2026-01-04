@@ -22,6 +22,17 @@ interface PromoCodeResult {
   discountValue: number;
   minimumOrderAmount?: number;
   maximumDiscountAmount?: number;
+  appliesToProducts: string[] | null;
+  appliesToCategories: string[] | null;
+}
+
+/**
+ * Internal cart item with category info for promo calculation
+ */
+interface CartItemWithCategory {
+  productId: string;
+  categoryId: string | null;
+  lineTotal: number;
 }
 
 /**
@@ -156,36 +167,45 @@ export class PricingService {
       2
     );
 
-    // 5. Validate and calculate promo code discount
+    // 5. Build category mapping for promo code restrictions
+    const itemsWithCategory: CartItemWithCategory[] = calculatedItems.map((item) => {
+      const product = productData.find((p) => p.id === item.productId);
+      return {
+        productId: item.productId,
+        categoryId: product?.categoryId || null,
+        lineTotal: item.lineTotal,
+      };
+    });
+
+    // 6. Validate and calculate promo code discount
     let discountAmount = 0;
+    let eligibleItemIds: string[] = [];
     let promoCodeResult: PromoCodeResult | undefined;
 
     if (promoCode) {
       promoCodeResult = await this.validatePromoCode(promoCode, subtotal);
 
       if (promoCodeResult) {
-        discountAmount = this.calculateDiscount(
-          promoCodeResult,
-          subtotal,
-          calculatedItems
-        );
+        const discountResult = this.calculateDiscount(promoCodeResult, itemsWithCategory);
+        discountAmount = discountResult.discountAmount;
+        eligibleItemIds = discountResult.eligibleItemIds;
       }
     }
 
-    // 6. Get tax rate from settings
+    // 7. Get tax rate from settings
     const taxRate = await this.getTaxRate();
 
-    // 7. Calculate tax (after discount)
+    // 8. Calculate tax (after discount)
     const taxableAmount = subtotal - discountAmount;
     const taxAmount = round(taxableAmount * taxRate, 2);
 
-    // 8. Calculate shipping (can be extended later)
+    // 9. Calculate shipping (can be extended later)
     const shippingAmount = 0; // Free shipping for now
 
-    // 9. Calculate total
+    // 10. Calculate total
     const total = round(taxableAmount + taxAmount + shippingAmount, 2);
 
-    // 10. Calculate item count
+    // 11. Calculate item count
     const itemCount = calculatedItems.reduce((sum, item) => sum + item.quantity, 0);
 
     return {
@@ -198,6 +218,7 @@ export class PricingService {
       discountAmount,
       promoCode: promoCodeResult?.code,
       promoCodeId: promoCodeResult?.id,
+      eligibleItemIds: eligibleItemIds.length > 0 ? eligibleItemIds : undefined,
       total,
       currency: 'USD',
     };
@@ -293,23 +314,71 @@ export class PricingService {
       maximumDiscountAmount: promoCodeData.maximumDiscountAmount
         ? Number(promoCodeData.maximumDiscountAmount)
         : undefined,
+      appliesToProducts: promoCodeData.appliesToProducts || null,
+      appliesToCategories: promoCodeData.appliesToCategories || null,
     };
   }
 
   /**
+   * Check if an item is eligible for a promo code based on product/category restrictions
+   */
+  private isItemEligibleForPromo(
+    productId: string,
+    categoryId: string | null,
+    promoCode: PromoCodeResult
+  ): boolean {
+    const hasProductRestrictions = promoCode.appliesToProducts && promoCode.appliesToProducts.length > 0;
+    const hasCategoryRestrictions = promoCode.appliesToCategories && promoCode.appliesToCategories.length > 0;
+
+    // If no restrictions, all products are eligible
+    if (!hasProductRestrictions && !hasCategoryRestrictions) {
+      return true;
+    }
+
+    // Check product whitelist
+    if (hasProductRestrictions && promoCode.appliesToProducts!.includes(productId)) {
+      return true;
+    }
+
+    // Check category whitelist
+    if (hasCategoryRestrictions && categoryId && promoCode.appliesToCategories!.includes(categoryId)) {
+      return true;
+    }
+
+    return false;
+  }
+
+  /**
    * Calculate discount amount from promo code
+   * Only applies to eligible items based on product/category restrictions
    */
   private calculateDiscount(
     promoCode: PromoCodeResult,
-    subtotal: number,
-    _items: CartCalculation['items']
-  ): number {
+    items: CartItemWithCategory[]
+  ): { discountAmount: number; eligibleItemIds: string[] } {
+    // Filter items to only those eligible for this promo code
+    const eligibleItems = items.filter((item) =>
+      this.isItemEligibleForPromo(item.productId, item.categoryId, promoCode)
+    );
+
+    // No eligible items = no discount
+    if (eligibleItems.length === 0) {
+      return { discountAmount: 0, eligibleItemIds: [] };
+    }
+
+    // Calculate eligible subtotal (only eligible items)
+    const eligibleSubtotal = round(
+      eligibleItems.reduce((sum, item) => sum + item.lineTotal, 0),
+      2
+    );
+
     let discount = 0;
 
     if (promoCode.discountType === 'percentage') {
-      discount = subtotal * (promoCode.discountValue / 100);
+      discount = eligibleSubtotal * (promoCode.discountValue / 100);
     } else {
-      discount = promoCode.discountValue;
+      // Fixed amount - cap at eligible subtotal
+      discount = Math.min(promoCode.discountValue, eligibleSubtotal);
     }
 
     // Apply maximum discount cap
@@ -317,10 +386,13 @@ export class PricingService {
       discount = Math.min(discount, promoCode.maximumDiscountAmount);
     }
 
-    // Discount cannot exceed subtotal
-    discount = Math.min(discount, subtotal);
+    // Discount cannot exceed eligible subtotal
+    discount = Math.min(discount, eligibleSubtotal);
 
-    return round(discount, 2);
+    return {
+      discountAmount: round(discount, 2),
+      eligibleItemIds: eligibleItems.map((item) => item.productId),
+    };
   }
 
   /**
