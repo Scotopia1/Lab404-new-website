@@ -20,9 +20,9 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"],
-      "@lab404/database": ["./packages/database/dist/index"],
-      "@lab404/database/*": ["./packages/database/dist/*"],
-      "@lab404/shared-types": ["./packages/shared-types/dist/index"]
+      "@lab404/database": ["../../packages/database/src/index"],
+      "@lab404/database/*": ["../../packages/database/src/*"],
+      "@lab404/shared-types": ["../../packages/shared-types/src/index"]
     }
   },
   "include": ["src/**/*", "api/**/*"],

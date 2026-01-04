@@ -9,6 +9,7 @@ import { ordersRoutes } from './orders.routes';
 import { customersRoutes } from './customers.routes';
 import { promoCodesRoutes } from './promoCodes.routes';
 import { quotationsRoutes } from './quotations.routes';
+import { quotationTemplatesRoutes } from './quotation-templates.routes';
 import { blogsRoutes } from './blogs.routes';
 import { settingsRoutes } from './settings.routes';
 import { analyticsRoutes } from './analytics.routes';
@@ -20,6 +21,8 @@ import { healthRoutes } from './health.routes';
 import notificationsRoutes from './notifications.routes';
 import { searchRoutes } from './search.routes';
 import { googleImagesRoutes } from './google-images.routes';
+import { pdfTemplatesRoutes } from './pdfTemplates.routes';
+import { cronRoutes } from './cron.routes';
 
 export const router = Router();
 
@@ -74,6 +77,9 @@ router.use('/customers', customersRoutes);
 // Quotations (Admin only)
 router.use('/quotations', quotationsRoutes);
 
+// Quotation Templates (Admin only)
+router.use('/quotation-templates', quotationTemplatesRoutes);
+
 // Analytics (Admin only)
 router.use('/analytics', analyticsRoutes);
 
@@ -91,6 +97,12 @@ router.use('/notifications', notificationsRoutes);
 
 // Google Images (Admin only)
 router.use('/google-images', googleImagesRoutes);
+
+// PDF Templates (Admin only)
+router.use('/pdf-templates', pdfTemplatesRoutes);
+
+// Cron Jobs (Protected by secret)
+router.use('/cron', cronRoutes);
 
 // ===========================================
 // API Info

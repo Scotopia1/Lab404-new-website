@@ -45,6 +45,19 @@ function getData(data: NotificationData, key: string): string {
   return value !== undefined ? String(value) : '';
 }
 
+interface QuotationEmailData {
+  quotationNumber: string;
+  customerName: string;
+  customerEmail: string;
+  total: number;
+  validUntil: Date | null;
+  currency: string;
+  itemCount: number;
+  companyName: string;
+  companyEmail?: string;
+  companyPhone?: string;
+}
+
 class NotificationService {
   private settings: NotificationSettings = defaultSettings;
 
@@ -319,6 +332,166 @@ class NotificationService {
         </body>
       </html>
     `;
+  }
+
+  /**
+   * Send quotation email to customer with PDF attachment
+   */
+  async sendQuotationToCustomer(
+    data: QuotationEmailData,
+    pdfBuffer: Buffer
+  ): Promise<boolean> {
+    const formatCurrency = (amount: number, currency: string) => {
+      return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: currency || 'USD',
+      }).format(amount);
+    };
+
+    const formatDate = (date: Date | null) => {
+      if (!date) return 'No expiration';
+      return new Date(date).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      });
+    };
+
+    const html = this.wrapCustomerTemplate(`
+      <h2>Quotation ${data.quotationNumber}</h2>
+      <p>Dear ${data.customerName},</p>
+      <p>Thank you for your interest. Please find attached your quotation from ${data.companyName}.</p>
+
+      <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+        <tr>
+          <td style="padding: 10px; border: 1px solid #ddd;"><strong>Quotation Number:</strong></td>
+          <td style="padding: 10px; border: 1px solid #ddd;">${data.quotationNumber}</td>
+        </tr>
+        <tr>
+          <td style="padding: 10px; border: 1px solid #ddd;"><strong>Items:</strong></td>
+          <td style="padding: 10px; border: 1px solid #ddd;">${data.itemCount} item(s)</td>
+        </tr>
+        <tr>
+          <td style="padding: 10px; border: 1px solid #ddd;"><strong>Total Amount:</strong></td>
+          <td style="padding: 10px; border: 1px solid #ddd;"><strong style="color: #2563eb;">${formatCurrency(data.total, data.currency)}</strong></td>
+        </tr>
+        <tr>
+          <td style="padding: 10px; border: 1px solid #ddd;"><strong>Valid Until:</strong></td>
+          <td style="padding: 10px; border: 1px solid #ddd;">${formatDate(data.validUntil)}</td>
+        </tr>
+      </table>
+
+      <p>The detailed quotation is attached as a PDF document.</p>
+
+      <p>If you have any questions or would like to proceed with this quotation, please don't hesitate to contact us:</p>
+      <ul style="list-style: none; padding: 0;">
+        ${data.companyEmail ? `<li style="padding: 5px 0;">Email: <a href="mailto:${data.companyEmail}">${data.companyEmail}</a></li>` : ''}
+        ${data.companyPhone ? `<li style="padding: 5px 0;">Phone: ${data.companyPhone}</li>` : ''}
+      </ul>
+
+      <p>We look forward to doing business with you!</p>
+      <p>Best regards,<br/>${data.companyName}</p>
+    `, data.companyName);
+
+    return mailerService.sendEmail({
+      to: data.customerEmail,
+      subject: `Quotation ${data.quotationNumber} from ${data.companyName}`,
+      html,
+      attachments: [
+        {
+          filename: `${data.quotationNumber}.pdf`,
+          content: pdfBuffer,
+          contentType: 'application/pdf',
+        },
+      ],
+    });
+  }
+
+  private wrapCustomerTemplate(content: string, companyName: string): string {
+    return `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        </head>
+        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); padding: 30px; text-align: center; border-radius: 8px 8px 0 0;">
+            <h1 style="color: white; margin: 0; font-size: 24px;">${companyName}</h1>
+          </div>
+          <div style="background: white; padding: 30px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px;">
+            ${content}
+          </div>
+          <div style="text-align: center; padding: 20px; color: #6b7280; font-size: 12px;">
+            <p>&copy; ${new Date().getFullYear()} ${companyName}. All rights reserved.</p>
+          </div>
+        </body>
+      </html>
+    `;
+  }
+
+  /**
+   * Send quotation expiry reminder to customer
+   */
+  async sendQuotationExpiryReminder(
+    customerEmail: string,
+    customerName: string,
+    quotationNumber: string,
+    daysUntilExpiry: number,
+    expiryDate: Date,
+    acceptanceToken?: string
+  ): Promise<boolean> {
+    const companyName = process.env.COMPANY_NAME || 'Lab404 Electronics';
+    const websiteUrl = process.env.WEBSITE_URL || 'https://lab404electronics.com';
+
+    const formatDate = (date: Date) => {
+      return new Date(date).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      });
+    };
+
+    const urgencyColor = daysUntilExpiry <= 1 ? '#dc2626' : daysUntilExpiry <= 3 ? '#f59e0b' : '#3b82f6';
+    const urgencyText = daysUntilExpiry <= 1 ? 'Expires Tomorrow!' : `Expires in ${daysUntilExpiry} Days`;
+
+    const viewLink = acceptanceToken
+      ? `${websiteUrl}/quotations/view/${acceptanceToken}`
+      : null;
+
+    const html = this.wrapCustomerTemplate(`
+      <div style="text-align: center; padding: 20px 0;">
+        <span style="background: ${urgencyColor}; color: white; padding: 8px 16px; border-radius: 20px; font-weight: bold; font-size: 14px;">
+          ${urgencyText}
+        </span>
+      </div>
+
+      <h2>Quotation Expiry Reminder</h2>
+      <p>Dear ${customerName},</p>
+      <p>This is a friendly reminder that your quotation <strong>${quotationNumber}</strong> will expire on <strong style="color: ${urgencyColor};">${formatDate(expiryDate)}</strong>.</p>
+
+      <div style="background: #f8fafc; border-left: 4px solid ${urgencyColor}; padding: 15px; margin: 20px 0;">
+        <p style="margin: 0;"><strong>Don't miss out!</strong> Review and accept your quotation before it expires to secure your pricing.</p>
+      </div>
+
+      ${viewLink ? `
+        <p style="text-align: center; margin: 30px 0;">
+          <a href="${viewLink}" style="background: #2563eb; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold;">
+            View & Accept Quotation
+          </a>
+        </p>
+      ` : ''}
+
+      <p>If you have any questions or need to discuss the quotation, please don't hesitate to contact us.</p>
+
+      <p>Best regards,<br/>${companyName}</p>
+    `, companyName);
+
+    return mailerService.sendEmail({
+      to: customerEmail,
+      subject: `${urgencyText}: Quotation ${quotationNumber} - ${companyName}`,
+      html,
+    });
   }
 }
 

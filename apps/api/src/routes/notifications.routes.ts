@@ -4,7 +4,7 @@ import { notificationService, NotificationType } from '../services/notification.
 import { mailerService } from '../services/mailer.service';
 import { validateBody } from '../middleware/validator';
 import { sendSuccess, sendError } from '../utils/response';
-import { requireAdmin } from '../middleware/auth';
+import { requireAuth, requireAdmin } from '../middleware/auth';
 
 const router = Router();
 
@@ -44,7 +44,7 @@ const testNotificationSchema = z.object({
  * @desc Get notification settings
  * @access Admin
  */
-router.get('/settings', requireAdmin, async (req, res, next) => {
+router.get('/settings', requireAuth, requireAdmin, async (req, res, next) => {
   try {
     const settings = notificationService.getSettings();
     const smtpConfigured = mailerService.isReady();
@@ -65,6 +65,7 @@ router.get('/settings', requireAdmin, async (req, res, next) => {
  */
 router.put(
   '/settings',
+  requireAuth,
   requireAdmin,
   validateBody(updateSettingsSchema),
   async (req, res, next) => {
@@ -89,6 +90,7 @@ router.put(
  */
 router.post(
   '/test',
+  requireAuth,
   requireAdmin,
   validateBody(testNotificationSchema),
   async (req, res, next) => {
@@ -182,7 +184,7 @@ router.post(
  * @desc Verify SMTP connection
  * @access Admin
  */
-router.post('/verify-smtp', requireAdmin, async (req, res, next) => {
+router.post('/verify-smtp', requireAuth, requireAdmin, async (req, res, next) => {
   try {
     const isConnected = await mailerService.verifyConnection();
 

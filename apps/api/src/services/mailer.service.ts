@@ -1,11 +1,18 @@
 import nodemailer, { Transporter } from 'nodemailer';
 import { logger } from '../utils/logger';
 
+interface EmailAttachment {
+  filename: string;
+  content: Buffer;
+  contentType?: string;
+}
+
 interface EmailOptions {
   to: string | string[];
   subject: string;
   html: string;
   text?: string;
+  attachments?: EmailAttachment[];
 }
 
 interface SMTPConfig {
@@ -61,13 +68,24 @@ class MailerService {
     }
 
     try {
-      const info = await this.transporter.sendMail({
+      const mailOptions: nodemailer.SendMailOptions = {
         from: `"${this.fromName}" <${this.fromEmail}>`,
         to: Array.isArray(options.to) ? options.to.join(', ') : options.to,
         subject: options.subject,
         html: options.html,
         text: options.text || this.stripHtml(options.html),
-      });
+      };
+
+      // Add attachments if provided
+      if (options.attachments && options.attachments.length > 0) {
+        mailOptions.attachments = options.attachments.map(att => ({
+          filename: att.filename,
+          content: att.content,
+          contentType: att.contentType || 'application/pdf',
+        }));
+      }
+
+      const info = await this.transporter.sendMail(mailOptions);
 
       logger.info('Email sent successfully', { messageId: info.messageId, to: options.to });
       return true;

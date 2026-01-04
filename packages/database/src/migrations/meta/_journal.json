@@ -15,6 +15,13 @@
       "when": 1767480307402,
       "tag": "0001_open_frightful_four",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1767543301606,
+      "tag": "0002_careful_aaron_stack",
+      "breakpoints": true
     }
   ]
 }

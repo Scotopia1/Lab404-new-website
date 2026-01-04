@@ -11,6 +11,12 @@ import {
   User,
   Calendar,
   FileText,
+  Download,
+  Phone,
+  Building,
+  Copy,
+  MapPin,
+  Scale,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -30,10 +36,23 @@ import {
   useQuotation,
   useSendQuotation,
   useConvertQuotation,
+  useDuplicateQuotation,
+  useUpdateQuotation,
   Quotation,
 } from "@/hooks/use-quotations";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { ActivityTimeline } from "@/components/quotations/activity-timeline";
+import { RevisionHistory } from "@/components/quotations/revision-history";
 import { formatCurrency, formatDate, formatDateTime } from "@/lib/utils";
+import { api } from "@/lib/api-client";
 import { useState } from "react";
+import { toast } from "sonner";
 
 const statusConfig: Record<
   Quotation["status"],
@@ -52,15 +71,74 @@ export default function QuotationDetailPage() {
   const router = useRouter();
   const id = params.id as string;
   const [convertOpen, setConvertOpen] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [statusChangeOpen, setStatusChangeOpen] = useState(false);
+  const [pendingStatus, setPendingStatus] = useState<Quotation["status"] | null>(null);
 
   const { data: quotation, isLoading } = useQuotation(id);
   const sendQuotation = useSendQuotation();
   const convertQuotation = useConvertQuotation();
+  const duplicateQuotation = useDuplicateQuotation();
+  const updateQuotation = useUpdateQuotation();
 
   const handleConvert = async () => {
     const result = await convertQuotation.mutateAsync(id);
     setConvertOpen(false);
     router.push(`/orders/${result.orderId}`);
+  };
+
+  const handleDuplicate = async () => {
+    const result = await duplicateQuotation.mutateAsync(id);
+    router.push(`/quotations/${result.id}/edit`);
+  };
+
+  const handleStatusChange = (newStatus: string) => {
+    if (newStatus === quotation?.status) return;
+    setPendingStatus(newStatus as Quotation["status"]);
+    setStatusChangeOpen(true);
+  };
+
+  const confirmStatusChange = async () => {
+    if (!pendingStatus || pendingStatus === "converted") return;
+    try {
+      await updateQuotation.mutateAsync({
+        id,
+        data: { status: pendingStatus as "draft" | "sent" | "accepted" | "rejected" | "expired" },
+      });
+      toast.success(`Status changed to ${statusConfig[pendingStatus].label}`);
+    } catch {
+      toast.error("Failed to change status");
+    } finally {
+      setStatusChangeOpen(false);
+      setPendingStatus(null);
+    }
+  };
+
+  const handleDownloadPdf = async () => {
+    if (!quotation) return;
+
+    setIsDownloading(true);
+    try {
+      const response = await api.get(`/quotations/${id}/pdf`, {
+        responseType: 'blob',
+      });
+
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `quotation-${quotation.quotationNumber}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      toast.success('PDF downloaded successfully');
+    } catch {
+      toast.error('Failed to download PDF');
+    } finally {
+      setIsDownloading(false);
+    }
   };
 
   if (isLoading) {
@@ -91,7 +169,43 @@ export default function QuotationDetailPage() {
               <h1 className="text-2xl font-bold text-foreground">
                 {quotation.quotationNumber}
               </h1>
-              <Badge variant={config.variant}>{config.label}</Badge>
+              {quotation.status === "draft" || quotation.status === "converted" ? (
+                <Badge variant={config.variant}>{config.label}</Badge>
+              ) : (
+                <Select
+                  value={quotation.status}
+                  onValueChange={handleStatusChange}
+                  disabled={updateQuotation.isPending}
+                >
+                  <SelectTrigger className="w-[140px] h-7">
+                    <Badge variant={config.variant} className="mr-1">
+                      {config.label}
+                    </Badge>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="sent">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="info" className="text-xs">Sent</Badge>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="accepted">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="success" className="text-xs">Accepted</Badge>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="rejected">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="destructive" className="text-xs">Rejected</Badge>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="expired">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="warning" className="text-xs">Expired</Badge>
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
             </div>
             <p className="text-muted-foreground">
               Created {formatDateTime(quotation.createdAt)}
@@ -100,18 +214,41 @@ export default function QuotationDetailPage() {
         </div>
         <div className="flex items-center gap-2">
           {quotation.status === "draft" && (
-            <>
-              <Button variant="outline" asChild>
-                <Link href={`/quotations/${id}/edit`}>
-                  <Pencil className="mr-2 h-4 w-4" />
-                  Edit
-                </Link>
-              </Button>
-              <Button onClick={() => sendQuotation.mutate(id)}>
-                <Send className="mr-2 h-4 w-4" />
-                Send to Customer
-              </Button>
-            </>
+            <Button variant="outline" asChild>
+              <Link href={`/quotations/${id}/edit`}>
+                <Pencil className="mr-2 h-4 w-4" />
+                Edit
+              </Link>
+            </Button>
+          )}
+          <Button
+            variant="outline"
+            onClick={handleDuplicate}
+            disabled={duplicateQuotation.isPending}
+          >
+            <Copy className="mr-2 h-4 w-4" />
+            {duplicateQuotation.isPending ? "Duplicating..." : "Duplicate"}
+          </Button>
+          <Button
+            variant="outline"
+            onClick={handleDownloadPdf}
+            disabled={isDownloading}
+          >
+            {isDownloading ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Download className="mr-2 h-4 w-4" />
+            )}
+            {isDownloading ? "Downloading..." : "Download PDF"}
+          </Button>
+          {quotation.status === "draft" && (
+            <Button
+              onClick={() => sendQuotation.mutate(id)}
+              disabled={sendQuotation.isPending}
+            >
+              <Send className="mr-2 h-4 w-4" />
+              {sendQuotation.isPending ? "Sending..." : "Send to Customer"}
+            </Button>
           )}
           {quotation.status === "accepted" && (
             <Button onClick={() => setConvertOpen(true)}>
@@ -141,15 +278,20 @@ export default function QuotationDetailPage() {
                     key={item.id}
                     className="grid grid-cols-12 gap-4 items-center py-3 border-b last:border-0"
                   >
-                    <div className="col-span-6 font-medium">
-                      {item.productName}
+                    <div className="col-span-6">
+                      <div className="font-medium">{item.name}</div>
+                      {item.sku && (
+                        <div className="text-xs text-muted-foreground">
+                          SKU: {item.sku}
+                        </div>
+                      )}
                     </div>
                     <div className="col-span-2 text-right">
-                      {formatCurrency(item.price)}
+                      {formatCurrency(item.unitPrice)}
                     </div>
                     <div className="col-span-2 text-right">{item.quantity}</div>
                     <div className="col-span-2 text-right font-medium">
-                      {formatCurrency(item.total)}
+                      {formatCurrency(item.lineTotal)}
                     </div>
                   </div>
                 ))}
@@ -160,20 +302,22 @@ export default function QuotationDetailPage() {
                   <span className="text-muted-foreground">Subtotal</span>
                   <span>{formatCurrency(quotation.subtotal)}</span>
                 </div>
-                {quotation.discount > 0 && (
+                {quotation.discountAmount > 0 && (
                   <div className="flex justify-between text-green-600">
                     <span>Discount</span>
-                    <span>-{formatCurrency(quotation.discount)}</span>
+                    <span>-{formatCurrency(quotation.discountAmount)}</span>
                   </div>
                 )}
-                {quotation.tax > 0 && (
+                {quotation.taxAmount > 0 && (
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Tax</span>
-                    <span>{formatCurrency(quotation.tax)}</span>
+                    <span className="text-muted-foreground">
+                      Tax ({((quotation.taxRate || 0) * 100).toFixed(0)}%)
+                    </span>
+                    <span>{formatCurrency(quotation.taxAmount)}</span>
                   </div>
                 )}
                 <div className="flex justify-between pt-2 border-t font-bold text-lg">
-                  <span>Total</span>
+                  <span>Total ({quotation.currency || "USD"})</span>
                   <span>{formatCurrency(quotation.total)}</span>
                 </div>
               </div>
@@ -193,6 +337,23 @@ export default function QuotationDetailPage() {
               </CardContent>
             </Card>
           )}
+
+          {quotation.termsAndConditions && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Scale className="h-5 w-5" />
+                  Terms & Conditions
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div
+                  className="prose prose-sm dark:prose-invert max-w-none"
+                  dangerouslySetInnerHTML={{ __html: quotation.termsAndConditions }}
+                />
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         <div className="space-y-6">
@@ -200,26 +361,76 @@ export default function QuotationDetailPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <User className="h-5 w-5" />
-                Customer
+                Customer Details
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              {quotation.customer ? (
-                <div className="space-y-2">
-                  <div className="font-medium">
-                    {quotation.customer.firstName} {quotation.customer.lastName}
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    {quotation.customer.email}
-                  </div>
-                  <Button variant="link" size="sm" className="p-0 h-auto" asChild>
-                    <Link href={`/customers/${quotation.customer.id}`}>
-                      View customer profile
-                    </Link>
-                  </Button>
+            <CardContent className="space-y-3">
+              {/* Customer name and email */}
+              <div>
+                <div className="font-medium">
+                  {quotation.customer
+                    ? `${quotation.customer.firstName} ${quotation.customer.lastName}`
+                    : quotation.customerName}
                 </div>
-              ) : (
-                <p className="text-muted-foreground">No customer assigned</p>
+                <div className="text-sm text-muted-foreground">
+                  {quotation.customer?.email || quotation.customerEmail}
+                </div>
+              </div>
+
+              {/* Phone */}
+              {quotation.customerPhone && (
+                <div className="flex items-center gap-2 text-sm">
+                  <Phone className="h-4 w-4 text-muted-foreground" />
+                  <span>{quotation.customerPhone}</span>
+                </div>
+              )}
+
+              {/* Company */}
+              {quotation.customerCompany && (
+                <div className="flex items-center gap-2 text-sm">
+                  <Building className="h-4 w-4 text-muted-foreground" />
+                  <span>{quotation.customerCompany}</span>
+                </div>
+              )}
+
+              {/* Address */}
+              {quotation.customerAddress && (
+                <div className="flex gap-2 text-sm">
+                  <MapPin className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+                  <div>
+                    {quotation.customerAddress.addressLine1 && (
+                      <div>{quotation.customerAddress.addressLine1}</div>
+                    )}
+                    {quotation.customerAddress.addressLine2 && (
+                      <div>{quotation.customerAddress.addressLine2}</div>
+                    )}
+                    {(quotation.customerAddress.city ||
+                      quotation.customerAddress.state ||
+                      quotation.customerAddress.postalCode) && (
+                      <div>
+                        {[
+                          quotation.customerAddress.city,
+                          quotation.customerAddress.state,
+                          quotation.customerAddress.postalCode,
+                        ]
+                          .filter(Boolean)
+                          .join(", ")}
+                      </div>
+                    )}
+                    {quotation.customerAddress.country && (
+                      <div>{quotation.customerAddress.country}</div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Link to customer profile if linked */}
+              {quotation.customer && (
+                <Button variant="link" size="sm" className="p-0 h-auto" asChild>
+                  <Link href={`/customers/${quotation.customer.id}`}>
+                    View customer profile
+                  </Link>
+                </Button>
               )}
             </CardContent>
           </Card>
@@ -284,6 +495,10 @@ export default function QuotationDetailPage() {
               </div>
             </CardContent>
           </Card>
+
+          <ActivityTimeline quotationId={id} />
+
+          <RevisionHistory quotationId={id} currentStatus={quotation.status} />
         </div>
       </div>
 
@@ -301,6 +516,38 @@ export default function QuotationDetailPage() {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleConvert}>
               Convert to Order
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={statusChangeOpen} onOpenChange={setStatusChangeOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Change Quotation Status</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to change the status from{" "}
+              <Badge variant={config.variant} className="mx-1">
+                {config.label}
+              </Badge>{" "}
+              to{" "}
+              {pendingStatus && (
+                <Badge variant={statusConfig[pendingStatus].variant} className="mx-1">
+                  {statusConfig[pendingStatus].label}
+                </Badge>
+              )}
+              ?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setPendingStatus(null)}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmStatusChange}
+              disabled={updateQuotation.isPending}
+            >
+              {updateQuotation.isPending ? "Changing..." : "Confirm"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

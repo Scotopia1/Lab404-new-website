@@ -165,28 +165,111 @@ export class ImportService {
   // ===========================================
 
   /**
-   * Product import mapping
+   * Product import mapping - ALL fields
    */
   getProductMappings(): ColumnMapping[] {
     return [
-      { csvColumn: 'Name', field: 'name', required: true },
-      { csvColumn: 'SKU', field: 'sku', required: true },
-      { csvColumn: 'Description', field: 'description' },
+      // Required fields
+      { csvColumn: 'name', field: 'name', required: true },
+      { csvColumn: 'sku', field: 'sku', required: true },
       {
-        csvColumn: 'Base Price',
+        csvColumn: 'price',
         field: 'basePrice',
         required: true,
         transform: (v) => parseFloat(v.replace(/[^0-9.]/g, '')),
       },
+      // Basic info
+      { csvColumn: 'barcode', field: 'barcode' },
+      { csvColumn: 'description', field: 'description' },
+      { csvColumn: 'short_description', field: 'shortDescription' },
+      { csvColumn: 'category', field: 'categoryName' },
+      { csvColumn: 'brand', field: 'brand' },
+      // Pricing
       {
-        csvColumn: 'Stock Quantity',
+        csvColumn: 'cost_price',
+        field: 'costPrice',
+        transform: (v) => v ? parseFloat(v.replace(/[^0-9.]/g, '')) : undefined,
+      },
+      {
+        csvColumn: 'compare_at_price',
+        field: 'compareAtPrice',
+        transform: (v) => v ? parseFloat(v.replace(/[^0-9.]/g, '')) : undefined,
+      },
+      // Inventory
+      {
+        csvColumn: 'quantity',
         field: 'stockQuantity',
         transform: (v) => parseInt(v) || 0,
       },
-      { csvColumn: 'Category', field: 'categoryName' },
-      { csvColumn: 'Brand', field: 'brand' },
       {
-        csvColumn: 'Status',
+        csvColumn: 'low_stock_threshold',
+        field: 'lowStockThreshold',
+        transform: (v) => parseInt(v) || 5,
+      },
+      {
+        csvColumn: 'track_inventory',
+        field: 'trackInventory',
+        transform: (v) => !['no', 'false', '0'].includes(v.toLowerCase().trim()),
+      },
+      {
+        csvColumn: 'allow_backorder',
+        field: 'allowBackorder',
+        transform: (v) => ['yes', 'true', '1'].includes(v.toLowerCase().trim()),
+      },
+      // Shipping
+      {
+        csvColumn: 'weight',
+        field: 'weight',
+        transform: (v) => v ? parseFloat(v) : undefined,
+      },
+      {
+        csvColumn: 'dimensions',
+        field: 'dimensions',
+        transform: (v) => {
+          if (!v) return undefined;
+          try {
+            // Support JSON format: {"width": 10, "height": 20, "depth": 5}
+            if (v.startsWith('{')) return JSON.parse(v);
+            // Support simple format: 10x20x5
+            const parts = v.split('x').map(p => parseFloat(p.trim()));
+            if (parts.length === 3) {
+              return { width: parts[0], height: parts[1], depth: parts[2] };
+            }
+            return undefined;
+          } catch {
+            return undefined;
+          }
+        },
+      },
+      {
+        csvColumn: 'is_digital',
+        field: 'isDigital',
+        transform: (v) => ['yes', 'true', '1'].includes(v.toLowerCase().trim()),
+      },
+      {
+        csvColumn: 'requires_shipping',
+        field: 'requiresShipping',
+        transform: (v) => !['no', 'false', '0'].includes(v.toLowerCase().trim()),
+      },
+      // Media
+      { csvColumn: 'image_url', field: 'thumbnailUrl' },
+      {
+        csvColumn: 'images',
+        field: 'images',
+        transform: (v) => {
+          if (!v) return [];
+          try {
+            if (v.startsWith('[')) return JSON.parse(v);
+            // Support comma-separated URLs
+            return v.split(',').map(url => ({ url: url.trim() })).filter(img => img.url);
+          } catch {
+            return [];
+          }
+        },
+      },
+      // Status
+      {
+        csvColumn: 'status',
         field: 'status',
         transform: (v) => {
           const normalized = v.toLowerCase().trim();
@@ -197,105 +280,358 @@ export class ImportService {
         },
       },
       {
-        csvColumn: 'Featured',
+        csvColumn: 'featured',
         field: 'isFeatured',
         transform: (v) => ['yes', 'true', '1'].includes(v.toLowerCase().trim()),
       },
+      // SEO
+      { csvColumn: 'meta_title', field: 'metaTitle' },
+      { csvColumn: 'meta_description', field: 'metaDescription' },
+      // Tags and features
       {
-        csvColumn: 'Tags',
+        csvColumn: 'tags',
         field: 'tags',
         transform: (v) => v.split(',').map(t => t.trim()).filter(Boolean),
       },
-      { csvColumn: 'Image URL', field: 'mainImage' },
+      {
+        csvColumn: 'features',
+        field: 'features',
+        transform: (v) => v.split(',').map(t => t.trim()).filter(Boolean),
+      },
+      {
+        csvColumn: 'specifications',
+        field: 'specifications',
+        transform: (v) => {
+          if (!v) return {};
+          try {
+            if (v.startsWith('{')) return JSON.parse(v);
+            // Support simple format: key1:value1,key2:value2
+            const specs: Record<string, string> = {};
+            v.split(',').forEach(pair => {
+              const [key, value] = pair.split(':').map(s => s.trim());
+              if (key && value) specs[key] = value;
+            });
+            return specs;
+          } catch {
+            return {};
+          }
+        },
+      },
+      // Supplier
+      { csvColumn: 'supplier_id', field: 'supplierId' },
+      { csvColumn: 'supplier_sku', field: 'supplierSku' },
     ];
   }
 
   /**
-   * Product import schema
+   * Product import schema - ALL fields
    */
   getProductSchema() {
     return z.object({
+      // Required
       name: z.string().min(1).max(255),
       sku: z.string().min(1).max(100),
-      description: z.string().optional(),
       basePrice: z.number().positive(),
-      stockQuantity: z.number().int().min(0).optional().default(0),
+      // Basic
+      barcode: z.string().max(100).optional(),
+      description: z.string().optional(),
+      shortDescription: z.string().max(500).optional(),
       categoryName: z.string().optional(),
-      brand: z.string().optional(),
+      brand: z.string().max(255).optional(),
+      // Pricing
+      costPrice: z.number().positive().optional(),
+      compareAtPrice: z.number().positive().optional(),
+      // Inventory
+      stockQuantity: z.number().int().min(0).optional().default(0),
+      lowStockThreshold: z.number().int().min(0).optional().default(5),
+      trackInventory: z.boolean().optional().default(true),
+      allowBackorder: z.boolean().optional().default(false),
+      // Shipping
+      weight: z.number().optional(),
+      dimensions: z.object({
+        width: z.number().optional(),
+        height: z.number().optional(),
+        depth: z.number().optional(),
+      }).optional(),
+      isDigital: z.boolean().optional().default(false),
+      requiresShipping: z.boolean().optional().default(true),
+      // Media
+      thumbnailUrl: z.string().url().optional(),
+      images: z.array(z.object({
+        url: z.string().url(),
+        alt: z.string().optional(),
+      })).optional(),
+      // Status
       status: z.enum(['active', 'draft', 'archived']).optional().default('draft'),
       isFeatured: z.boolean().optional().default(false),
+      // SEO
+      metaTitle: z.string().max(255).optional(),
+      metaDescription: z.string().max(500).optional(),
+      // Tags and features
       tags: z.array(z.string()).optional(),
-      mainImage: z.string().url().optional(),
+      features: z.array(z.string()).optional(),
+      specifications: z.record(z.string()).optional(),
+      // Supplier
+      supplierId: z.string().optional(),
+      supplierSku: z.string().optional(),
     });
   }
 
   /**
-   * Customer import mapping
+   * Customer import mapping - ALL fields including addresses
    */
   getCustomerMappings(): ColumnMapping[] {
     return [
-      { csvColumn: 'Email', field: 'email', required: true },
-      { csvColumn: 'First Name', field: 'firstName' },
-      { csvColumn: 'Last Name', field: 'lastName' },
-      { csvColumn: 'Phone', field: 'phone' },
+      // Required
+      { csvColumn: 'email', field: 'email', required: true },
+      // Basic info
+      { csvColumn: 'first_name', field: 'firstName' },
+      { csvColumn: 'last_name', field: 'lastName' },
+      { csvColumn: 'phone', field: 'phone' },
+      // Status
+      {
+        csvColumn: 'is_active',
+        field: 'isActive',
+        transform: (v) => !['no', 'false', '0'].includes(v.toLowerCase().trim()),
+      },
+      {
+        csvColumn: 'accepts_marketing',
+        field: 'acceptsMarketing',
+        transform: (v) => ['yes', 'true', '1'].includes(v.toLowerCase().trim()),
+      },
+      // Notes and tags
+      { csvColumn: 'notes', field: 'notes' },
+      {
+        csvColumn: 'tags',
+        field: 'tags',
+        transform: (v) => v.split(',').map(t => t.trim()).filter(Boolean),
+      },
+      // Shipping address fields
+      { csvColumn: 'shipping_first_name', field: 'shippingFirstName' },
+      { csvColumn: 'shipping_last_name', field: 'shippingLastName' },
+      { csvColumn: 'shipping_company', field: 'shippingCompany' },
+      { csvColumn: 'shipping_address_line1', field: 'shippingAddressLine1' },
+      { csvColumn: 'shipping_address_line2', field: 'shippingAddressLine2' },
+      { csvColumn: 'shipping_city', field: 'shippingCity' },
+      { csvColumn: 'shipping_state', field: 'shippingState' },
+      { csvColumn: 'shipping_postal_code', field: 'shippingPostalCode' },
+      { csvColumn: 'shipping_country', field: 'shippingCountry' },
+      { csvColumn: 'shipping_phone', field: 'shippingPhone' },
+      // Billing address fields
+      { csvColumn: 'billing_first_name', field: 'billingFirstName' },
+      { csvColumn: 'billing_last_name', field: 'billingLastName' },
+      { csvColumn: 'billing_company', field: 'billingCompany' },
+      { csvColumn: 'billing_address_line1', field: 'billingAddressLine1' },
+      { csvColumn: 'billing_address_line2', field: 'billingAddressLine2' },
+      { csvColumn: 'billing_city', field: 'billingCity' },
+      { csvColumn: 'billing_state', field: 'billingState' },
+      { csvColumn: 'billing_postal_code', field: 'billingPostalCode' },
+      { csvColumn: 'billing_country', field: 'billingCountry' },
+      { csvColumn: 'billing_phone', field: 'billingPhone' },
     ];
   }
 
   /**
-   * Customer import schema
+   * Customer import schema - ALL fields
    */
   getCustomerSchema() {
     return z.object({
+      // Required
       email: z.string().email(),
+      // Basic
       firstName: z.string().max(100).optional(),
       lastName: z.string().max(100).optional(),
       phone: z.string().max(50).optional(),
+      // Status
+      isActive: z.boolean().optional().default(true),
+      acceptsMarketing: z.boolean().optional().default(false),
+      // Notes and tags
+      notes: z.string().optional(),
+      tags: z.array(z.string()).optional(),
+      // Shipping address fields (will be combined into JSON)
+      shippingFirstName: z.string().optional(),
+      shippingLastName: z.string().optional(),
+      shippingCompany: z.string().optional(),
+      shippingAddressLine1: z.string().optional(),
+      shippingAddressLine2: z.string().optional(),
+      shippingCity: z.string().optional(),
+      shippingState: z.string().optional(),
+      shippingPostalCode: z.string().optional(),
+      shippingCountry: z.string().optional(),
+      shippingPhone: z.string().optional(),
+      // Billing address fields (will be combined into JSON)
+      billingFirstName: z.string().optional(),
+      billingLastName: z.string().optional(),
+      billingCompany: z.string().optional(),
+      billingAddressLine1: z.string().optional(),
+      billingAddressLine2: z.string().optional(),
+      billingCity: z.string().optional(),
+      billingState: z.string().optional(),
+      billingPostalCode: z.string().optional(),
+      billingCountry: z.string().optional(),
+      billingPhone: z.string().optional(),
     });
   }
 
   /**
-   * Generate CSV template for products
+   * Generate CSV template for products - ALL fields
    */
   getProductTemplate(): string {
     const headers = [
-      'Name',
-      'SKU',
-      'Description',
-      'Base Price',
-      'Stock Quantity',
-      'Category',
-      'Brand',
-      'Status',
-      'Featured',
-      'Tags',
-      'Image URL',
+      'name',
+      'sku',
+      'price',
+      'barcode',
+      'description',
+      'short_description',
+      'category',
+      'brand',
+      'cost_price',
+      'compare_at_price',
+      'quantity',
+      'low_stock_threshold',
+      'track_inventory',
+      'allow_backorder',
+      'weight',
+      'dimensions',
+      'is_digital',
+      'requires_shipping',
+      'image_url',
+      'images',
+      'status',
+      'featured',
+      'meta_title',
+      'meta_description',
+      'tags',
+      'features',
+      'specifications',
+      'supplier_id',
+      'supplier_sku',
     ];
 
     const exampleRow = [
-      'Example Product',
-      'EX-001',
-      'Product description here',
-      '99.99',
+      'Arduino Uno R3',
+      'ARD-UNO-R3',
+      '29.99',
+      '123456789',
+      'The Arduino Uno R3 is a microcontroller board based on the ATmega328P.',
+      'Popular microcontroller board for beginners',
+      'Microcontrollers',
+      'Arduino',
+      '15.00',
+      '39.99',
       '100',
-      'Electronics',
-      'BrandName',
-      'draft',
+      '10',
+      'Yes',
       'No',
-      'tag1,tag2',
-      'https://example.com/image.jpg',
+      '25',
+      '10x5x2',
+      'No',
+      'Yes',
+      'https://example.com/arduino.jpg',
+      '',
+      'active',
+      'Yes',
+      'Arduino Uno R3 - Buy Online',
+      'Shop the Arduino Uno R3 microcontroller board',
+      'arduino,microcontroller,electronics',
+      'Easy to program,USB powered,14 digital pins',
+      'Processor:ATmega328P,Voltage:5V,Clock:16MHz',
+      'SUP001',
+      'ARD-001',
     ];
 
-    return `${headers.join(',')}\n${exampleRow.join(',')}`;
+    return `${headers.join(',')}\n"${exampleRow.join('","')}"`;
   }
 
   /**
-   * Generate CSV template for customers
+   * Generate CSV template for customers - ALL fields
    */
   getCustomerTemplate(): string {
-    const headers = ['Email', 'First Name', 'Last Name', 'Phone'];
-    const exampleRow = ['customer@example.com', 'John', 'Doe', '+1234567890'];
+    const headers = [
+      'email',
+      'first_name',
+      'last_name',
+      'phone',
+      'is_active',
+      'accepts_marketing',
+      'notes',
+      'tags',
+      'shipping_first_name',
+      'shipping_last_name',
+      'shipping_company',
+      'shipping_address_line1',
+      'shipping_address_line2',
+      'shipping_city',
+      'shipping_state',
+      'shipping_postal_code',
+      'shipping_country',
+      'shipping_phone',
+      'billing_first_name',
+      'billing_last_name',
+      'billing_company',
+      'billing_address_line1',
+      'billing_address_line2',
+      'billing_city',
+      'billing_state',
+      'billing_postal_code',
+      'billing_country',
+      'billing_phone',
+    ];
 
-    return `${headers.join(',')}\n${exampleRow.join(',')}`;
+    const exampleRow = [
+      'john@example.com',
+      'John',
+      'Doe',
+      '+1-555-123-4567',
+      'Yes',
+      'Yes',
+      'VIP customer',
+      'wholesale,priority',
+      'John',
+      'Doe',
+      'Acme Inc',
+      '123 Main Street',
+      'Suite 100',
+      'New York',
+      'NY',
+      '10001',
+      'USA',
+      '+1-555-123-4567',
+      'John',
+      'Doe',
+      'Acme Inc',
+      '123 Main Street',
+      'Suite 100',
+      'New York',
+      'NY',
+      '10001',
+      'USA',
+      '+1-555-123-4567',
+    ];
+
+    return `${headers.join(',')}\n"${exampleRow.join('","')}"`;
+  }
+
+  /**
+   * Build address JSON from flat fields
+   */
+  buildAddressFromFlatFields(data: Record<string, unknown>, prefix: 'shipping' | 'billing'): Record<string, unknown> | null {
+    const addressLine1 = data[`${prefix}AddressLine1`];
+    if (!addressLine1) return null;
+
+    return {
+      firstName: data[`${prefix}FirstName`] || '',
+      lastName: data[`${prefix}LastName`] || '',
+      company: data[`${prefix}Company`] || undefined,
+      addressLine1: addressLine1,
+      addressLine2: data[`${prefix}AddressLine2`] || undefined,
+      city: data[`${prefix}City`] || '',
+      state: data[`${prefix}State`] || undefined,
+      postalCode: data[`${prefix}PostalCode`] || undefined,
+      country: data[`${prefix}Country`] || '',
+      phone: data[`${prefix}Phone`] || undefined,
+    };
   }
 }
 

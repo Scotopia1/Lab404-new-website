@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { getDb, products, categories, eq, ilike, and, or, gte, lte, sql, desc, asc } from '@lab404/database';
+import { getDb, products, categories, productVariants, eq, ilike, and, or, gte, lte, sql, desc, asc } from '@lab404/database';
 import { validateBody, validateQuery } from '../middleware/validator';
 import { requireAuth, requireAdmin, optionalAuth } from '../middleware/auth';
 import { sendSuccess, sendCreated, sendNoContent, createPaginationMeta, parsePaginationParams } from '../utils/response';
@@ -245,6 +245,50 @@ productsRoutes.get('/featured', async (req, res, next) => {
     }));
 
     sendSuccess(res, productsWithStock);
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * GET /api/products/:productId/variants
+ * Get all variants for a product
+ */
+productsRoutes.get('/:productId/variants', async (req, res, next) => {
+  try {
+    const db = getDb();
+    const productId = req.params['productId'] as string;
+
+    // Validate UUID format
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(productId)) {
+      // Not a UUID, pass to next route (slug handler)
+      return next();
+    }
+
+    // Check if product exists
+    const [product] = await db
+      .select({ id: products.id, name: products.name })
+      .from(products)
+      .where(eq(products.id, productId));
+
+    if (!product) {
+      throw new NotFoundError('Product not found');
+    }
+
+    // Get variants
+    const variants = await db
+      .select()
+      .from(productVariants)
+      .where(and(
+        eq(productVariants.productId, productId),
+        eq(productVariants.isActive, true)
+      ))
+      .orderBy(asc(productVariants.name));
+
+    sendSuccess(res, variants.map(v => ({
+      ...v,
+      basePrice: Number(v.basePrice),
+    })));
   } catch (error) {
     next(error);
   }

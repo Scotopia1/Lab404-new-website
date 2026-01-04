@@ -5,29 +5,51 @@ import { useParams, useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Loader2, Trash2, Search, ArrowLeft } from "lucide-react";
+import { Loader2, Trash2, Search, ArrowLeft, Percent, DollarSign, Plus, Package, PencilLine } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 import { Breadcrumbs } from "@/components/layout/breadcrumbs";
 import { useQuotation, useUpdateQuotation } from "@/hooks/use-quotations";
 import { useProducts } from "@/hooks/use-products";
+import { useProductVariants, ProductVariant, formatVariantOptions } from "@/hooks/use-product-variants";
+import { VariantSelector } from "@/components/quotations/variant-selector";
+import { TermsEditor } from "@/components/quotations/terms-editor";
 import { formatCurrency } from "@/lib/utils";
 
 const quotationSchema = z.object({
-  validUntil: z.string().optional(),
+  customerName: z.string().min(1, "Customer name is required"),
+  customerEmail: z.string().email("Valid email is required"),
+  customerPhone: z.string().optional(),
+  customerCompany: z.string().optional(),
+  validDays: z.number().int().min(1).max(365).optional(),
   notes: z.string().optional(),
+  terms: z.string().optional(),
 });
 
 type QuotationFormData = z.infer<typeof quotationSchema>;
 
 interface LineItem {
-  productId: string;
+  id: string;
+  productId: string | null;
+  variantId?: string | null;
+  variantOptions?: Record<string, string>;
   productName: string;
+  description?: string;
+  sku?: string | null;
   quantity: number;
   price: number;
+  isCustom: boolean;
 }
 
 export default function EditQuotationPage() {
@@ -40,6 +62,30 @@ export default function EditQuotationPage() {
   const [lineItems, setLineItems] = useState<LineItem[]>([]);
   const [productSearch, setProductSearch] = useState("");
   const [showProductDropdown, setShowProductDropdown] = useState(false);
+  const [discountType, setDiscountType] = useState<"percentage" | "fixed">("percentage");
+  const [discountValue, setDiscountValue] = useState<number>(0);
+  const [taxRate, setTaxRate] = useState<number>(11);
+
+  // Custom item state
+  const [itemInputMode, setItemInputMode] = useState<"search" | "custom">("search");
+  const [customItem, setCustomItem] = useState({
+    name: "",
+    description: "",
+    sku: "",
+    quantity: 1,
+    unitPrice: 0,
+  });
+
+  // Variant selection state
+  const [variantDialogOpen, setVariantDialogOpen] = useState(false);
+  const [pendingProduct, setPendingProduct] = useState<{
+    id: string;
+    name: string;
+    price: number;
+  } | null>(null);
+
+  // Rich text terms content
+  const [termsContent, setTermsContent] = useState("");
 
   const { data: productsData } = useProducts({ search: productSearch, limit: 10 });
 
@@ -54,20 +100,52 @@ export default function EditQuotationPage() {
 
   useEffect(() => {
     if (quotation) {
+      // Calculate remaining valid days from validUntil
+      let validDays = 30;
+      if (quotation.validUntil) {
+        const remaining = Math.ceil(
+          (new Date(quotation.validUntil).getTime() - new Date().getTime()) /
+            (1000 * 60 * 60 * 24)
+        );
+        validDays = Math.max(1, remaining);
+      }
+
       reset({
-        validUntil: quotation.validUntil
-          ? new Date(quotation.validUntil).toISOString().split("T")[0]
-          : "",
+        customerName: quotation.customerName || "",
+        customerEmail: quotation.customerEmail || "",
+        customerPhone: quotation.customerPhone || "",
+        customerCompany: quotation.customerCompany || "",
+        validDays,
         notes: quotation.notes || "",
+        terms: quotation.termsAndConditions || "",
       });
+
+      // Set terms content for rich text editor
+      setTermsContent(quotation.termsAndConditions || "");
+
       setLineItems(
         quotation.items.map((item) => ({
+          id: item.id || crypto.randomUUID(),
           productId: item.productId,
-          productName: item.productName,
+          productName: item.name, // API returns 'name' not 'productName'
+          description: item.description || undefined,
+          sku: item.sku,
           quantity: item.quantity,
-          price: item.price,
+          price: item.unitPrice, // API returns 'unitPrice' not 'price'
+          isCustom: !item.productId, // If no productId, it's a custom item
         }))
       );
+
+      // Load discount and tax values
+      if (quotation.discountType) {
+        setDiscountType(quotation.discountType as "percentage" | "fixed");
+      }
+      if (quotation.discountValue !== undefined && quotation.discountValue !== null) {
+        setDiscountValue(quotation.discountValue);
+      }
+      if (quotation.taxRate !== undefined && quotation.taxRate !== null) {
+        setTaxRate(quotation.taxRate * 100); // Convert from decimal
+      }
     }
   }, [quotation, reset]);
 
@@ -76,12 +154,35 @@ export default function EditQuotationPage() {
     0
   );
 
+  // Calculate discount amount
+  const discountAmount =
+    discountType === "percentage"
+      ? (subtotal * discountValue) / 100
+      : Math.min(discountValue, subtotal);
+
+  // Calculate tax
+  const taxableAmount = subtotal - discountAmount;
+  const taxAmount = (taxableAmount * taxRate) / 100;
+
+  // Calculate final total
+  const total = taxableAmount + taxAmount;
+
   const addLineItem = (product: { id: string; name: string; price: number }) => {
-    const existing = lineItems.find((item) => item.productId === product.id);
+    // Store the product and open variant dialog
+    setPendingProduct(product);
+    setVariantDialogOpen(true);
+    setProductSearch("");
+    setShowProductDropdown(false);
+  };
+
+  const addLineItemDirect = (product: { id: string; name: string; price: number }) => {
+    const existing = lineItems.find(
+      (item) => item.productId === product.id && !item.variantId && !item.isCustom
+    );
     if (existing) {
       setLineItems(
         lineItems.map((item) =>
-          item.productId === product.id
+          item.productId === product.id && !item.variantId && !item.isCustom
             ? { ...item, quantity: item.quantity + 1 }
             : item
         )
@@ -90,39 +191,108 @@ export default function EditQuotationPage() {
       setLineItems([
         ...lineItems,
         {
+          id: crypto.randomUUID(),
           productId: product.id,
           productName: product.name,
           quantity: 1,
           price: product.price,
+          isCustom: false,
         },
       ]);
     }
-    setProductSearch("");
-    setShowProductDropdown(false);
   };
 
-  const updateQuantity = (productId: string, quantity: number) => {
+  const addVariantLineItem = (variant: ProductVariant) => {
+    if (!pendingProduct) return;
+
+    const existing = lineItems.find(
+      (item) => item.productId === pendingProduct.id && item.variantId === variant.id && !item.isCustom
+    );
+
+    if (existing) {
+      setLineItems(
+        lineItems.map((item) =>
+          item.productId === pendingProduct.id && item.variantId === variant.id && !item.isCustom
+            ? { ...item, quantity: item.quantity + 1 }
+            : item
+        )
+      );
+    } else {
+      setLineItems([
+        ...lineItems,
+        {
+          id: crypto.randomUUID(),
+          productId: pendingProduct.id,
+          variantId: variant.id,
+          variantOptions: variant.options,
+          productName: `${pendingProduct.name} - ${variant.name}`,
+          sku: variant.sku,
+          quantity: 1,
+          price: variant.basePrice,
+          isCustom: false,
+        },
+      ]);
+    }
+    setPendingProduct(null);
+  };
+
+  const handleVariantDialogClose = (open: boolean) => {
+    if (!open) {
+      setPendingProduct(null);
+    }
+    setVariantDialogOpen(open);
+  };
+
+  const addCustomItem = () => {
+    if (!customItem.name || customItem.unitPrice <= 0) {
+      return;
+    }
+    setLineItems([
+      ...lineItems,
+      {
+        id: crypto.randomUUID(),
+        productId: null,
+        productName: customItem.name,
+        description: customItem.description || undefined,
+        sku: customItem.sku || null,
+        quantity: customItem.quantity || 1,
+        price: customItem.unitPrice,
+        isCustom: true,
+      },
+    ]);
+    // Reset custom item form
+    setCustomItem({
+      name: "",
+      description: "",
+      sku: "",
+      quantity: 1,
+      unitPrice: 0,
+    });
+    setItemInputMode("search");
+  };
+
+  const updateQuantity = (itemId: string, quantity: number) => {
     if (quantity <= 0) {
-      setLineItems(lineItems.filter((item) => item.productId !== productId));
+      setLineItems(lineItems.filter((item) => item.id !== itemId));
     } else {
       setLineItems(
         lineItems.map((item) =>
-          item.productId === productId ? { ...item, quantity } : item
+          item.id === itemId ? { ...item, quantity } : item
         )
       );
     }
   };
 
-  const updatePrice = (productId: string, price: number) => {
+  const updatePrice = (itemId: string, price: number) => {
     setLineItems(
       lineItems.map((item) =>
-        item.productId === productId ? { ...item, price } : item
+        item.id === itemId ? { ...item, price } : item
       )
     );
   };
 
-  const removeLineItem = (productId: string) => {
-    setLineItems(lineItems.filter((item) => item.productId !== productId));
+  const removeLineItem = (itemId: string) => {
+    setLineItems(lineItems.filter((item) => item.id !== itemId));
   };
 
   const onSubmit = async (data: QuotationFormData) => {
@@ -133,12 +303,36 @@ export default function EditQuotationPage() {
     await updateQuotation.mutateAsync({
       id,
       data: {
-        ...data,
-        items: lineItems.map((item) => ({
-          productId: item.productId,
-          quantity: item.quantity,
-          price: item.price,
-        })),
+        customerName: data.customerName,
+        customerEmail: data.customerEmail,
+        customerPhone: data.customerPhone,
+        customerCompany: data.customerCompany,
+        validDays: data.validDays,
+        notes: data.notes,
+        terms: termsContent || undefined,
+        discountType,
+        discountValue,
+        taxRate: taxRate / 100, // Convert to decimal
+        items: lineItems.map((item) => {
+          if (item.isCustom) {
+            // Custom item - no productId, send custom fields
+            return {
+              name: item.productName,
+              description: item.description,
+              sku: item.sku,
+              quantity: item.quantity,
+              unitPrice: item.price,
+            };
+          } else {
+            // Product-based item (with optional variant)
+            return {
+              productId: item.productId!,
+              variantId: item.variantId || undefined,
+              quantity: item.quantity,
+              customPrice: item.price,
+            };
+          }
+        }),
       },
     });
     router.push(`/quotations/${id}`);
@@ -192,58 +386,143 @@ export default function EditQuotationPage() {
         <div className="grid gap-6 lg:grid-cols-3">
           <div className="lg:col-span-2 space-y-6">
             <Card>
-              <CardHeader>
+              <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle>Line Items</CardTitle>
+                <div className="flex gap-1">
+                  <Button
+                    type="button"
+                    variant={itemInputMode === "search" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setItemInputMode("search")}
+                  >
+                    <Package className="mr-1 h-4 w-4" />
+                    Search Products
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={itemInputMode === "custom" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setItemInputMode("custom")}
+                  >
+                    <PencilLine className="mr-1 h-4 w-4" />
+                    Custom Item
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="relative">
-                  <div className="flex items-center gap-2">
-                    <Search className="absolute left-3 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      value={productSearch}
-                      onChange={(e) => {
-                        setProductSearch(e.target.value);
-                        setShowProductDropdown(true);
-                      }}
-                      onFocus={() => setShowProductDropdown(true)}
-                      placeholder="Search products to add..."
-                      className="pl-10"
-                    />
-                  </div>
-                  {showProductDropdown && productSearch && productsData?.data && (
-                    <div className="absolute z-10 w-full mt-1 bg-background border rounded-md shadow-lg max-h-60 overflow-auto">
-                      {productsData.data.length > 0 ? (
-                        productsData.data.map((product) => (
-                          <button
-                            key={product.id}
-                            type="button"
-                            className="w-full px-4 py-2 text-left hover:bg-muted flex justify-between items-center"
-                            onClick={() =>
-                              addLineItem({
-                                id: product.id,
-                                name: product.name,
-                                price: product.basePrice,
-                              })
-                            }
-                          >
-                            <span>{product.name}</span>
-                            <span className="text-muted-foreground">
-                              {formatCurrency(product.basePrice)}
-                            </span>
-                          </button>
-                        ))
-                      ) : (
-                        <div className="px-4 py-2 text-muted-foreground">
-                          No products found
-                        </div>
-                      )}
+                {itemInputMode === "search" ? (
+                  <div className="relative">
+                    <div className="flex items-center gap-2">
+                      <Search className="absolute left-3 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        value={productSearch}
+                        onChange={(e) => {
+                          setProductSearch(e.target.value);
+                          setShowProductDropdown(true);
+                        }}
+                        onFocus={() => setShowProductDropdown(true)}
+                        placeholder="Search products to add..."
+                        className="pl-10"
+                      />
                     </div>
-                  )}
-                </div>
+                    {showProductDropdown && productSearch && productsData?.data && (
+                      <div className="absolute z-10 w-full mt-1 bg-background border rounded-md shadow-lg max-h-60 overflow-auto">
+                        {productsData.data.length > 0 ? (
+                          productsData.data.map((product) => (
+                            <button
+                              key={product.id}
+                              type="button"
+                              className="w-full px-4 py-2 text-left hover:bg-muted flex justify-between items-center"
+                              onClick={() =>
+                                addLineItem({
+                                  id: product.id,
+                                  name: product.name,
+                                  price: product.basePrice,
+                                })
+                              }
+                            >
+                              <span>{product.name}</span>
+                              <span className="text-muted-foreground">
+                                {formatCurrency(product.basePrice)}
+                              </span>
+                            </button>
+                          ))
+                        ) : (
+                          <div className="px-4 py-2 text-muted-foreground">
+                            No products found
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-4 border rounded-lg p-4 bg-muted/30">
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div className="space-y-2">
+                        <Label>Item Name *</Label>
+                        <Input
+                          value={customItem.name}
+                          onChange={(e) => setCustomItem({ ...customItem, name: e.target.value })}
+                          placeholder="Enter item name"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>SKU</Label>
+                        <Input
+                          value={customItem.sku}
+                          onChange={(e) => setCustomItem({ ...customItem, sku: e.target.value })}
+                          placeholder="Optional SKU"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Description</Label>
+                      <Textarea
+                        value={customItem.description}
+                        onChange={(e) => setCustomItem({ ...customItem, description: e.target.value })}
+                        placeholder="Optional description"
+                        rows={2}
+                      />
+                    </div>
+                    <div className="grid gap-4 sm:grid-cols-3">
+                      <div className="space-y-2">
+                        <Label>Unit Price *</Label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={customItem.unitPrice || ""}
+                          onChange={(e) => setCustomItem({ ...customItem, unitPrice: parseFloat(e.target.value) || 0 })}
+                          placeholder="0.00"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Quantity</Label>
+                        <Input
+                          type="number"
+                          min="1"
+                          value={customItem.quantity}
+                          onChange={(e) => setCustomItem({ ...customItem, quantity: parseInt(e.target.value) || 1 })}
+                        />
+                      </div>
+                      <div className="flex items-end">
+                        <Button
+                          type="button"
+                          onClick={addCustomItem}
+                          disabled={!customItem.name || customItem.unitPrice <= 0}
+                          className="w-full"
+                        >
+                          <Plus className="mr-2 h-4 w-4" />
+                          Add Item
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {lineItems.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
-                    No items added yet. Search for products above.
+                    No items added yet. Search for products or add custom items above.
                   </div>
                 ) : (
                   <div className="space-y-2">
@@ -256,11 +535,28 @@ export default function EditQuotationPage() {
                     </div>
                     {lineItems.map((item) => (
                       <div
-                        key={item.productId}
+                        key={item.id}
                         className="grid grid-cols-12 gap-2 items-center p-2 border rounded-lg"
                       >
-                        <div className="col-span-5 font-medium truncate">
-                          {item.productName}
+                        <div className="col-span-5">
+                          <div className="font-medium truncate flex items-center gap-2">
+                            <span className="truncate">{item.productName}</span>
+                            {item.isCustom && (
+                              <Badge variant="secondary" className="shrink-0">
+                                Custom
+                              </Badge>
+                            )}
+                            {item.variantId && (
+                              <Badge variant="outline" className="shrink-0">
+                                Variant
+                              </Badge>
+                            )}
+                          </div>
+                          {item.variantOptions && (
+                            <div className="text-xs text-muted-foreground mt-0.5">
+                              {formatVariantOptions(item.variantOptions)}
+                            </div>
+                          )}
                         </div>
                         <div className="col-span-2">
                           <Input
@@ -268,7 +564,7 @@ export default function EditQuotationPage() {
                             value={item.price}
                             onChange={(e) =>
                               updatePrice(
-                                item.productId,
+                                item.id,
                                 parseFloat(e.target.value) || 0
                               )
                             }
@@ -282,7 +578,7 @@ export default function EditQuotationPage() {
                             value={item.quantity}
                             onChange={(e) =>
                               updateQuantity(
-                                item.productId,
+                                item.id,
                                 parseInt(e.target.value) || 0
                               )
                             }
@@ -298,7 +594,7 @@ export default function EditQuotationPage() {
                             type="button"
                             variant="ghost"
                             size="icon"
-                            onClick={() => removeLineItem(item.productId)}
+                            onClick={() => removeLineItem(item.id)}
                           >
                             <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>
@@ -325,9 +621,26 @@ export default function EditQuotationPage() {
               <CardContent>
                 <Textarea
                   {...register("notes")}
-                  rows={4}
-                  placeholder="Add any notes or terms for this quotation..."
+                  rows={3}
+                  placeholder="Internal notes (visible on PDF)..."
                 />
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Terms & Conditions</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <TermsEditor
+                  content={termsContent}
+                  onChange={setTermsContent}
+                  placeholder="Enter terms and conditions or load a template..."
+                  minHeight={150}
+                />
+                <p className="text-xs text-muted-foreground mt-2">
+                  Use the toolbar to format text or load a pre-defined template
+                </p>
               </CardContent>
             </Card>
           </div>
@@ -335,16 +648,108 @@ export default function EditQuotationPage() {
           <div className="space-y-6">
             <Card>
               <CardHeader>
+                <CardTitle>Customer Information</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Name *</Label>
+                  <Input {...register("customerName")} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Email *</Label>
+                  <Input {...register("customerEmail")} type="email" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Phone</Label>
+                  <Input {...register("customerPhone")} type="tel" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Company</Label>
+                  <Input {...register("customerCompany")} />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
                 <CardTitle>Validity</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  <Label>Valid Until</Label>
+                  <Label>Valid for (days)</Label>
                   <Input
-                    {...register("validUntil")}
-                    type="date"
-                    min={new Date().toISOString().split("T")[0]}
+                    {...register("validDays", { valueAsNumber: true })}
+                    type="number"
+                    min={1}
+                    max={365}
                   />
+                  <p className="text-xs text-muted-foreground">
+                    Days from now until quotation expires
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Pricing Adjustments</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Discount</Label>
+                  <div className="flex gap-2">
+                    <Select
+                      value={discountType}
+                      onValueChange={(v) => setDiscountType(v as "percentage" | "fixed")}
+                    >
+                      <SelectTrigger className="w-32">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="percentage">
+                          <div className="flex items-center gap-1">
+                            <Percent className="h-3 w-3" />
+                            <span>Percent</span>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="fixed">
+                          <div className="flex items-center gap-1">
+                            <DollarSign className="h-3 w-3" />
+                            <span>Fixed</span>
+                          </div>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Input
+                      type="number"
+                      value={discountValue}
+                      onChange={(e) => setDiscountValue(parseFloat(e.target.value) || 0)}
+                      min={0}
+                      max={discountType === "percentage" ? 100 : undefined}
+                      step={discountType === "percentage" ? 1 : 0.01}
+                      className="flex-1"
+                    />
+                  </div>
+                  {discountValue > 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      -{formatCurrency(discountAmount)} discount applied
+                    </p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Tax Rate (%)</Label>
+                  <Input
+                    type="number"
+                    value={taxRate}
+                    onChange={(e) => setTaxRate(parseFloat(e.target.value) || 0)}
+                    min={0}
+                    max={100}
+                    step={0.5}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Applied to taxable amount after discount
+                  </p>
                 </div>
               </CardContent>
             </Card>
@@ -362,9 +767,28 @@ export default function EditQuotationPage() {
                   <span className="text-muted-foreground">Subtotal</span>
                   <span>{formatCurrency(subtotal)}</span>
                 </div>
+                {discountAmount > 0 && (
+                  <div className="flex justify-between text-green-600">
+                    <span>
+                      Discount
+                      {discountType === "percentage"
+                        ? ` (${discountValue}%)`
+                        : ""}
+                    </span>
+                    <span>-{formatCurrency(discountAmount)}</span>
+                  </div>
+                )}
+                {taxRate > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">
+                      Tax ({taxRate}%)
+                    </span>
+                    <span>{formatCurrency(taxAmount)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between pt-2 border-t font-bold">
                   <span>Total</span>
-                  <span>{formatCurrency(subtotal)}</span>
+                  <span>{formatCurrency(total)}</span>
                 </div>
               </CardContent>
             </Card>
@@ -381,6 +805,22 @@ export default function EditQuotationPage() {
           </Button>
         </div>
       </form>
+
+      {/* Variant Selector Dialog */}
+      {pendingProduct && (
+        <VariantSelector
+          open={variantDialogOpen}
+          onOpenChange={handleVariantDialogClose}
+          productId={pendingProduct.id}
+          productName={pendingProduct.name}
+          onSelect={addVariantLineItem}
+          onSkip={() => {
+            if (pendingProduct) {
+              addLineItemDirect(pendingProduct);
+            }
+          }}
+        />
+      )}
     </div>
   );
 }

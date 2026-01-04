@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import Link from "next/link";
 import { ColumnDef } from "@tanstack/react-table";
 import {
@@ -11,10 +11,14 @@ import {
   Send,
   ShoppingCart,
   Eye,
+  Copy,
+  Download,
+  CheckSquare,
 } from "lucide-react";
 import { DataTable } from "@/components/data-table/data-table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -45,8 +49,13 @@ import {
   useDeleteQuotation,
   useSendQuotation,
   useConvertQuotation,
+  useDuplicateQuotation,
+  useBulkQuotationAction,
+  useCheckExpiredQuotations,
   Quotation,
 } from "@/hooks/use-quotations";
+import { QuotationStatsCards } from "@/components/quotations/stats-cards";
+import { useRouter } from "next/navigation";
 import { formatCurrency, formatDate } from "@/lib/utils";
 
 const statusConfig: Record<
@@ -68,14 +77,94 @@ export default function QuotationsPage() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [convertId, setConvertId] = useState<string | null>(null);
 
+  // Bulk selection state
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkAction, setBulkAction] = useState<"delete" | "send" | null>(null);
+
   const { data, isLoading } = useQuotations({
     page,
     limit,
     status: statusFilter !== "all" ? statusFilter : undefined,
   });
+  const router = useRouter();
   const deleteQuotation = useDeleteQuotation();
   const sendQuotation = useSendQuotation();
   const convertQuotation = useConvertQuotation();
+  const duplicateQuotation = useDuplicateQuotation();
+  const bulkQuotationAction = useBulkQuotationAction();
+  const checkExpiredQuotations = useCheckExpiredQuotations();
+
+  // Check for expired quotations on page load (only once per session)
+  const hasCheckedExpired = useRef(false);
+  useEffect(() => {
+    if (!hasCheckedExpired.current) {
+      hasCheckedExpired.current = true;
+      checkExpiredQuotations.mutate();
+    }
+  }, []);
+
+  // Toggle selection for a single row
+  const toggleSelection = (id: string) => {
+    setSelectedIds((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      return newSet;
+    });
+  };
+
+  // Toggle all rows on current page
+  const toggleAllOnPage = () => {
+    const currentIds = data?.data?.map((q) => q.id) || [];
+    const allSelected = currentIds.every((id) => selectedIds.has(id));
+
+    if (allSelected) {
+      // Deselect all on current page
+      setSelectedIds((prev) => {
+        const newSet = new Set(prev);
+        currentIds.forEach((id) => newSet.delete(id));
+        return newSet;
+      });
+    } else {
+      // Select all on current page
+      setSelectedIds((prev) => {
+        const newSet = new Set(prev);
+        currentIds.forEach((id) => newSet.add(id));
+        return newSet;
+      });
+    }
+  };
+
+  // Check if all on page are selected
+  const allOnPageSelected = useMemo(() => {
+    const currentIds = data?.data?.map((q) => q.id) || [];
+    return currentIds.length > 0 && currentIds.every((id) => selectedIds.has(id));
+  }, [data?.data, selectedIds]);
+
+  // Handle bulk action
+  const handleBulkAction = async () => {
+    if (!bulkAction || selectedIds.size === 0) return;
+
+    await bulkQuotationAction.mutateAsync({
+      action: bulkAction,
+      ids: Array.from(selectedIds),
+    });
+
+    setSelectedIds(new Set());
+    setBulkAction(null);
+  };
+
+  const getApiBaseUrl = () => {
+    return process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
+  };
+
+  const handleDuplicate = async (id: string) => {
+    const result = await duplicateQuotation.mutateAsync(id);
+    router.push(`/quotations/${result.id}/edit`);
+  };
 
   const handleDelete = async () => {
     if (deleteId) {
@@ -93,6 +182,26 @@ export default function QuotationsPage() {
 
   const columns: ColumnDef<Quotation>[] = [
     {
+      id: "select",
+      header: () => (
+        <Checkbox
+          checked={allOnPageSelected}
+          onCheckedChange={toggleAllOnPage}
+          aria-label="Select all"
+        />
+      ),
+      cell: ({ row }) => (
+        <Checkbox
+          checked={selectedIds.has(row.original.id)}
+          onCheckedChange={() => toggleSelection(row.original.id)}
+          aria-label="Select row"
+          onClick={(e) => e.stopPropagation()}
+        />
+      ),
+      enableSorting: false,
+      enableHiding: false,
+    },
+    {
       accessorKey: "quotationNumber",
       header: "Quotation #",
       cell: ({ row }) => (
@@ -104,19 +213,33 @@ export default function QuotationsPage() {
     {
       accessorKey: "customer",
       header: "Customer",
-      cell: ({ row }) =>
-        row.original.customer ? (
-          <div>
-            <div className="font-medium">
-              {row.original.customer.firstName} {row.original.customer.lastName}
+      cell: ({ row }) => {
+        // Show linked customer if exists, otherwise show standalone fields
+        if (row.original.customer) {
+          return (
+            <div>
+              <div className="font-medium">
+                {row.original.customer.firstName} {row.original.customer.lastName}
+              </div>
+              <div className="text-sm text-muted-foreground">
+                {row.original.customer.email}
+              </div>
             </div>
-            <div className="text-sm text-muted-foreground">
-              {row.original.customer.email}
+          );
+        }
+        // Fallback to standalone customer fields
+        if (row.original.customerName || row.original.customerEmail) {
+          return (
+            <div>
+              <div className="font-medium">{row.original.customerName}</div>
+              <div className="text-sm text-muted-foreground">
+                {row.original.customerEmail}
+              </div>
             </div>
-          </div>
-        ) : (
-          <span className="text-muted-foreground">—</span>
-        ),
+          );
+        }
+        return <span className="text-muted-foreground">—</span>;
+      },
     },
     {
       accessorKey: "total",
@@ -186,6 +309,24 @@ export default function QuotationsPage() {
             )}
             <DropdownMenuSeparator />
             <DropdownMenuItem
+              onClick={() => handleDuplicate(row.original.id)}
+              disabled={duplicateQuotation.isPending}
+            >
+              <Copy className="mr-2 h-4 w-4" />
+              {duplicateQuotation.isPending ? "Duplicating..." : "Duplicate"}
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <a
+                href={`${getApiBaseUrl()}/quotations/${row.original.id}/pdf`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Download className="mr-2 h-4 w-4" />
+                Download PDF
+              </a>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
               onClick={() => setDeleteId(row.original.id)}
               className="text-destructive"
             >
@@ -217,21 +358,64 @@ export default function QuotationsPage() {
         </Button>
       </div>
 
-      <div className="flex items-center gap-4">
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-48">
-            <SelectValue placeholder="Filter by status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Statuses</SelectItem>
-            <SelectItem value="draft">Draft</SelectItem>
-            <SelectItem value="sent">Sent</SelectItem>
-            <SelectItem value="accepted">Accepted</SelectItem>
-            <SelectItem value="rejected">Rejected</SelectItem>
-            <SelectItem value="expired">Expired</SelectItem>
-            <SelectItem value="converted">Converted</SelectItem>
-          </SelectContent>
-        </Select>
+      <QuotationStatsCards />
+
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-48">
+              <SelectValue placeholder="Filter by status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Statuses</SelectItem>
+              <SelectItem value="draft">Draft</SelectItem>
+              <SelectItem value="sent">Sent</SelectItem>
+              <SelectItem value="accepted">Accepted</SelectItem>
+              <SelectItem value="rejected">Rejected</SelectItem>
+              <SelectItem value="expired">Expired</SelectItem>
+              <SelectItem value="converted">Converted</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Bulk Actions */}
+        {selectedIds.size > 0 && (
+          <div className="flex items-center gap-2 bg-muted px-4 py-2 rounded-lg">
+            <CheckSquare className="h-4 w-4 text-primary" />
+            <span className="text-sm font-medium">
+              {selectedIds.size} selected
+            </span>
+            <div className="h-4 w-px bg-border mx-2" />
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm">
+                  Bulk Actions
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setBulkAction("send")}>
+                  <Send className="mr-2 h-4 w-4" />
+                  Send to Customers
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  className="text-destructive"
+                  onClick={() => setBulkAction("delete")}
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete Selected
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setSelectedIds(new Set())}
+            >
+              Clear
+            </Button>
+          </div>
+        )}
       </div>
 
       <DataTable
@@ -282,6 +466,50 @@ export default function QuotationsPage() {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleConvert}>
               Convert to Order
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Bulk Action Dialog */}
+      <AlertDialog open={!!bulkAction} onOpenChange={() => setBulkAction(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {bulkAction === "delete"
+                ? "Delete Selected Quotations"
+                : "Send Selected Quotations"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {bulkAction === "delete" ? (
+                <>
+                  Are you sure you want to delete {selectedIds.size} quotation(s)?
+                  This action cannot be undone.
+                </>
+              ) : (
+                <>
+                  This will send {selectedIds.size} quotation(s) to their
+                  respective customers. Only draft quotations will be processed.
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleBulkAction}
+              className={
+                bulkAction === "delete"
+                  ? "bg-destructive text-white hover:bg-destructive/90"
+                  : ""
+              }
+              disabled={bulkQuotationAction.isPending}
+            >
+              {bulkQuotationAction.isPending
+                ? "Processing..."
+                : bulkAction === "delete"
+                  ? "Delete All"
+                  : "Send All"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

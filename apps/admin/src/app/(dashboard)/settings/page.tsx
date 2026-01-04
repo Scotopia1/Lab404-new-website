@@ -15,6 +15,7 @@ import {
   Mail,
   Loader2,
   Save,
+  FileText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -109,6 +110,12 @@ export default function SettingsPage() {
           <p className="text-muted-foreground">Configure your store settings</p>
         </div>
         <div className="flex gap-2">
+          <Button variant="outline" asChild>
+            <Link href="/settings/pdf-templates">
+              <FileText className="mr-2 h-4 w-4" />
+              PDF Templates
+            </Link>
+          </Button>
           <Button variant="outline" asChild>
             <Link href="/settings/notifications">
               <Mail className="mr-2 h-4 w-4" />

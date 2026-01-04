@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { getDb, products, categories, orders, customers, promoCodes, quotations, orderItems, eq, desc, and, gte, lte, sql } from '@lab404/database';
+import { getDb, products, categories, orders, customers, promoCodes, quotations, orderItems, quotationItems, eq, desc, and, gte, lte, sql } from '@lab404/database';
 import { validateQuery } from '../middleware/validator';
 import { requireAuth, requireAdmin } from '../middleware/auth';
 import { exportService } from '../services/export.service';
@@ -33,7 +33,7 @@ function setExportHeaders(res: any, filename: string, contentType: string) {
 
 /**
  * GET /api/export/products
- * Export all products
+ * Export all products - ALL fields
  */
 exportRoutes.get('/products', validateQuery(exportQuerySchema), async (req, res, next) => {
   try {
@@ -48,18 +48,42 @@ exportRoutes.get('/products', validateQuery(exportQuerySchema), async (req, res,
     const productList = await db
       .select({
         id: products.id,
+        sku: products.sku,
+        barcode: products.barcode,
         name: products.name,
         slug: products.slug,
-        sku: products.sku,
         description: products.description,
-        basePrice: products.basePrice,
-        stockQuantity: products.stockQuantity,
+        shortDescription: products.shortDescription,
         categoryId: products.categoryId,
         categoryName: categories.name,
         brand: products.brand,
+        basePrice: products.basePrice,
+        costPrice: products.costPrice,
+        compareAtPrice: products.compareAtPrice,
+        weight: products.weight,
+        dimensions: products.dimensions,
+        stockQuantity: products.stockQuantity,
+        lowStockThreshold: products.lowStockThreshold,
+        trackInventory: products.trackInventory,
+        allowBackorder: products.allowBackorder,
+        images: products.images,
+        videos: products.videos,
+        thumbnailUrl: products.thumbnailUrl,
+        tags: products.tags,
+        specifications: products.specifications,
+        features: products.features,
+        metaTitle: products.metaTitle,
+        metaDescription: products.metaDescription,
         status: products.status,
         isFeatured: products.isFeatured,
+        isDigital: products.isDigital,
+        requiresShipping: products.requiresShipping,
+        supplierId: products.supplierId,
+        supplierSku: products.supplierSku,
+        importedFrom: products.importedFrom,
+        externalUrl: products.externalUrl,
         createdAt: products.createdAt,
+        updatedAt: products.updatedAt,
       })
       .from(products)
       .leftJoin(categories, eq(products.categoryId, categories.id))
@@ -90,7 +114,7 @@ exportRoutes.get('/products', validateQuery(exportQuerySchema), async (req, res,
 
 /**
  * GET /api/export/orders
- * Export orders
+ * Export orders - ALL fields
  */
 exportRoutes.get('/orders', validateQuery(exportQuerySchema), async (req, res, next) => {
   try {
@@ -120,16 +144,27 @@ exportRoutes.get('/orders', validateQuery(exportQuerySchema), async (req, res, n
         status: orders.status,
         paymentStatus: orders.paymentStatus,
         paymentMethod: orders.paymentMethod,
+        shippingAddress: orders.shippingAddress,
+        billingAddress: orders.billingAddress,
+        currency: orders.currency,
         subtotalSnapshot: orders.subtotalSnapshot,
+        taxRateSnapshot: orders.taxRateSnapshot,
         taxAmountSnapshot: orders.taxAmountSnapshot,
         shippingAmountSnapshot: orders.shippingAmountSnapshot,
         discountAmountSnapshot: orders.discountAmountSnapshot,
         totalSnapshot: orders.totalSnapshot,
-        currency: orders.currency,
+        promoCodeId: orders.promoCodeId,
+        promoCodeSnapshot: orders.promoCodeSnapshot,
+        shippingMethod: orders.shippingMethod,
         trackingNumber: orders.trackingNumber,
-        createdAt: orders.createdAt,
+        confirmedAt: orders.confirmedAt,
+        processingAt: orders.processingAt,
         shippedAt: orders.shippedAt,
         deliveredAt: orders.deliveredAt,
+        customerNotes: orders.customerNotes,
+        adminNotes: orders.adminNotes,
+        createdAt: orders.createdAt,
+        updatedAt: orders.updatedAt,
       })
       .from(orders)
       .leftJoin(customers, eq(orders.customerId, customers.id))
@@ -164,35 +199,94 @@ exportRoutes.get('/orders/:id/items', async (req, res, next) => {
     const id = req.params['id'] as string;
     const format = (req.query['format'] as string) || 'csv';
 
+    // Get order number for context
+    const [order] = await db.select({ orderNumber: orders.orderNumber }).from(orders).where(eq(orders.id, id));
+
     const items = await db
       .select({
+        id: orderItems.id,
         orderId: orderItems.orderId,
+        orderNumber: sql<string>`${order?.orderNumber || ''}`,
         productId: orderItems.productId,
-        productName: orderItems.productNameSnapshot,
-        sku: orderItems.skuSnapshot,
+        variantId: orderItems.variantId,
+        productNameSnapshot: orderItems.productNameSnapshot,
+        skuSnapshot: orderItems.skuSnapshot,
+        variantOptionsSnapshot: orderItems.variantOptionsSnapshot,
         quantity: orderItems.quantity,
-        unitPrice: orderItems.unitPriceSnapshot,
+        unitPriceSnapshot: orderItems.unitPriceSnapshot,
         lineTotal: sql<string>`CAST(${orderItems.unitPriceSnapshot} AS DECIMAL) * ${orderItems.quantity}`,
+        createdAt: orderItems.createdAt,
       })
       .from(orderItems)
       .where(eq(orderItems.orderId, id));
 
-    const columns = [
-      { key: 'productName', header: 'Product Name' },
-      { key: 'sku', header: 'SKU' },
-      { key: 'quantity', header: 'Quantity' },
-      { key: 'unitPrice', header: 'Unit Price', formatter: (v: unknown) => Number(v).toFixed(2) },
-      { key: 'lineTotal', header: 'Line Total', formatter: (v: unknown) => Number(v).toFixed(2) },
-    ];
-
     const { contentType, extension } = exportService.getContentType(format as 'csv' | 'json' | 'jsonl');
-    const filename = exportService.getFilename(`order-${id}-items`, extension);
+    const filename = exportService.getFilename(`order-${order?.orderNumber || id}-items`, extension);
 
     setExportHeaders(res, filename, contentType);
 
     if (format === 'csv') {
-      const csv = exportService.toCSV(items as any[], columns as any);
+      const csv = exportService.toCSV(items as any[], exportService.getOrderItemColumns());
       res.send(csv);
+    } else if (format === 'jsonl') {
+      res.send(exportService.toJSONL(items));
+    } else {
+      res.send(exportService.toJSON(items));
+    }
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * GET /api/export/order-items
+ * Export ALL order items (bulk export)
+ */
+exportRoutes.get('/order-items', validateQuery(exportQuerySchema), async (req, res, next) => {
+  try {
+    const db = getDb();
+    const { format, startDate, endDate } = req.query;
+
+    const conditions = [];
+    if (startDate) {
+      conditions.push(gte(orders.createdAt, new Date(startDate as string)));
+    }
+    if (endDate) {
+      const end = new Date(endDate as string);
+      end.setHours(23, 59, 59, 999);
+      conditions.push(lte(orders.createdAt, end));
+    }
+
+    const items = await db
+      .select({
+        id: orderItems.id,
+        orderId: orderItems.orderId,
+        orderNumber: orders.orderNumber,
+        productId: orderItems.productId,
+        variantId: orderItems.variantId,
+        productNameSnapshot: orderItems.productNameSnapshot,
+        skuSnapshot: orderItems.skuSnapshot,
+        variantOptionsSnapshot: orderItems.variantOptionsSnapshot,
+        quantity: orderItems.quantity,
+        unitPriceSnapshot: orderItems.unitPriceSnapshot,
+        lineTotal: sql<string>`CAST(${orderItems.unitPriceSnapshot} AS DECIMAL) * ${orderItems.quantity}`,
+        createdAt: orderItems.createdAt,
+      })
+      .from(orderItems)
+      .innerJoin(orders, eq(orderItems.orderId, orders.id))
+      .where(conditions.length > 0 ? and(...conditions) : undefined)
+      .orderBy(desc(orders.createdAt));
+
+    const { contentType, extension } = exportService.getContentType(format as 'csv' | 'json' | 'jsonl');
+    const filename = exportService.getFilename('order-items', extension);
+
+    setExportHeaders(res, filename, contentType);
+
+    if (format === 'csv') {
+      const csv = exportService.toCSV(items as any[], exportService.getOrderItemColumns());
+      res.send(csv);
+    } else if (format === 'jsonl') {
+      res.send(exportService.toJSONL(items));
     } else {
       res.send(exportService.toJSON(items));
     }
@@ -207,7 +301,7 @@ exportRoutes.get('/orders/:id/items', async (req, res, next) => {
 
 /**
  * GET /api/export/customers
- * Export customers
+ * Export customers - ALL fields
  */
 exportRoutes.get('/customers', validateQuery(exportQuerySchema), async (req, res, next) => {
   try {
@@ -227,14 +321,21 @@ exportRoutes.get('/customers', validateQuery(exportQuerySchema), async (req, res
     const customerList = await db
       .select({
         id: customers.id,
+        authUserId: customers.authUserId,
         email: customers.email,
         firstName: customers.firstName,
         lastName: customers.lastName,
         phone: customers.phone,
+        defaultShippingAddress: customers.defaultShippingAddress,
+        defaultBillingAddress: customers.defaultBillingAddress,
         isGuest: customers.isGuest,
         isActive: customers.isActive,
+        acceptsMarketing: customers.acceptsMarketing,
+        notes: customers.notes,
+        tags: customers.tags,
         orderCount: customers.orderCount,
         createdAt: customers.createdAt,
+        updatedAt: customers.updatedAt,
       })
       .from(customers)
       .where(conditions.length > 0 ? and(...conditions) : undefined)
@@ -264,7 +365,7 @@ exportRoutes.get('/customers', validateQuery(exportQuerySchema), async (req, res
 
 /**
  * GET /api/export/promo-codes
- * Export promo codes
+ * Export promo codes - ALL fields
  */
 exportRoutes.get('/promo-codes', validateQuery(exportQuerySchema), async (req, res, next) => {
   try {
@@ -300,7 +401,7 @@ exportRoutes.get('/promo-codes', validateQuery(exportQuerySchema), async (req, r
 
 /**
  * GET /api/export/quotations
- * Export quotations
+ * Export quotations - ALL fields
  */
 exportRoutes.get('/quotations', validateQuery(exportQuerySchema), async (req, res, next) => {
   try {
@@ -326,29 +427,75 @@ exportRoutes.get('/quotations', validateQuery(exportQuerySchema), async (req, re
       .where(conditions.length > 0 ? and(...conditions) : undefined)
       .orderBy(desc(quotations.createdAt));
 
-    const columns = [
-      { key: 'quotationNumber', header: 'Quotation Number' },
-      { key: 'customerName', header: 'Customer Name' },
-      { key: 'customerEmail', header: 'Customer Email' },
-      { key: 'status', header: 'Status' },
-      { key: 'subtotal', header: 'Subtotal', formatter: (v: unknown) => Number(v).toFixed(2) },
-      { key: 'total', header: 'Total', formatter: (v: unknown) => Number(v).toFixed(2) },
-      { key: 'validUntil', header: 'Valid Until', formatter: (v: unknown) => v ? new Date(v as string).toISOString() : '' },
-      { key: 'createdAt', header: 'Created At', formatter: (v: unknown) => new Date(v as string).toISOString() },
-    ];
-
     const { contentType, extension } = exportService.getContentType(format as 'csv' | 'json' | 'jsonl');
     const filename = exportService.getFilename('quotations', extension);
 
     setExportHeaders(res, filename, contentType);
 
     if (format === 'csv') {
-      const csv = exportService.toCSV(quotationList as any[], columns as any);
+      const csv = exportService.toCSV(quotationList as any[], exportService.getQuotationColumns());
       res.send(csv);
     } else if (format === 'jsonl') {
       res.send(exportService.toJSONL(quotationList));
     } else {
       res.send(exportService.toJSON(quotationList));
+    }
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * GET /api/export/quotation-items
+ * Export ALL quotation items (bulk export)
+ */
+exportRoutes.get('/quotation-items', validateQuery(exportQuerySchema), async (req, res, next) => {
+  try {
+    const db = getDb();
+    const { format, startDate, endDate } = req.query;
+
+    const conditions = [];
+    if (startDate) {
+      conditions.push(gte(quotations.createdAt, new Date(startDate as string)));
+    }
+    if (endDate) {
+      const end = new Date(endDate as string);
+      end.setHours(23, 59, 59, 999);
+      conditions.push(lte(quotations.createdAt, end));
+    }
+
+    const items = await db
+      .select({
+        id: quotationItems.id,
+        quotationId: quotationItems.quotationId,
+        quotationNumber: quotations.quotationNumber,
+        productId: quotationItems.productId,
+        variantId: quotationItems.variantId,
+        name: quotationItems.name,
+        description: quotationItems.description,
+        sku: quotationItems.sku,
+        quantity: quotationItems.quantity,
+        unitPrice: quotationItems.unitPrice,
+        lineTotal: sql<string>`CAST(${quotationItems.unitPrice} AS DECIMAL) * ${quotationItems.quantity}`,
+        createdAt: quotationItems.createdAt,
+      })
+      .from(quotationItems)
+      .innerJoin(quotations, eq(quotationItems.quotationId, quotations.id))
+      .where(conditions.length > 0 ? and(...conditions) : undefined)
+      .orderBy(desc(quotations.createdAt));
+
+    const { contentType, extension } = exportService.getContentType(format as 'csv' | 'json' | 'jsonl');
+    const filename = exportService.getFilename('quotation-items', extension);
+
+    setExportHeaders(res, filename, contentType);
+
+    if (format === 'csv') {
+      const csv = exportService.toCSV(items as any[], exportService.getQuotationItemColumns());
+      res.send(csv);
+    } else if (format === 'jsonl') {
+      res.send(exportService.toJSONL(items));
+    } else {
+      res.send(exportService.toJSON(items));
     }
   } catch (error) {
     next(error);

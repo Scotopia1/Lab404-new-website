@@ -12,90 +12,129 @@ import {
   Loader2,
   CheckCircle,
   AlertCircle,
+  Tag,
+  FileText,
+  FileDown,
+  List,
+  ClipboardList,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Breadcrumbs } from "@/components/layout/breadcrumbs";
-import { toast } from "sonner";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  useExport,
+  useImportProducts,
+  useImportCustomers,
+  useDownloadTemplate,
+  type ExportType,
+  type ExportFormat,
+  type ImportResult,
+} from "@/hooks/use-import-export";
 
-type ExportType = "products" | "orders" | "customers";
+type ImportType = "products" | "customers";
 
 export default function ImportExportPage() {
-  const [exporting, setExporting] = useState<ExportType | null>(null);
-  const [importing, setImporting] = useState(false);
+  // Export state
+  const [exportFormat, setExportFormat] = useState<ExportFormat>("csv");
+
+  // Import state
+  const [importType, setImportType] = useState<ImportType>("products");
   const [importFile, setImportFile] = useState<File | null>(null);
-  const [importResult, setImportResult] = useState<{
-    success: boolean;
-    message: string;
-    count?: number;
-  } | null>(null);
+  const [updateExisting, setUpdateExisting] = useState(false);
+  const [importResult, setImportResult] = useState<ImportResult | null>(null);
+
+  // Hooks
+  const exportMutation = useExport();
+  const importProducts = useImportProducts();
+  const importCustomers = useImportCustomers();
+  const downloadTemplate = useDownloadTemplate();
 
   const handleExport = async (type: ExportType) => {
-    setExporting(type);
-    try {
-      // Simulate export - in production this would call the API
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-
-      // Create mock CSV data
-      let csvContent = "";
-      if (type === "products") {
-        csvContent =
-          "id,name,sku,price,quantity,status\n1,Arduino Uno R3,ARD-UNO-R3,29.99,150,active\n2,Raspberry Pi 4,RPI4-8GB,89.99,50,active";
-      } else if (type === "orders") {
-        csvContent =
-          "id,order_number,customer,total,status,created_at\n1,ORD-10001,john@example.com,129.99,delivered,2024-01-15\n2,ORD-10002,jane@example.com,89.99,shipped,2024-01-16";
-      } else {
-        csvContent =
-          "id,email,first_name,last_name,total_orders,total_spent\n1,john@example.com,John,Doe,5,450.00\n2,jane@example.com,Jane,Smith,3,280.00";
-      }
-
-      // Create and download file
-      const blob = new Blob([csvContent], { type: "text/csv" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `${type}-export-${new Date().toISOString().split("T")[0]}.csv`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-
-      toast.success(`${type.charAt(0).toUpperCase() + type.slice(1)} exported successfully`);
-    } catch (error) {
-      toast.error(`Failed to export ${type}`);
-    } finally {
-      setExporting(null);
-    }
+    await exportMutation.mutateAsync({
+      type,
+      options: { format: exportFormat },
+    });
   };
 
   const handleImport = async () => {
     if (!importFile) return;
 
-    setImporting(true);
+    // Read file content
+    const text = await importFile.text();
     setImportResult(null);
 
     try {
-      // Simulate import - in production this would call the API
-      await new Promise((resolve) => setTimeout(resolve, 3000));
-
-      // Mock successful import
-      setImportResult({
-        success: true,
-        message: "Import completed successfully",
-        count: 25,
-      });
-      toast.success("Products imported successfully");
-    } catch (error) {
+      let result;
+      if (importType === "products") {
+        result = await importProducts.mutateAsync({
+          csvContent: text,
+          options: { updateExisting },
+        });
+      } else {
+        result = await importCustomers.mutateAsync({
+          csvContent: text,
+          options: { updateExisting },
+        });
+      }
+      setImportResult(result as unknown as ImportResult);
+    } catch {
       setImportResult({
         success: false,
-        message: "Import failed. Please check your file format.",
+        totalRows: 0,
+        imported: 0,
+        updated: 0,
+        skipped: 0,
+        errors: [{ row: 0, field: "", message: "Import failed. Please check your file format." }],
       });
-      toast.error("Import failed");
-    } finally {
-      setImporting(false);
     }
+  };
+
+  const handlePreview = async () => {
+    if (!importFile) return;
+
+    const text = await importFile.text();
+    setImportResult(null);
+
+    try {
+      let result;
+      if (importType === "products") {
+        result = await importProducts.mutateAsync({
+          csvContent: text,
+          options: { dryRun: true },
+        });
+      } else {
+        result = await importCustomers.mutateAsync({
+          csvContent: text,
+          options: { dryRun: true },
+        });
+      }
+      setImportResult(result as unknown as ImportResult);
+    } catch {
+      setImportResult({
+        success: false,
+        totalRows: 0,
+        imported: 0,
+        updated: 0,
+        skipped: 0,
+        errors: [{ row: 0, field: "", message: "Preview failed. Please check your file format." }],
+        dryRun: true,
+      });
+    }
+  };
+
+  const handleDownloadTemplate = async () => {
+    await downloadTemplate.mutateAsync(importType);
   };
 
   const exportOptions = [
@@ -103,24 +142,54 @@ export default function ImportExportPage() {
       type: "products" as ExportType,
       icon: Package,
       title: "Products",
-      description: "Export all products with inventory, pricing, and status",
+      description: "Export all products with complete inventory and pricing",
       color: "blue",
     },
     {
       type: "orders" as ExportType,
       icon: ShoppingCart,
       title: "Orders",
-      description: "Export order history with customer and status details",
+      description: "Export orders with addresses and payment details",
       color: "green",
+    },
+    {
+      type: "order-items" as ExportType,
+      icon: List,
+      title: "Order Items",
+      description: "Export all order line items with product details",
+      color: "emerald",
     },
     {
       type: "customers" as ExportType,
       icon: Users,
       title: "Customers",
-      description: "Export customer list with order statistics",
+      description: "Export customers with addresses and preferences",
       color: "purple",
     },
+    {
+      type: "promo-codes" as ExportType,
+      icon: Tag,
+      title: "Promo Codes",
+      description: "Export promo codes with usage and targeting rules",
+      color: "orange",
+    },
+    {
+      type: "quotations" as ExportType,
+      icon: FileText,
+      title: "Quotations",
+      description: "Export quotations with full pricing breakdown",
+      color: "cyan",
+    },
+    {
+      type: "quotation-items" as ExportType,
+      icon: ClipboardList,
+      title: "Quotation Items",
+      description: "Export all quotation line items with details",
+      color: "sky",
+    },
   ];
+
+  const isImporting = importProducts.isPending || importCustomers.isPending;
 
   return (
     <div className="space-y-6">
@@ -136,9 +205,24 @@ export default function ImportExportPage() {
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Export Section */}
         <div className="space-y-4">
-          <div className="flex items-center gap-2">
-            <Download className="h-5 w-5 text-muted-foreground" />
-            <Title>Export Data</Title>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Download className="h-5 w-5 text-muted-foreground" />
+              <Title>Export Data</Title>
+            </div>
+            <Select
+              value={exportFormat}
+              onValueChange={(v) => setExportFormat(v as ExportFormat)}
+            >
+              <SelectTrigger className="w-28">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="csv">CSV</SelectItem>
+                <SelectItem value="json">JSON</SelectItem>
+                <SelectItem value="jsonl">JSONL</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {exportOptions.map((option) => (
@@ -150,7 +234,15 @@ export default function ImportExportPage() {
                       ? "bg-blue-100 dark:bg-blue-900/30"
                       : option.color === "green"
                       ? "bg-green-100 dark:bg-green-900/30"
-                      : "bg-purple-100 dark:bg-purple-900/30"
+                      : option.color === "emerald"
+                      ? "bg-emerald-100 dark:bg-emerald-900/30"
+                      : option.color === "purple"
+                      ? "bg-purple-100 dark:bg-purple-900/30"
+                      : option.color === "orange"
+                      ? "bg-orange-100 dark:bg-orange-900/30"
+                      : option.color === "cyan"
+                      ? "bg-cyan-100 dark:bg-cyan-900/30"
+                      : "bg-sky-100 dark:bg-sky-900/30"
                   }`}
                 >
                   <option.icon
@@ -159,7 +251,15 @@ export default function ImportExportPage() {
                         ? "text-blue-600"
                         : option.color === "green"
                         ? "text-green-600"
-                        : "text-purple-600"
+                        : option.color === "emerald"
+                        ? "text-emerald-600"
+                        : option.color === "purple"
+                        ? "text-purple-600"
+                        : option.color === "orange"
+                        ? "text-orange-600"
+                        : option.color === "cyan"
+                        ? "text-cyan-600"
+                        : "text-sky-600"
                     }`}
                   />
                 </div>
@@ -173,14 +273,15 @@ export default function ImportExportPage() {
                   variant="outline"
                   size="sm"
                   onClick={() => handleExport(option.type)}
-                  disabled={exporting !== null}
+                  disabled={exportMutation.isPending}
                 >
-                  {exporting === option.type ? (
+                  {exportMutation.isPending &&
+                  exportMutation.variables?.type === option.type ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
                     <>
                       <Download className="mr-2 h-4 w-4" />
-                      Export CSV
+                      Export
                     </>
                   )}
                 </Button>
@@ -197,19 +298,55 @@ export default function ImportExportPage() {
           </div>
 
           <Card className="p-6">
-            <div className="space-y-4">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-3 bg-amber-100 dark:bg-amber-900/30 rounded-lg">
-                  <FileSpreadsheet className="h-6 w-6 text-amber-600" />
-                </div>
-                <div>
-                  <div className="font-medium">Product Import</div>
-                  <Text className="text-sm text-muted-foreground">
-                    Import products from CSV file
-                  </Text>
-                </div>
-              </div>
+            <Tabs
+              value={importType}
+              onValueChange={(v) => {
+                setImportType(v as ImportType);
+                setImportFile(null);
+                setImportResult(null);
+              }}
+            >
+              <TabsList className="grid w-full grid-cols-2 mb-4">
+                <TabsTrigger value="products">
+                  <Package className="h-4 w-4 mr-2" />
+                  Products
+                </TabsTrigger>
+                <TabsTrigger value="customers">
+                  <Users className="h-4 w-4 mr-2" />
+                  Customers
+                </TabsTrigger>
+              </TabsList>
 
+              <TabsContent value="products" className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-3 bg-amber-100 dark:bg-amber-900/30 rounded-lg">
+                    <FileSpreadsheet className="h-6 w-6 text-amber-600" />
+                  </div>
+                  <div>
+                    <div className="font-medium">Product Import</div>
+                    <Text className="text-sm text-muted-foreground">
+                      Import products from CSV file
+                    </Text>
+                  </div>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="customers" className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-3 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
+                    <Users className="h-6 w-6 text-purple-600" />
+                  </div>
+                  <div>
+                    <div className="font-medium">Customer Import</div>
+                    <Text className="text-sm text-muted-foreground">
+                      Import customers from CSV file
+                    </Text>
+                  </div>
+                </div>
+              </TabsContent>
+            </Tabs>
+
+            <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="import-file">Select CSV File</Label>
                 <Input
@@ -233,53 +370,139 @@ export default function ImportExportPage() {
                 </div>
               )}
 
-              <Button
-                onClick={handleImport}
-                disabled={!importFile || importing}
-                className="w-full"
-              >
-                {importing ? (
-                  <>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="update-existing"
+                  checked={updateExisting}
+                  onCheckedChange={(checked) =>
+                    setUpdateExisting(checked as boolean)
+                  }
+                />
+                <Label htmlFor="update-existing" className="text-sm">
+                  Update existing records (by SKU/Email)
+                </Label>
+              </div>
+
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={handlePreview}
+                  disabled={!importFile || isImporting}
+                  className="flex-1"
+                >
+                  {isImporting && importProducts.variables?.options?.dryRun ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Importing...
-                  </>
-                ) : (
-                  <>
-                    <Upload className="mr-2 h-4 w-4" />
-                    Import Products
-                  </>
-                )}
-              </Button>
+                  ) : null}
+                  Preview
+                </Button>
+                <Button
+                  onClick={handleImport}
+                  disabled={!importFile || isImporting}
+                  className="flex-1"
+                >
+                  {isImporting && !importProducts.variables?.options?.dryRun ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Importing...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="mr-2 h-4 w-4" />
+                      Import {importType === "products" ? "Products" : "Customers"}
+                    </>
+                  )}
+                </Button>
+              </div>
 
               {importResult && (
                 <div
-                  className={`flex items-center gap-2 p-3 rounded-lg ${
-                    importResult.success
-                      ? "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200"
-                      : "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200"
+                  className={`p-4 rounded-lg ${
+                    importResult.errors && importResult.errors.length > 0
+                      ? "bg-red-100 dark:bg-red-900/30"
+                      : "bg-green-100 dark:bg-green-900/30"
                   }`}
                 >
-                  {importResult.success ? (
-                    <CheckCircle className="h-4 w-4" />
-                  ) : (
-                    <AlertCircle className="h-4 w-4" />
-                  )}
-                  <span className="text-sm">
-                    {importResult.message}
-                    {importResult.count && ` (${importResult.count} products)`}
-                  </span>
+                  <div className="flex items-center gap-2 mb-2">
+                    {importResult.errors && importResult.errors.length > 0 ? (
+                      <AlertCircle className="h-4 w-4 text-red-600" />
+                    ) : (
+                      <CheckCircle className="h-4 w-4 text-green-600" />
+                    )}
+                    <span
+                      className={`font-medium ${
+                        importResult.errors && importResult.errors.length > 0
+                          ? "text-red-800 dark:text-red-200"
+                          : "text-green-800 dark:text-green-200"
+                      }`}
+                    >
+                      {importResult.dryRun ? "Preview Results" : "Import Results"}
+                    </span>
+                  </div>
+                  <div className="text-sm space-y-1">
+                    <div>Total rows: {importResult.totalRows}</div>
+                    {!importResult.dryRun && (
+                      <>
+                        <div>Imported: {importResult.imported}</div>
+                        <div>Updated: {importResult.updated}</div>
+                        <div>Skipped: {importResult.skipped}</div>
+                      </>
+                    )}
+                    {importResult.errors && importResult.errors.length > 0 && (
+                      <div className="mt-2">
+                        <div className="font-medium text-red-700 dark:text-red-300">
+                          Errors ({importResult.errors.length}):
+                        </div>
+                        <ul className="mt-1 text-xs space-y-1 max-h-32 overflow-auto">
+                          {importResult.errors.slice(0, 10).map((err, i) => (
+                            <li key={i}>
+                              {err.row > 0 && `Row ${err.row}: `}
+                              {err.field && `${err.field} - `}
+                              {err.message}
+                            </li>
+                          ))}
+                          {importResult.errors.length > 10 && (
+                            <li>...and {importResult.errors.length - 10} more errors</li>
+                          )}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
 
               <div className="pt-4 border-t">
                 <Text className="text-sm font-medium mb-2">CSV Format</Text>
-                <Text className="text-xs text-muted-foreground">
-                  Required columns: name, sku, price, quantity
-                </Text>
-                <Text className="text-xs text-muted-foreground mt-1">
-                  Optional columns: description, category, status, image_url
-                </Text>
-                <Button variant="link" size="sm" className="p-0 h-auto mt-2">
+                {importType === "products" ? (
+                  <>
+                    <Text className="text-xs text-muted-foreground">
+                      Required: name, sku, price
+                    </Text>
+                    <Text className="text-xs text-muted-foreground mt-1">
+                      Optional: barcode, description, short_description, category, brand, cost_price, compare_at_price, quantity, low_stock_threshold, track_inventory, allow_backorder, weight, dimensions, is_digital, requires_shipping, image_url, images, status, featured, meta_title, meta_description, tags, features, specifications, supplier_id, supplier_sku
+                    </Text>
+                  </>
+                ) : (
+                  <>
+                    <Text className="text-xs text-muted-foreground">
+                      Required: email
+                    </Text>
+                    <Text className="text-xs text-muted-foreground mt-1">
+                      Optional: first_name, last_name, phone, is_active, accepts_marketing, notes, tags, shipping_* (address fields), billing_* (address fields)
+                    </Text>
+                  </>
+                )}
+                <Button
+                  variant="link"
+                  size="sm"
+                  className="p-0 h-auto mt-2"
+                  onClick={handleDownloadTemplate}
+                  disabled={downloadTemplate.isPending}
+                >
+                  {downloadTemplate.isPending ? (
+                    <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                  ) : (
+                    <FileDown className="mr-2 h-3 w-3" />
+                  )}
                   Download sample template
                 </Button>
               </div>
