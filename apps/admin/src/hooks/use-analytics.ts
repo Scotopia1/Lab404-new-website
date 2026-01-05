@@ -1,33 +1,49 @@
 import { useQuery } from "@tanstack/react-query";
 import { api, ApiResponse } from "@/lib/api-client";
 
+// ===========================================
+// Type Definitions
+// ===========================================
+
+export interface AnalyticsParams {
+  startDate?: string;
+  endDate?: string;
+  period?: "today" | "yesterday" | "week" | "month" | "quarter" | "year" | "all";
+  groupBy?: "hour" | "day" | "week" | "month";
+}
+
 export interface DashboardStats {
   totalRevenue: number;
-  revenueChange: number;
-  totalOrders: number;
-  ordersChange: number;
-  totalCustomers: number;
-  customersChange: number;
+  orderCount: number;
+  pendingOrders: number;
+  customerCount: number;
   averageOrderValue: number;
-  aovChange: number;
+  previousPeriodComparison?: {
+    revenueChange: number;
+    orderCountChange: number;
+    customerCountChange: number;
+  };
 }
 
 export interface SalesDataPoint {
-  date: string;
+  period: string;
   revenue: number;
-  orders: number;
+  orderCount: number;
+  averageOrderValue: number;
 }
 
 export interface OrdersByStatus {
   status: string;
   count: number;
+  totalValue: number;
 }
 
 export interface TopProduct {
-  id: string;
-  name: string;
-  revenue: number;
-  quantity: number;
+  productId: string;
+  productName: string;
+  totalQuantity: number;
+  totalRevenue: number;
+  orderCount: number;
 }
 
 export interface TopCategory {
@@ -46,203 +62,297 @@ export interface RecentOrder {
   createdAt: string;
 }
 
-export interface AnalyticsParams {
-  startDate?: string;
-  endDate?: string;
-  period?: "day" | "week" | "month" | "year";
+export interface RevenueBreakdown {
+  subtotal: number;
+  taxAmount: number;
+  shippingAmount: number;
+  discountAmount: number;
+  total: number;
+  orderCount: number;
 }
 
-export function useDashboardStats() {
+export interface PaymentMethod {
+  paymentMethod: string;
+  revenue: number;
+  orderCount: number;
+}
+
+export interface CustomerOverview {
+  totalCustomers: number;
+  guestCustomers: number;
+  registeredCustomers: number;
+  customersWithOrders: number;
+  topCustomers: TopCustomer[];
+}
+
+export interface TopCustomer {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  orderCount: number;
+}
+
+export interface NewCustomerData {
+  period: string;
+  total: number;
+  guests: number;
+  registered: number;
+}
+
+export interface LowStockData {
+  products: Array<{
+    id: string;
+    name: string;
+    sku: string;
+    stockQuantity: number;
+    status: string;
+  }>;
+  variants: Array<{
+    id: string;
+    productId: string;
+    productName: string;
+    sku: string;
+    options: Record<string, string>;
+    stockQuantity: number;
+  }>;
+  threshold: number;
+}
+
+export interface ProductAnalytics {
+  totalProducts: number;
+  activeProducts: number;
+  lowStock: number;
+  outOfStock: number;
+  stockValue: number;
+}
+
+// ===========================================
+// Dashboard Hooks
+// ===========================================
+
+/**
+ * Get dashboard overview statistics
+ */
+export function useDashboardStats(params: AnalyticsParams = {}) {
   return useQuery({
-    queryKey: ["analytics", "dashboard"],
+    queryKey: ["analytics", "dashboard", params],
     queryFn: async () => {
-      try {
-        const res = await api.get<ApiResponse<DashboardStats>>("/analytics/dashboard");
-        return res.data.data;
-      } catch {
-        // Return mock data if analytics endpoint doesn't exist
-        return {
-          totalRevenue: 125430,
-          revenueChange: 12.5,
-          totalOrders: 1284,
-          ordersChange: 8.2,
-          totalCustomers: 892,
-          customersChange: 5.7,
-          averageOrderValue: 97.68,
-          aovChange: 3.4,
-        };
-      }
+      const res = await api.get<ApiResponse<DashboardStats>>("/analytics/dashboard", {
+        params,
+      });
+      return res.data.data;
     },
   });
 }
 
+// ===========================================
+// Sales Hooks
+// ===========================================
+
+/**
+ * Get sales data over time
+ */
 export function useSalesData(params: AnalyticsParams = {}) {
   return useQuery({
     queryKey: ["analytics", "sales", params],
     queryFn: async () => {
-      try {
-        const res = await api.get<ApiResponse<SalesDataPoint[]>>("/analytics/sales", {
-          params,
-        });
-        return res.data.data;
-      } catch {
-        // Return mock data
-        const mockData: SalesDataPoint[] = [];
-        const today = new Date();
-        for (let i = 29; i >= 0; i--) {
-          const date = new Date(today);
-          date.setDate(date.getDate() - i);
-          mockData.push({
-            date: date.toISOString().split("T")[0],
-            revenue: Math.floor(Math.random() * 5000) + 2000,
-            orders: Math.floor(Math.random() * 50) + 20,
-          });
-        }
-        return mockData;
-      }
+      const res = await api.get<ApiResponse<SalesDataPoint[]>>("/analytics/sales", {
+        params,
+      });
+      return res.data.data;
     },
   });
 }
 
-export function useOrdersByStatus() {
+/**
+ * Get orders grouped by status
+ */
+export function useOrdersByStatus(params: AnalyticsParams = {}) {
   return useQuery({
-    queryKey: ["analytics", "orders-by-status"],
+    queryKey: ["analytics", "orders-by-status", params],
     queryFn: async () => {
-      try {
-        const res = await api.get<ApiResponse<OrdersByStatus[]>>(
-          "/analytics/sales/by-status"
-        );
-        return res.data.data;
-      } catch {
-        // Return mock data
-        return [
-          { status: "pending", count: 45 },
-          { status: "confirmed", count: 32 },
-          { status: "processing", count: 28 },
-          { status: "shipped", count: 156 },
-          { status: "delivered", count: 892 },
-          { status: "cancelled", count: 23 },
-        ];
-      }
+      const res = await api.get<ApiResponse<OrdersByStatus[]>>(
+        "/analytics/sales/by-status",
+        { params }
+      );
+      return res.data.data;
     },
   });
 }
 
-export function useTopProducts(limit = 10) {
+/**
+ * Get revenue breakdown by components
+ */
+export function useRevenueBreakdown(params: AnalyticsParams = {}) {
   return useQuery({
-    queryKey: ["analytics", "top-products", limit],
+    queryKey: ["analytics", "revenue-breakdown", params],
     queryFn: async () => {
-      try {
-        const res = await api.get<ApiResponse<TopProduct[]>>("/analytics/products/top-selling", {
-          params: { limit },
-        });
-        return res.data.data;
-      } catch {
-        // Return mock data
-        return [
-          { id: "1", name: "Arduino Uno R3", revenue: 12500, quantity: 250 },
-          { id: "2", name: "Raspberry Pi 4", revenue: 9800, quantity: 98 },
-          { id: "3", name: "ESP32 Dev Board", revenue: 7200, quantity: 360 },
-          { id: "4", name: "LCD Display 16x2", revenue: 5600, quantity: 280 },
-          { id: "5", name: "Servo Motor SG90", revenue: 4200, quantity: 420 },
-          { id: "6", name: "Ultrasonic Sensor", revenue: 3800, quantity: 380 },
-          { id: "7", name: "Breadboard 830", revenue: 3200, quantity: 640 },
-          { id: "8", name: "Jumper Wires Kit", revenue: 2800, quantity: 560 },
-          { id: "9", name: "LED Kit 100pcs", revenue: 2400, quantity: 240 },
-          { id: "10", name: "Resistor Kit", revenue: 1800, quantity: 360 },
-        ];
-      }
+      const res = await api.get<ApiResponse<RevenueBreakdown>>(
+        "/analytics/revenue/breakdown",
+        { params }
+      );
+      return res.data.data;
     },
   });
 }
 
-export function useTopCategories(limit = 5) {
+/**
+ * Get revenue by payment method
+ */
+export function usePaymentMethods(params: AnalyticsParams = {}) {
   return useQuery({
-    queryKey: ["analytics", "top-categories", limit],
+    queryKey: ["analytics", "payment-methods", params],
     queryFn: async () => {
-      try {
-        const res = await api.get<ApiResponse<TopCategory[]>>(
-          "/analytics/top-categories",
-          { params: { limit } }
-        );
-        return res.data.data;
-      } catch {
-        // Return mock data
-        return [
-          { id: "1", name: "Microcontrollers", revenue: 32500, products: 45 },
-          { id: "2", name: "Sensors", revenue: 18900, products: 78 },
-          { id: "3", name: "Displays", revenue: 15600, products: 32 },
-          { id: "4", name: "Motors", revenue: 12400, products: 28 },
-          { id: "5", name: "Components", revenue: 8200, products: 156 },
-        ];
-      }
+      const res = await api.get<ApiResponse<PaymentMethod[]>>(
+        "/analytics/revenue/by-payment-method",
+        { params }
+      );
+      return res.data.data;
     },
   });
 }
 
-export function useRecentOrders(limit = 10) {
+/**
+ * Get recent orders
+ */
+export function useRecentOrders(limit = 10, params: AnalyticsParams = {}) {
   return useQuery({
-    queryKey: ["analytics", "recent-orders", limit],
+    queryKey: ["analytics", "recent-orders", limit, params],
     queryFn: async () => {
-      try {
-        const res = await api.get<ApiResponse<RecentOrder[]>>(
-          "/analytics/orders/recent",
-          { params: { limit } }
-        );
-        return res.data.data;
-      } catch {
-        // Return mock data
-        const statuses = ["pending", "confirmed", "processing", "shipped", "delivered"];
-        const mockOrders: RecentOrder[] = [];
-        for (let i = 0; i < limit; i++) {
-          const date = new Date();
-          date.setHours(date.getHours() - i * 2);
-          mockOrders.push({
-            id: `order-${i}`,
-            orderNumber: `ORD-${String(10000 + i).padStart(5, "0")}`,
-            customer: `Customer ${i + 1}`,
-            total: Math.floor(Math.random() * 300) + 50,
-            status: statuses[Math.floor(Math.random() * statuses.length)],
-            createdAt: date.toISOString(),
-          });
-        }
-        return mockOrders;
-      }
+      const res = await api.get<ApiResponse<RecentOrder[]>>(
+        "/analytics/orders/recent",
+        { params: { ...params, limit } }
+      );
+      return res.data.data;
     },
   });
 }
 
+// ===========================================
+// Product Hooks
+// ===========================================
+
+/**
+ * Get top selling products
+ */
+export function useTopProducts(limit = 10, params: AnalyticsParams = {}) {
+  return useQuery({
+    queryKey: ["analytics", "top-products", limit, params],
+    queryFn: async () => {
+      const res = await api.get<ApiResponse<TopProduct[]>>(
+        "/analytics/products/top-selling",
+        { params: { ...params, limit } }
+      );
+      return res.data.data;
+    },
+  });
+}
+
+/**
+ * Get low stock products and variants
+ */
+export function useLowStock(threshold = 10) {
+  return useQuery({
+    queryKey: ["analytics", "low-stock", threshold],
+    queryFn: async () => {
+      const res = await api.get<ApiResponse<LowStockData>>(
+        "/analytics/products/low-stock",
+        { params: { threshold } }
+      );
+      return res.data.data;
+    },
+  });
+}
+
+/**
+ * Get product analytics overview
+ */
 export function useProductAnalytics(params: AnalyticsParams = {}) {
   return useQuery({
-    queryKey: ["analytics", "products", params],
+    queryKey: ["analytics", "products-overview", params],
     queryFn: async () => {
-      try {
-        const res = await api.get<
-          ApiResponse<{
-            totalProducts: number;
-            activeProducts: number;
-            lowStock: number;
-            outOfStock: number;
-            topSelling: TopProduct[];
-            stockValue: number;
-          }>
-        >("/analytics/products", { params });
-        return res.data.data;
-      } catch {
-        // Return mock data
-        return {
-          totalProducts: 342,
-          activeProducts: 298,
-          lowStock: 23,
-          outOfStock: 8,
-          topSelling: [
-            { id: "1", name: "Arduino Uno R3", revenue: 12500, quantity: 250 },
-            { id: "2", name: "Raspberry Pi 4", revenue: 9800, quantity: 98 },
-            { id: "3", name: "ESP32 Dev Board", revenue: 7200, quantity: 360 },
-          ],
-          stockValue: 45680,
-        };
-      }
+      const res = await api.get<ApiResponse<ProductAnalytics>>(
+        "/analytics/products/overview",
+        { params }
+      );
+      return res.data.data;
     },
+  });
+}
+
+/**
+ * Get top categories by revenue
+ * Note: This endpoint may not exist yet in the backend
+ */
+export function useTopCategories(limit = 5, params: AnalyticsParams = {}) {
+  return useQuery({
+    queryKey: ["analytics", "top-categories", limit, params],
+    queryFn: async () => {
+      const res = await api.get<ApiResponse<TopCategory[]>>(
+        "/analytics/categories/top",
+        { params: { ...params, limit } }
+      );
+      return res.data.data;
+    },
+    // Don't retry if endpoint doesn't exist
+    retry: false,
+  });
+}
+
+// ===========================================
+// Customer Hooks
+// ===========================================
+
+/**
+ * Get customer analytics overview
+ */
+export function useCustomerAnalytics(params: AnalyticsParams = {}) {
+  return useQuery({
+    queryKey: ["analytics", "customers-overview", params],
+    queryFn: async () => {
+      const res = await api.get<ApiResponse<CustomerOverview>>(
+        "/analytics/customers/overview",
+        { params }
+      );
+      return res.data.data;
+    },
+  });
+}
+
+/**
+ * Get new customers over time
+ */
+export function useNewCustomers(params: AnalyticsParams = {}) {
+  return useQuery({
+    queryKey: ["analytics", "new-customers", params],
+    queryFn: async () => {
+      const res = await api.get<ApiResponse<NewCustomerData[]>>(
+        "/analytics/customers/new",
+        { params }
+      );
+      return res.data.data;
+    },
+  });
+}
+
+// ===========================================
+// Utility Hooks
+// ===========================================
+
+/**
+ * Export analytics data
+ */
+export function useExportAnalytics(params: AnalyticsParams = {}) {
+  return useQuery({
+    queryKey: ["analytics", "export", params],
+    queryFn: async () => {
+      const res = await api.get("/analytics/export", {
+        params,
+        responseType: "blob",
+      });
+      return res.data;
+    },
+    enabled: false, // Only run when explicitly called
   });
 }

@@ -19,7 +19,7 @@ import {
   ShoppingCart,
   ArrowUpRight,
   ArrowDownRight,
-  Calendar,
+  Download,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -29,49 +29,73 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { Breadcrumbs } from "@/components/layout/breadcrumbs";
-import { useSalesData, useOrdersByStatus, useDashboardStats } from "@/hooks/use-analytics";
+import {
+  useSalesData,
+  useOrdersByStatus,
+  useDashboardStats,
+  useRevenueBreakdown,
+  usePaymentMethods,
+  AnalyticsParams,
+} from "@/hooks/use-analytics";
 import { formatCurrency } from "@/lib/utils";
 
 export default function SalesAnalyticsPage() {
-  const [dateRange, setDateRange] = useState("30d");
-  const [compareEnabled, setCompareEnabled] = useState(false);
+  const [dateRange, setDateRange] = useState<string>("month");
+  const [groupBy, setGroupBy] = useState<"day" | "week" | "month">("day");
 
-  const { data: salesData } = useSalesData();
-  const { data: ordersByStatus } = useOrdersByStatus();
-  const { data: stats } = useDashboardStats();
+  // Convert date range to API params
+  const getDateParams = (range: string): AnalyticsParams => {
+    switch (range) {
+      case "today":
+        return { period: "today", groupBy };
+      case "week":
+        return { period: "week", groupBy };
+      case "month":
+        return { period: "month", groupBy };
+      case "quarter":
+        return { period: "quarter", groupBy };
+      case "year":
+        return { period: "year", groupBy };
+      default:
+        return { period: "month", groupBy };
+    }
+  };
 
-  // Mock additional data
-  const conversionData = [
-    { step: "Visited Store", count: 15420, rate: 100 },
-    { step: "Viewed Product", count: 8650, rate: 56 },
-    { step: "Added to Cart", count: 2180, rate: 14 },
-    { step: "Checkout Started", count: 1520, rate: 10 },
-    { step: "Order Completed", count: 1284, rate: 8 },
-  ];
+  const dateParams = getDateParams(dateRange);
 
-  const paymentMethodData = [
-    { name: "Credit Card", value: 65 },
-    { name: "PayPal", value: 20 },
-    { name: "Bank Transfer", value: 10 },
-    { name: "Cash on Delivery", value: 5 },
-  ];
+  const { data: salesData } = useSalesData(dateParams);
+  const { data: ordersByStatus } = useOrdersByStatus(dateParams);
+  const { data: stats } = useDashboardStats(dateParams);
+  const { data: revenueBreakdown } = useRevenueBreakdown(dateParams);
+  const { data: paymentMethods } = usePaymentMethods(dateParams);
 
-  const hourlyData = Array.from({ length: 24 }, (_, i) => ({
-    hour: `${String(i).padStart(2, "0")}:00`,
-    orders: Math.floor(Math.random() * 20) + 5,
-    revenue: Math.floor(Math.random() * 2000) + 500,
-  }));
+  // Format sales data for dual-axis chart
+  const chartData = salesData?.map((d) => ({
+    period: d.period,
+    revenue: d.revenue,
+    orders: d.orderCount,
+  })) || [];
 
-  const weeklyComparison = [
-    { day: "Mon", thisWeek: 4200, lastWeek: 3800 },
-    { day: "Tue", thisWeek: 3800, lastWeek: 4100 },
-    { day: "Wed", thisWeek: 5100, lastWeek: 4600 },
-    { day: "Thu", thisWeek: 4800, lastWeek: 4200 },
-    { day: "Fri", thisWeek: 6200, lastWeek: 5800 },
-    { day: "Sat", thisWeek: 7500, lastWeek: 6900 },
-    { day: "Sun", thisWeek: 5800, lastWeek: 5200 },
-  ];
+  // Revenue breakdown for stacked bar chart
+  const revenueBreakdownData = revenueBreakdown ? [
+    { component: "Subtotal", amount: revenueBreakdown.subtotal },
+    { component: "Tax", amount: revenueBreakdown.taxAmount },
+    { component: "Shipping", amount: revenueBreakdown.shippingAmount },
+    { component: "Discounts", amount: -revenueBreakdown.discountAmount },
+  ] : [];
+
+  // Payment methods for donut chart
+  const paymentMethodData = paymentMethods?.map((pm) => ({
+    name: pm.paymentMethod.toUpperCase(),
+    value: pm.revenue,
+    orders: pm.orderCount,
+  })) || [];
+
+  // Calculate payment method percentages
+  const totalPaymentRevenue = paymentMethods?.reduce((sum, pm) => sum + pm.revenue, 0) || 0;
 
   return (
     <div className="space-y-6">
@@ -85,15 +109,26 @@ export default function SalesAnalyticsPage() {
           </p>
         </div>
         <div className="flex items-center gap-4">
+          <Select value={groupBy} onValueChange={(v) => setGroupBy(v as typeof groupBy)}>
+            <SelectTrigger className="w-32">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="day">Daily</SelectItem>
+              <SelectItem value="week">Weekly</SelectItem>
+              <SelectItem value="month">Monthly</SelectItem>
+            </SelectContent>
+          </Select>
           <Select value={dateRange} onValueChange={setDateRange}>
             <SelectTrigger className="w-40">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="7d">Last 7 days</SelectItem>
-              <SelectItem value="30d">Last 30 days</SelectItem>
-              <SelectItem value="90d">Last 90 days</SelectItem>
-              <SelectItem value="12m">Last 12 months</SelectItem>
+              <SelectItem value="today">Today</SelectItem>
+              <SelectItem value="week">Last 7 days</SelectItem>
+              <SelectItem value="month">Last 30 days</SelectItem>
+              <SelectItem value="quarter">Last 90 days</SelectItem>
+              <SelectItem value="year">Last 12 months</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -107,48 +142,48 @@ export default function SalesAnalyticsPage() {
               <Text className="text-muted-foreground">Total Revenue</Text>
               <Metric className="mt-1">{formatCurrency(stats?.totalRevenue || 0)}</Metric>
             </div>
-            <div
-              className={`flex items-center gap-1 text-sm ${
-                (stats?.revenueChange || 0) >= 0 ? "text-green-600" : "text-red-600"
-              }`}
-            >
-              {(stats?.revenueChange || 0) >= 0 ? (
-                <ArrowUpRight className="h-4 w-4" />
-              ) : (
-                <ArrowDownRight className="h-4 w-4" />
-              )}
-              {Math.abs(stats?.revenueChange || 0)}%
-            </div>
+            {stats?.previousPeriodComparison && (
+              <div
+                className={`flex items-center gap-1 text-sm ${
+                  stats.previousPeriodComparison.revenueChange >= 0
+                    ? "text-green-600"
+                    : "text-red-600"
+                }`}
+              >
+                {stats.previousPeriodComparison.revenueChange >= 0 ? (
+                  <ArrowUpRight className="h-4 w-4" />
+                ) : (
+                  <ArrowDownRight className="h-4 w-4" />
+                )}
+                {Math.abs(Math.round(stats.previousPeriodComparison.revenueChange * 10) / 10)}%
+              </div>
+            )}
           </Flex>
-          <ProgressBar value={72} className="mt-4" color="blue" />
-          <Text className="mt-2 text-xs text-muted-foreground">
-            72% of monthly goal
-          </Text>
         </Card>
 
         <Card className="p-6">
           <Flex alignItems="start">
             <div>
               <Text className="text-muted-foreground">Orders</Text>
-              <Metric className="mt-1">{stats?.totalOrders || 0}</Metric>
+              <Metric className="mt-1">{stats?.orderCount || 0}</Metric>
             </div>
-            <div
-              className={`flex items-center gap-1 text-sm ${
-                (stats?.ordersChange || 0) >= 0 ? "text-green-600" : "text-red-600"
-              }`}
-            >
-              {(stats?.ordersChange || 0) >= 0 ? (
-                <ArrowUpRight className="h-4 w-4" />
-              ) : (
-                <ArrowDownRight className="h-4 w-4" />
-              )}
-              {Math.abs(stats?.ordersChange || 0)}%
-            </div>
+            {stats?.previousPeriodComparison && (
+              <div
+                className={`flex items-center gap-1 text-sm ${
+                  stats.previousPeriodComparison.orderCountChange >= 0
+                    ? "text-green-600"
+                    : "text-red-600"
+                }`}
+              >
+                {stats.previousPeriodComparison.orderCountChange >= 0 ? (
+                  <ArrowUpRight className="h-4 w-4" />
+                ) : (
+                  <ArrowDownRight className="h-4 w-4" />
+                )}
+                {Math.abs(Math.round(stats.previousPeriodComparison.orderCountChange * 10) / 10)}%
+              </div>
+            )}
           </Flex>
-          <ProgressBar value={85} className="mt-4" color="green" />
-          <Text className="mt-2 text-xs text-muted-foreground">
-            85% of monthly goal
-          </Text>
         </Card>
 
         <Card className="p-6">
@@ -159,136 +194,90 @@ export default function SalesAnalyticsPage() {
                 {formatCurrency(stats?.averageOrderValue || 0)}
               </Metric>
             </div>
-            <div
-              className={`flex items-center gap-1 text-sm ${
-                (stats?.aovChange || 0) >= 0 ? "text-green-600" : "text-red-600"
-              }`}
-            >
-              {(stats?.aovChange || 0) >= 0 ? (
-                <ArrowUpRight className="h-4 w-4" />
-              ) : (
-                <ArrowDownRight className="h-4 w-4" />
-              )}
-              {Math.abs(stats?.aovChange || 0)}%
-            </div>
           </Flex>
-          <ProgressBar value={65} className="mt-4" color="amber" />
-          <Text className="mt-2 text-xs text-muted-foreground">
-            Target: $120
-          </Text>
         </Card>
 
         <Card className="p-6">
           <Flex alignItems="start">
             <div>
-              <Text className="text-muted-foreground">Conversion Rate</Text>
-              <Metric className="mt-1">8.3%</Metric>
-            </div>
-            <div className="flex items-center gap-1 text-sm text-green-600">
-              <ArrowUpRight className="h-4 w-4" />
-              1.2%
+              <Text className="text-muted-foreground">Pending Orders</Text>
+              <Metric className="mt-1">{stats?.pendingOrders || 0}</Metric>
             </div>
           </Flex>
-          <ProgressBar value={83} className="mt-4" color="purple" />
-          <Text className="mt-2 text-xs text-muted-foreground">
-            Industry avg: 3.5%
-          </Text>
         </Card>
       </div>
 
-      {/* Main Chart */}
+      {/* Main Chart - Revenue & Orders */}
       <Card className="p-6">
         <div className="flex items-center justify-between mb-6">
           <div>
             <Title>Revenue & Orders Over Time</Title>
             <Text className="text-muted-foreground">
-              Daily breakdown for the selected period
+              Breakdown for the selected period
             </Text>
           </div>
         </div>
         <AreaChart
           className="h-80"
-          data={salesData || []}
-          index="date"
-          categories={["revenue", "orders"]}
-          colors={["blue", "green"]}
-          valueFormatter={(value) =>
-            value > 100 ? formatCurrency(value) : value.toString()
-          }
+          data={chartData}
+          index="period"
+          categories={["revenue"]}
+          colors={["blue"]}
+          valueFormatter={(value) => formatCurrency(value)}
           showLegend
           showGridLines={false}
         />
       </Card>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        {/* Weekly Comparison */}
+        {/* Revenue Breakdown */}
         <Card className="p-6">
-          <Title>Week Over Week</Title>
+          <Title>Revenue Breakdown</Title>
           <Text className="text-muted-foreground">
-            Compare this week vs last week
+            Components of total revenue
           </Text>
           <BarChart
             className="mt-6 h-72"
-            data={weeklyComparison}
-            index="day"
-            categories={["thisWeek", "lastWeek"]}
-            colors={["blue", "gray"]}
-            valueFormatter={(value) => formatCurrency(value)}
-            showLegend
-          />
-        </Card>
-
-        {/* Hourly Distribution */}
-        <Card className="p-6">
-          <Title>Orders by Hour</Title>
-          <Text className="text-muted-foreground">
-            Peak shopping hours today
-          </Text>
-          <LineChart
-            className="mt-6 h-72"
-            data={hourlyData}
-            index="hour"
-            categories={["orders"]}
-            colors={["purple"]}
-            valueFormatter={(value) => value.toString()}
+            data={revenueBreakdownData}
+            index="component"
+            categories={["amount"]}
+            colors={["blue"]}
+            valueFormatter={(value) => formatCurrency(Math.abs(value))}
             showLegend={false}
           />
-        </Card>
-      </div>
-
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* Conversion Funnel */}
-        <Card className="p-6">
-          <Title>Conversion Funnel</Title>
-          <Text className="text-muted-foreground">
-            Customer journey from visit to purchase
-          </Text>
-          <div className="mt-6 space-y-4">
-            {conversionData.map((step, i) => (
-              <div key={step.step}>
-                <Flex>
-                  <Text>{step.step}</Text>
-                  <Text className="font-medium">
-                    {step.count.toLocaleString()} ({step.rate}%)
-                  </Text>
-                </Flex>
-                <ProgressBar
-                  value={step.rate}
-                  className="mt-2"
-                  color={
-                    i === 0
-                      ? "blue"
-                      : i === 1
-                      ? "cyan"
-                      : i === 2
-                      ? "indigo"
-                      : i === 3
-                      ? "purple"
-                      : "green"
-                  }
-                />
-              </div>
-            ))}
+          <div className="mt-4 space-y-2">
+            <Flex>
+              <Text>Subtotal</Text>
+              <Text className="font-medium">
+                {formatCurrency(revenueBreakdown?.subtotal || 0)}
+              </Text>
+            </Flex>
+            <Flex>
+              <Text>Tax</Text>
+              <Text className="font-medium">
+                {formatCurrency(revenueBreakdown?.taxAmount || 0)}
+              </Text>
+            </Flex>
+            <Flex>
+              <Text>Shipping</Text>
+              <Text className="font-medium">
+                {formatCurrency(revenueBreakdown?.shippingAmount || 0)}
+              </Text>
+            </Flex>
+            <Flex>
+              <Text>Discounts</Text>
+              <Text className="font-medium text-red-600">
+                -{formatCurrency(revenueBreakdown?.discountAmount || 0)}
+              </Text>
+            </Flex>
+            <div className="border-t pt-2 mt-2">
+              <Flex>
+                <Text className="font-semibold">Total</Text>
+                <Text className="font-semibold">
+                  {formatCurrency(revenueBreakdown?.total || 0)}
+                </Text>
+              </Flex>
+            </div>
           </div>
         </Card>
 
@@ -296,7 +285,7 @@ export default function SalesAnalyticsPage() {
         <Card className="p-6">
           <Title>Payment Methods</Title>
           <Text className="text-muted-foreground">
-            Distribution of payment types
+            Revenue distribution by payment type
           </Text>
           <DonutChart
             className="mt-6 h-52"
@@ -304,32 +293,65 @@ export default function SalesAnalyticsPage() {
             category="value"
             index="name"
             colors={["blue", "cyan", "indigo", "violet"]}
-            valueFormatter={(value) => `${value}%`}
+            valueFormatter={(value) => formatCurrency(value)}
             showLabel
           />
           <div className="mt-4 space-y-2">
-            {paymentMethodData.map((method, i) => (
-              <Flex key={method.name}>
-                <div className="flex items-center gap-2">
-                  <div
-                    className={`h-3 w-3 rounded-full ${
-                      i === 0
-                        ? "bg-blue-500"
-                        : i === 1
-                        ? "bg-cyan-500"
-                        : i === 2
-                        ? "bg-indigo-500"
-                        : "bg-violet-500"
-                    }`}
-                  />
-                  <Text>{method.name}</Text>
-                </div>
-                <Text className="font-medium">{method.value}%</Text>
-              </Flex>
-            ))}
+            {paymentMethodData.map((method, i) => {
+              const percentage = totalPaymentRevenue > 0
+                ? ((method.value / totalPaymentRevenue) * 100).toFixed(1)
+                : 0;
+              return (
+                <Flex key={method.name}>
+                  <div className="flex items-center gap-2">
+                    <div
+                      className={`h-3 w-3 rounded-full ${
+                        i === 0
+                          ? "bg-blue-500"
+                          : i === 1
+                          ? "bg-cyan-500"
+                          : i === 2
+                          ? "bg-indigo-500"
+                          : "bg-violet-500"
+                      }`}
+                    />
+                    <Text>{method.name}</Text>
+                  </div>
+                  <div className="text-right">
+                    <Text className="font-medium">
+                      {formatCurrency(method.value)}
+                    </Text>
+                    <Text className="text-xs text-muted-foreground">
+                      {percentage}% · {method.orders} orders
+                    </Text>
+                  </div>
+                </Flex>
+              );
+            })}
           </div>
         </Card>
       </div>
+
+      {/* Orders by Status */}
+      <Card className="p-6">
+        <Title>Orders by Status</Title>
+        <Text className="text-muted-foreground">
+          Order status distribution for the period
+        </Text>
+        <BarChart
+          className="mt-6 h-72"
+          data={ordersByStatus?.map((o) => ({
+            status: o.status.charAt(0).toUpperCase() + o.status.slice(1),
+            count: o.count,
+            value: o.totalValue,
+          })) || []}
+          index="status"
+          categories={["count"]}
+          colors={["blue"]}
+          valueFormatter={(value) => value.toString()}
+          showLegend={false}
+        />
+      </Card>
     </div>
   );
 }

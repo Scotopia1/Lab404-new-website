@@ -12,15 +12,11 @@ import {
   Metric,
   Flex,
   ProgressBar,
-  Badge as TremorBadge,
 } from "@tremor/react";
 import {
   Package,
   AlertTriangle,
   TrendingUp,
-  TrendingDown,
-  ArrowUpRight,
-  ArrowDownRight,
   Box,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -33,15 +29,60 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Breadcrumbs } from "@/components/layout/breadcrumbs";
-import { useTopProducts, useTopCategories, useProductAnalytics } from "@/hooks/use-analytics";
+import {
+  useTopProducts,
+  useTopCategories,
+  useLowStock,
+  AnalyticsParams,
+} from "@/hooks/use-analytics";
 import { formatCurrency } from "@/lib/utils";
 
 export default function ProductAnalyticsPage() {
-  const [dateRange, setDateRange] = useState("30d");
+  const [dateRange, setDateRange] = useState<string>("month");
 
-  const { data: topProducts } = useTopProducts(10);
-  const { data: topCategories } = useTopCategories(5);
-  const { data: productStats } = useProductAnalytics();
+  // Convert date range to API params
+  const getDateParams = (range: string): AnalyticsParams => {
+    switch (range) {
+      case "week":
+        return { period: "week" };
+      case "month":
+        return { period: "month" };
+      case "quarter":
+        return { period: "quarter" };
+      case "year":
+        return { period: "year" };
+      default:
+        return { period: "month" };
+    }
+  };
+
+  const dateParams = getDateParams(dateRange);
+
+  const { data: topProducts } = useTopProducts(10, dateParams);
+  const { data: topCategories } = useTopCategories(5, dateParams);
+  const { data: lowStockData } = useLowStock(10);
+
+  // Combine products and variants into low stock items
+  const lowStockItems = [
+    ...(lowStockData?.products || []).map((p) => ({
+      name: p.name,
+      sku: p.sku,
+      stock: p.stockQuantity,
+      threshold: lowStockData?.threshold || 10,
+      type: "product" as const,
+    })),
+    ...(lowStockData?.variants || []).map((v) => ({
+      name: `${v.productName} - ${Object.values(v.options || {}).join(", ")}`,
+      sku: v.sku,
+      stock: v.stockQuantity,
+      threshold: lowStockData?.threshold || 10,
+      type: "variant" as const,
+    })),
+  ].slice(0, 10); // Limit to top 10
+
+  // Calculate stock stats
+  const totalProducts = (lowStockData?.products?.length || 0) + (lowStockData?.variants?.length || 0);
+  const lowStockCount = lowStockItems.length;
 
   const categoryData =
     topCategories?.map((c) => ({
@@ -49,28 +90,11 @@ export default function ProductAnalyticsPage() {
       value: c.revenue,
     })) || [];
 
+  // Stock status data (mocked for now, could be calculated from product data)
   const stockStatusData = [
-    { name: "In Stock", value: productStats?.activeProducts || 298 },
-    { name: "Low Stock", value: productStats?.lowStock || 23 },
-    { name: "Out of Stock", value: productStats?.outOfStock || 8 },
-  ];
-
-  // Mock data for product performance
-  const performanceData = [
-    { name: "Arduino Uno R3", views: 4520, sales: 250, conversion: 5.5 },
-    { name: "Raspberry Pi 4", views: 3890, sales: 98, conversion: 2.5 },
-    { name: "ESP32 Dev Board", views: 3210, sales: 360, conversion: 11.2 },
-    { name: "LCD Display 16x2", views: 2870, sales: 280, conversion: 9.8 },
-    { name: "Servo Motor SG90", views: 2540, sales: 420, conversion: 16.5 },
-  ];
-
-  // Low stock items
-  const lowStockItems = [
-    { name: "Arduino Nano", sku: "ARD-NANO-01", stock: 5, threshold: 10 },
-    { name: "Stepper Motor 28BYJ", sku: "MOT-28BYJ-01", stock: 3, threshold: 15 },
-    { name: "DHT22 Sensor", sku: "SEN-DHT22-01", stock: 8, threshold: 20 },
-    { name: "OLED Display 128x64", sku: "DIS-OLED-01", stock: 2, threshold: 10 },
-    { name: "L298N Motor Driver", sku: "DRV-L298N-01", stock: 4, threshold: 12 },
+    { name: "In Stock", value: Math.max(0, totalProducts - lowStockCount) },
+    { name: "Low Stock", value: lowStockCount },
+    { name: "Out of Stock", value: 0 },
   ];
 
   return (
@@ -89,10 +113,10 @@ export default function ProductAnalyticsPage() {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="7d">Last 7 days</SelectItem>
-            <SelectItem value="30d">Last 30 days</SelectItem>
-            <SelectItem value="90d">Last 90 days</SelectItem>
-            <SelectItem value="12m">Last 12 months</SelectItem>
+            <SelectItem value="week">Last 7 days</SelectItem>
+            <SelectItem value="month">Last 30 days</SelectItem>
+            <SelectItem value="quarter">Last 90 days</SelectItem>
+            <SelectItem value="year">Last 12 months</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -106,8 +130,11 @@ export default function ProductAnalyticsPage() {
             </div>
           </Flex>
           <div className="mt-4">
-            <Text className="text-muted-foreground">Total Products</Text>
-            <Metric className="mt-1">{productStats?.totalProducts || 342}</Metric>
+            <Text className="text-muted-foreground">Top Products</Text>
+            <Metric className="mt-1">{topProducts?.length || 0}</Metric>
+            <Text className="text-xs text-muted-foreground mt-1">
+              Showing top sellers
+            </Text>
           </div>
         </Card>
 
@@ -118,8 +145,15 @@ export default function ProductAnalyticsPage() {
             </div>
           </Flex>
           <div className="mt-4">
-            <Text className="text-muted-foreground">Active Products</Text>
-            <Metric className="mt-1">{productStats?.activeProducts || 298}</Metric>
+            <Text className="text-muted-foreground">Total Revenue</Text>
+            <Metric className="mt-1">
+              {formatCurrency(
+                topProducts?.reduce((sum, p) => sum + p.totalRevenue, 0) || 0
+              )}
+            </Metric>
+            <Text className="text-xs text-muted-foreground mt-1">
+              From top products
+            </Text>
           </div>
         </Card>
 
@@ -131,7 +165,10 @@ export default function ProductAnalyticsPage() {
           </Flex>
           <div className="mt-4">
             <Text className="text-muted-foreground">Low Stock</Text>
-            <Metric className="mt-1">{productStats?.lowStock || 23}</Metric>
+            <Metric className="mt-1">{lowStockCount}</Metric>
+            <Text className="text-xs text-muted-foreground mt-1">
+              Below threshold of {lowStockData?.threshold || 10}
+            </Text>
           </div>
         </Card>
 
@@ -142,10 +179,13 @@ export default function ProductAnalyticsPage() {
             </div>
           </Flex>
           <div className="mt-4">
-            <Text className="text-muted-foreground">Stock Value</Text>
+            <Text className="text-muted-foreground">Units Sold</Text>
             <Metric className="mt-1">
-              {formatCurrency(productStats?.stockValue || 45680)}
+              {topProducts?.reduce((sum, p) => sum + p.totalQuantity, 0) || 0}
             </Metric>
+            <Text className="text-xs text-muted-foreground mt-1">
+              Total quantity sold
+            </Text>
           </div>
         </Card>
       </div>
@@ -189,17 +229,32 @@ export default function ProductAnalyticsPage() {
         </Card>
 
         {/* Category Performance */}
-        <Card className="p-6">
-          <Title>Revenue by Category</Title>
-          <Text className="text-muted-foreground">
-            Top performing categories
-          </Text>
-          <BarList
-            data={categoryData}
-            valueFormatter={(value: number) => formatCurrency(value)}
-            className="mt-6"
-          />
-        </Card>
+        {categoryData.length > 0 && (
+          <Card className="p-6">
+            <Title>Revenue by Category</Title>
+            <Text className="text-muted-foreground">
+              Top performing categories
+            </Text>
+            <BarList
+              data={categoryData}
+              valueFormatter={(value: number) => formatCurrency(value)}
+              className="mt-6"
+            />
+          </Card>
+        )}
+
+        {categoryData.length === 0 && (
+          <Card className="p-6">
+            <Title>Revenue by Category</Title>
+            <Text className="text-muted-foreground">
+              Category analytics not available
+            </Text>
+            <div className="mt-6 text-center py-8 text-muted-foreground">
+              <Package className="h-12 w-12 mx-auto mb-3 opacity-50" />
+              <p>No category data available</p>
+            </div>
+          </Card>
+        )}
       </div>
 
       {/* Top Products */}
@@ -223,47 +278,31 @@ export default function ProductAnalyticsPage() {
             <div className="col-span-2 text-right">Units Sold</div>
             <div className="col-span-3 text-right">Performance</div>
           </div>
-          {topProducts?.map((product, index) => (
-            <div
-              key={product.id}
-              className="grid grid-cols-12 gap-4 items-center py-3 border-b last:border-0"
-            >
-              <div className="col-span-1 text-muted-foreground">{index + 1}</div>
-              <div className="col-span-4 font-medium">{product.name}</div>
-              <div className="col-span-2 text-right">
-                {formatCurrency(product.revenue)}
+          {topProducts?.map((product, index) => {
+            const maxRevenue = Math.max(...(topProducts?.map((p) => p.totalRevenue) || [1]));
+            const performance = (product.totalRevenue / maxRevenue) * 100;
+            return (
+              <div
+                key={product.productId}
+                className="grid grid-cols-12 gap-4 items-center py-3 border-b last:border-0"
+              >
+                <div className="col-span-1 text-muted-foreground">{index + 1}</div>
+                <div className="col-span-4 font-medium">{product.productName}</div>
+                <div className="col-span-2 text-right">
+                  {formatCurrency(product.totalRevenue)}
+                </div>
+                <div className="col-span-2 text-right">{product.totalQuantity}</div>
+                <div className="col-span-3">
+                  <ProgressBar value={performance} color="blue" />
+                </div>
               </div>
-              <div className="col-span-2 text-right">{product.quantity}</div>
-              <div className="col-span-3">
-                <ProgressBar
-                  value={Math.min(100, (product.revenue / 15000) * 100)}
-                  color="blue"
-                />
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </Card>
 
-      {/* Product Performance & Low Stock */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card className="p-6">
-          <Title>Product Conversion Rates</Title>
-          <Text className="text-muted-foreground">
-            Views to purchase conversion
-          </Text>
-          <BarChart
-            className="mt-6 h-72"
-            data={performanceData}
-            index="name"
-            categories={["conversion"]}
-            colors={["blue"]}
-            valueFormatter={(value) => `${value}%`}
-            layout="vertical"
-            showLegend={false}
-          />
-        </Card>
-
+      {/* Low Stock Alerts */}
+      {lowStockItems.length > 0 && (
         <Card className="p-6">
           <div className="flex items-center justify-between mb-4">
             <div>
@@ -282,7 +321,9 @@ export default function ProductAnalyticsPage() {
               >
                 <div>
                   <div className="font-medium">{item.name}</div>
-                  <div className="text-sm text-muted-foreground">{item.sku}</div>
+                  <div className="text-sm text-muted-foreground">
+                    SKU: {item.sku} · {item.type}
+                  </div>
                 </div>
                 <div className="text-right">
                   <div className="font-medium text-amber-600">
@@ -299,7 +340,7 @@ export default function ProductAnalyticsPage() {
             <Link href="/products?filter=low-stock">View All Low Stock</Link>
           </Button>
         </Card>
-      </div>
+      )}
     </div>
   );
 }
