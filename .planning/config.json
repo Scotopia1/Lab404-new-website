@@ -1,0 +1,10 @@
+{
+  "workflow": {
+    "mode": "yolo",
+    "depth": "comprehensive"
+  },
+  "project": {
+    "name": "Lab404 Electronics - Website Store Completion",
+    "initialized": "2026-01-08"
+  }
+}
