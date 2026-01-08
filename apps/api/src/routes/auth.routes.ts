@@ -159,6 +159,14 @@ authRoutes.post(
         customerId: customer.id,
       });
 
+      // Set httpOnly cookie for secure token storage
+      res.cookie('auth_token', token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      });
+
       sendSuccess(res, {
         user: {
           id: customer.authUserId,
@@ -216,6 +224,14 @@ authRoutes.post(
         email: customer.email,
         role: 'customer',
         customerId: customer.id,
+      });
+
+      // Set httpOnly cookie for secure token storage
+      res.cookie('auth_token', token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       });
 
       sendSuccess(res, {
@@ -284,11 +300,16 @@ authRoutes.get('/me', requireAuth, async (req, res, next) => {
 
 /**
  * POST /api/auth/logout
- * Logout current user (client-side token removal)
+ * Logout current user (clear auth cookie)
  */
 authRoutes.post('/logout', requireAuth, (_req, res) => {
-  // JWT is stateless, so logout is handled client-side
-  // In a real app, you might blacklist the token
+  // Clear the auth cookie
+  res.clearCookie('auth_token', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+  });
+
   sendSuccess(res, { message: 'Logged out successfully' });
 });
 
@@ -336,6 +357,14 @@ authRoutes.post(
         email: customer.email,
         role: 'admin',
         customerId: customer.id,
+      });
+
+      // Set httpOnly cookie for secure token storage
+      res.cookie('auth_token', token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       });
 
       sendSuccess(res, {

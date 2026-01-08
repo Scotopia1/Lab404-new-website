@@ -22,9 +22,17 @@ interface JwtPayload {
 }
 
 /**
- * Extract JWT token from Authorization header
+ * Extract JWT token from cookies or Authorization header
+ * Prioritizes httpOnly cookie over Bearer token (for migration)
  */
 function extractToken(req: Request): string | null {
+  // Try cookie first (secure, httpOnly)
+  const cookieToken = req.cookies?.auth_token;
+  if (cookieToken) {
+    return cookieToken;
+  }
+
+  // Fallback to Bearer header (temporary, for backward compatibility)
   const authHeader = req.headers.authorization;
 
   if (!authHeader) {
