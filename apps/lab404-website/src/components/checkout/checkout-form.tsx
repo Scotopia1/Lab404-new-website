@@ -164,7 +164,7 @@ export function CheckoutForm() {
                                     {shippingAddresses.map((address) => (
                                         <div
                                             key={address.id}
-                                            className={`relative flex items-start space-x-3 border rounded-lg p-4 cursor-pointer transition-colors ${
+                                            className={`relative flex items-start space-x-3 border rounded-lg p-4 cursor-pointer transition-colors min-h-[44px] ${
                                                 selectedAddressId === address.id
                                                     ? 'border-primary bg-primary/5'
                                                     : 'border-input hover:border-primary/50'
@@ -177,7 +177,7 @@ export function CheckoutForm() {
                                                 value={address.id}
                                                 checked={selectedAddressId === address.id}
                                                 onChange={() => setSelectedAddressId(address.id)}
-                                                className="mt-1 h-4 w-4 text-primary focus:ring-2 focus:ring-primary"
+                                                className="mt-1 h-5 w-5 min-h-[20px] min-w-[20px] text-primary focus:ring-2 focus:ring-primary cursor-pointer"
                                             />
                                             <div className="flex-1">
                                                 <div className="flex items-center gap-2 mb-1">
@@ -209,7 +209,7 @@ export function CheckoutForm() {
                                         setUseManualEntry(true);
                                         reset();
                                     }}
-                                    className="w-full"
+                                    className="w-full min-h-[44px]"
                                 >
                                     Use a different address
                                 </Button>
@@ -224,7 +224,7 @@ export function CheckoutForm() {
                                         type="button"
                                         variant="outline"
                                         onClick={() => setUseManualEntry(false)}
-                                        className="w-full mb-4"
+                                        className="w-full mb-4 min-h-[44px]"
                                     >
                                         Choose from saved addresses
                                     </Button>
@@ -233,7 +233,14 @@ export function CheckoutForm() {
                                 {/* Email field */}
                                 <div className="space-y-2">
                                     <Label htmlFor="email">Email</Label>
-                                    <Input id="email" type="email" {...register('email')} />
+                                    <Input 
+                                        id="email" 
+                                        type="email" 
+                                        autoComplete="email"
+                                        className="text-base"
+                                        placeholder="you@example.com"
+                                        {...register('email')} 
+                                    />
                                     {errors.email && (
                                         <p className="text-sm text-destructive">{errors.email.message}</p>
                                     )}
@@ -243,14 +250,24 @@ export function CheckoutForm() {
                                 <div className="grid gap-4 sm:grid-cols-2">
                                     <div className="space-y-2">
                                         <Label htmlFor="firstName">First Name</Label>
-                                        <Input id="firstName" {...register('firstName')} />
+                                        <Input 
+                                            id="firstName" 
+                                            autoComplete="given-name"
+                                            className="text-base"
+                                            {...register('firstName')} 
+                                        />
                                         {errors.firstName && (
                                             <p className="text-sm text-destructive">{errors.firstName.message}</p>
                                         )}
                                     </div>
                                     <div className="space-y-2">
                                         <Label htmlFor="lastName">Last Name</Label>
-                                        <Input id="lastName" {...register('lastName')} />
+                                        <Input 
+                                            id="lastName" 
+                                            autoComplete="family-name"
+                                            className="text-base"
+                                            {...register('lastName')} 
+                                        />
                                         {errors.lastName && (
                                             <p className="text-sm text-destructive">{errors.lastName.message}</p>
                                         )}
@@ -260,7 +277,12 @@ export function CheckoutForm() {
                                 {/* Company */}
                                 <div className="space-y-2">
                                     <Label htmlFor="company">Company (Optional)</Label>
-                                    <Input id="company" {...register('company')} />
+                                    <Input 
+                                        id="company" 
+                                        autoComplete="organization"
+                                        className="text-base"
+                                        {...register('company')} 
+                                    />
                                     {errors.company && (
                                         <p className="text-sm text-destructive">{errors.company.message}</p>
                                     )}
@@ -269,14 +291,24 @@ export function CheckoutForm() {
                                 {/* Address fields */}
                                 <div className="space-y-2">
                                     <Label htmlFor="addressLine1">Address Line 1</Label>
-                                    <Input id="addressLine1" {...register('addressLine1')} />
+                                    <Input 
+                                        id="addressLine1" 
+                                        autoComplete="address-line1"
+                                        className="text-base"
+                                        {...register('addressLine1')} 
+                                    />
                                     {errors.addressLine1 && (
                                         <p className="text-sm text-destructive">{errors.addressLine1.message}</p>
                                     )}
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="addressLine2">Address Line 2 (Optional)</Label>
-                                    <Input id="addressLine2" {...register('addressLine2')} />
+                                    <Input 
+                                        id="addressLine2" 
+                                        autoComplete="address-line2"
+                                        className="text-base"
+                                        {...register('addressLine2')} 
+                                    />
                                     {errors.addressLine2 && (
                                         <p className="text-sm text-destructive">{errors.addressLine2.message}</p>
                                     )}
@@ -286,21 +318,38 @@ export function CheckoutForm() {
                                 <div className="grid gap-4 grid-cols-2 sm:grid-cols-3">
                                     <div className="space-y-2">
                                         <Label htmlFor="city">City</Label>
-                                        <Input id="city" {...register('city')} />
+                                        <Input 
+                                            id="city" 
+                                            autoComplete="address-level2"
+                                            className="text-base"
+                                            {...register('city')} 
+                                        />
                                         {errors.city && (
                                             <p className="text-sm text-destructive">{errors.city.message}</p>
                                         )}
                                     </div>
                                     <div className="space-y-2">
                                         <Label htmlFor="state">State (Optional)</Label>
-                                        <Input id="state" {...register('state')} />
+                                        <Input 
+                                            id="state" 
+                                            autoComplete="address-level1"
+                                            className="text-base"
+                                            {...register('state')} 
+                                        />
                                         {errors.state && (
                                             <p className="text-sm text-destructive">{errors.state.message}</p>
                                         )}
                                     </div>
                                     <div className="space-y-2">
                                         <Label htmlFor="postalCode">Postal Code (Optional)</Label>
-                                        <Input id="postalCode" {...register('postalCode')} />
+                                        <Input 
+                                            id="postalCode" 
+                                            type="text"
+                                            inputMode="numeric"
+                                            autoComplete="postal-code"
+                                            className="text-base"
+                                            {...register('postalCode')} 
+                                        />
                                         {errors.postalCode && (
                                             <p className="text-sm text-destructive">{errors.postalCode.message}</p>
                                         )}
@@ -310,7 +359,12 @@ export function CheckoutForm() {
                                 {/* Country */}
                                 <div className="space-y-2">
                                     <Label htmlFor="country">Country</Label>
-                                    <Input id="country" {...register('country')} />
+                                    <Input 
+                                        id="country" 
+                                        autoComplete="country-name"
+                                        className="text-base"
+                                        {...register('country')} 
+                                    />
                                     {errors.country && (
                                         <p className="text-sm text-destructive">{errors.country.message}</p>
                                     )}
@@ -319,7 +373,14 @@ export function CheckoutForm() {
                                 {/* Phone */}
                                 <div className="space-y-2">
                                     <Label htmlFor="phone">Phone (Optional)</Label>
-                                    <Input id="phone" type="tel" {...register('phone')} />
+                                    <Input 
+                                        id="phone" 
+                                        type="tel" 
+                                        autoComplete="tel"
+                                        className="text-base"
+                                        placeholder="+1 (555) 000-0000"
+                                        {...register('phone')} 
+                                    />
                                     {errors.phone && (
                                         <p className="text-sm text-destructive">{errors.phone.message}</p>
                                     )}
@@ -331,7 +392,14 @@ export function CheckoutForm() {
                         {!useManualEntry && shippingAddresses.length > 0 && (
                             <div className="space-y-2">
                                 <Label htmlFor="email">Email</Label>
-                                <Input id="email" type="email" {...register('email')} />
+                                <Input 
+                                    id="email" 
+                                    type="email" 
+                                    autoComplete="email"
+                                    className="text-base"
+                                    placeholder="you@example.com"
+                                    {...register('email')} 
+                                />
                                 {errors.email && (
                                     <p className="text-sm text-destructive">{errors.email.message}</p>
                                 )}
@@ -344,7 +412,7 @@ export function CheckoutForm() {
                             <textarea
                                 id="customerNotes"
                                 {...register('customerNotes')}
-                                className="min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                className="min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                                 placeholder="Any special instructions for your order?"
                             />
                             {errors.customerNotes && (
@@ -382,8 +450,11 @@ export function CheckoutForm() {
                             </div>
 
                             <div className="flex gap-2">
-                                <Input placeholder="Promo code" />
-                                <Button variant="outline" type="button">Apply</Button>
+                                <Input 
+                                    placeholder="Promo code" 
+                                    className="text-base"
+                                />
+                                <Button variant="outline" type="button" className="min-h-[44px]">Apply</Button>
                             </div>
                             <div className="space-y-1.5">
                                 <div className="flex justify-between text-sm">
@@ -406,7 +477,7 @@ export function CheckoutForm() {
                                 </div>
                             </div>
                         </div>
-                        <Button className="w-full" size="lg" disabled={isSubmitting}>
+                        <Button className="w-full min-h-[52px] text-base font-semibold" size="lg" disabled={isSubmitting}>
                             {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                             Place Order - Pay on Delivery
                         </Button>
