@@ -8,13 +8,12 @@ import { LoginFormData, RegisterFormData } from '@/lib/validations';
 
 interface AuthState {
     user: User | null;
-    token: string | null;
     isAuthenticated: boolean;
     isLoading: boolean;
     error: string | null;
     login: (credentials: LoginFormData) => Promise<void>;
     register: (data: RegisterFormData) => Promise<void>;
-    logout: () => void;
+    logout: () => Promise<void>;
     checkAuth: () => Promise<void>;
 }
 
@@ -22,7 +21,6 @@ export const useAuthStore = create<AuthState>()(
     persist(
         (set) => ({
             user: null,
-            token: null,
             isAuthenticated: false,
             isLoading: false,
             error: null,
@@ -31,10 +29,10 @@ export const useAuthStore = create<AuthState>()(
                 set({ isLoading: true, error: null });
                 try {
                     const response = await api.post<{ success: boolean; data: AuthResponse }>('/auth/login', credentials);
-                    const { token, user } = response.data.data;
+                    const { user } = response.data.data;
 
-                    localStorage.setItem('auth_token', token);
-                    set({ user, token, isAuthenticated: true, isLoading: false });
+                    // Token is now in httpOnly cookie, no localStorage needed
+                    set({ user, isAuthenticated: true, isLoading: false });
                 } catch (error) {
                     const err = error as AxiosError<{ error: { message: string } }>;
                     set({
@@ -49,10 +47,10 @@ export const useAuthStore = create<AuthState>()(
                 set({ isLoading: true, error: null });
                 try {
                     const response = await api.post<{ success: boolean; data: AuthResponse }>('/auth/register', data);
-                    const { token, user } = response.data.data;
+                    const { user } = response.data.data;
 
-                    localStorage.setItem('auth_token', token);
-                    set({ user, token, isAuthenticated: true, isLoading: false });
+                    // Token is now in httpOnly cookie, no localStorage needed
+                    set({ user, isAuthenticated: true, isLoading: false });
                 } catch (error) {
                     const err = error as AxiosError<{ error: { message: string } }>;
                     set({
@@ -63,32 +61,32 @@ export const useAuthStore = create<AuthState>()(
                 }
             },
 
-            logout: () => {
-                localStorage.removeItem('auth_token');
-                set({ user: null, token: null, isAuthenticated: false });
-                // Optional: Call logout API if needed
-                // api.post('/auth/logout').catch(console.error);
+            logout: async () => {
+                try {
+                    // Call logout API to clear cookie
+                    await api.post('/auth/logout');
+                } catch {
+                    // Ignore logout errors
+                } finally {
+                    // Clear local state
+                    set({ user: null, isAuthenticated: false });
+                }
             },
 
             checkAuth: async () => {
-                const token = localStorage.getItem('auth_token');
-                if (!token) {
-                    set({ isAuthenticated: false, user: null, token: null });
-                    return;
-                }
-
                 try {
+                    // Try to fetch user with cookie authentication
                     const response = await api.get<{ success: boolean; data: User }>('/auth/me');
-                    set({ user: response.data.data, token, isAuthenticated: true });
+                    set({ user: response.data.data, isAuthenticated: true });
                 } catch {
-                    localStorage.removeItem('auth_token');
-                    set({ user: null, token: null, isAuthenticated: false });
+                    // Cookie expired or invalid
+                    set({ user: null, isAuthenticated: false });
                 }
             },
         }),
         {
             name: 'auth-storage',
-            partialize: (state) => ({ token: state.token, user: state.user, isAuthenticated: state.isAuthenticated }),
+            partialize: (state) => ({ user: state.user, isAuthenticated: state.isAuthenticated }),
         }
     )
 );

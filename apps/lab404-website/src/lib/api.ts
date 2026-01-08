@@ -7,16 +7,13 @@ export const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true, // Send cookies with requests
 });
 
-// Add auth token to requests
+// Request interceptor - cookies are sent automatically via withCredentials
 api.interceptors.request.use((config) => {
-  if (typeof window !== 'undefined') {
-    const token = localStorage.getItem('auth_token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-  }
+  // Cookies are automatically included with withCredentials: true
+  // No need to manually add Authorization header
   return config;
 });
 
