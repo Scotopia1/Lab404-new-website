@@ -13,12 +13,11 @@ export interface Admin {
 
 interface AuthState {
   admin: Admin | null;
-  token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
   login: (email: string, password: string) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
   checkAuth: () => Promise<void>;
   clearError: () => void;
 }
@@ -27,7 +26,6 @@ export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
       admin: null,
-      token: null,
       isAuthenticated: false,
       isLoading: true,
       error: null,
@@ -40,7 +38,7 @@ export const useAuthStore = create<AuthState>()(
             data: { token: string; user: Admin };
           }>("/auth/admin/login", { email, password });
 
-          const { token, user } = response.data.data;
+          const { user } = response.data.data;
 
           // Verify user is an admin (check role instead of isAdmin flag)
           const isAdmin = user.role === 'admin' || user.isAdmin;
@@ -52,10 +50,9 @@ export const useAuthStore = create<AuthState>()(
             throw new Error("Access denied. Admin privileges required.");
           }
 
-          localStorage.setItem("admin_token", token);
+          // Token is now in httpOnly cookie, no localStorage needed
           set({
             admin: user,
-            token,
             isAuthenticated: true,
             isLoading: false,
             error: null,
@@ -67,37 +64,30 @@ export const useAuthStore = create<AuthState>()(
             isLoading: false,
             isAuthenticated: false,
             admin: null,
-            token: null,
           });
           throw error;
         }
       },
 
-      logout: () => {
-        localStorage.removeItem("admin_token");
-        set({
-          admin: null,
-          token: null,
-          isAuthenticated: false,
-          error: null,
-        });
-        // Call logout API
-        api.post("/auth/logout").catch(() => {});
+      logout: async () => {
+        try {
+          // Call logout API to clear cookie
+          await api.post("/auth/logout");
+        } catch {
+          // Ignore logout errors
+        } finally {
+          // Clear local state
+          set({
+            admin: null,
+            isAuthenticated: false,
+            error: null,
+          });
+        }
       },
 
       checkAuth: async () => {
-        const token = localStorage.getItem("admin_token");
-        if (!token) {
-          set({
-            isAuthenticated: false,
-            admin: null,
-            token: null,
-            isLoading: false,
-          });
-          return;
-        }
-
         try {
+          // Try to fetch user with cookie authentication
           const response = await api.get<{ success: boolean; data: Admin }>(
             "/auth/me"
           );
@@ -106,10 +96,8 @@ export const useAuthStore = create<AuthState>()(
           // Verify user is an admin (check role or isAdmin flag)
           const isAdmin = user.role === 'admin' || user.isAdmin;
           if (!isAdmin) {
-            localStorage.removeItem("admin_token");
             set({
               admin: null,
-              token: null,
               isAuthenticated: false,
               isLoading: false,
               error: "Access denied. Admin privileges required.",
@@ -119,15 +107,13 @@ export const useAuthStore = create<AuthState>()(
 
           set({
             admin: user,
-            token,
             isAuthenticated: true,
             isLoading: false,
           });
         } catch {
-          localStorage.removeItem("admin_token");
+          // Cookie expired or invalid
           set({
             admin: null,
-            token: null,
             isAuthenticated: false,
             isLoading: false,
           });
@@ -139,7 +125,6 @@ export const useAuthStore = create<AuthState>()(
     {
       name: "admin-auth-storage",
       partialize: (state) => ({
-        token: state.token,
         admin: state.admin,
         isAuthenticated: state.isAuthenticated,
       }),

@@ -11,14 +11,10 @@ export const api = axios.create({
   withCredentials: true,
 });
 
-// Add auth token to requests
+// Request interceptor - cookies are sent automatically via withCredentials
 api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
-  if (typeof window !== "undefined") {
-    const token = localStorage.getItem("admin_token");
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-  }
+  // Cookies are automatically included with withCredentials: true
+  // No need to manually add Authorization header
   return config;
 });
 
@@ -27,9 +23,8 @@ api.interceptors.response.use(
   (response) => response,
   (error: AxiosError) => {
     if (error.response?.status === 401) {
-      // Clear token and redirect to login
+      // Auth cookie expired or invalid - redirect to login
       if (typeof window !== "undefined") {
-        localStorage.removeItem("admin_token");
         if (!window.location.pathname.includes("/login")) {
           window.location.href = "/login";
         }
