@@ -195,14 +195,18 @@ export class PricingService {
     // 7. Get tax rate from settings
     const taxRate = await this.getTaxRate();
 
-    // 8. Calculate tax (after discount)
+    // 8. Calculate tax (IMPORTANT: tax applies to discounted amount, not original subtotal)
+    // This is standard practice: customers pay tax on what they actually pay
+    // Formula: taxAmount = (subtotal - discount) * taxRate
     const taxableAmount = subtotal - discountAmount;
     const taxAmount = round(taxableAmount * taxRate, 2);
 
     // 9. Calculate shipping (can be extended later)
     const shippingAmount = 0; // Free shipping for now
 
-    // 10. Calculate total
+    // 10. Calculate final total
+    // Formula: total = (subtotal - discount) + tax + shipping
+    // Simplified: total = taxableAmount + taxAmount + shippingAmount
     const total = round(taxableAmount + taxAmount + shippingAmount, 2);
 
     // 11. Calculate item count
