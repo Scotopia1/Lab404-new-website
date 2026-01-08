@@ -99,7 +99,7 @@ export default function ProductPage() {
                     <h1 className="text-3xl font-bold mb-4">Product Not Found</h1>
                     <p className="text-muted-foreground mb-8">The product you&apos;re looking for doesn&apos;t exist.</p>
                     <Link href="/products">
-                        <Button>
+                        <Button className="min-h-[44px]">
                             <ChevronLeft className="h-4 w-4 mr-2" />
                             Back to Products
                         </Button>
@@ -112,23 +112,23 @@ export default function ProductPage() {
     return (
         <MainLayout>
             {/* Breadcrumb */}
-            <nav className="mb-6">
-                <div className="flex items-center space-x-2 text-sm">
-                    <Link href="/" className="text-muted-foreground hover:text-foreground transition-colors">
+            <nav className="mb-4 md:mb-6">
+                <div className="flex items-center space-x-2 text-sm overflow-x-auto">
+                    <Link href="/" className="text-muted-foreground hover:text-foreground transition-colors whitespace-nowrap">
                         Home
                     </Link>
                     <span className="text-muted-foreground">/</span>
-                    <Link href="/products" className="text-muted-foreground hover:text-foreground transition-colors">
+                    <Link href="/products" className="text-muted-foreground hover:text-foreground transition-colors whitespace-nowrap">
                         Products
                     </Link>
                     <span className="text-muted-foreground">/</span>
-                    <span className="font-medium truncate max-w-[200px]">{product.name}</span>
+                    <span className="font-medium truncate">{product.name}</span>
                 </div>
             </nav>
 
-            <div className="grid grid-cols-1 gap-10 lg:grid-cols-2 lg:gap-16">
+            <div className="grid grid-cols-1 gap-6 md:gap-8 lg:grid-cols-2 lg:gap-12 xl:gap-16">
                 {/* Product Images */}
-                <div className="space-y-4">
+                <div className="space-y-3 md:space-y-4">
                     <div className="aspect-square relative overflow-hidden rounded-xl bg-muted group">
                         {currentImageUrl && (
                             <Image
@@ -141,26 +141,26 @@ export default function ProductPage() {
                             />
                         )}
 
-                        {/* Navigation Arrows */}
+                        {/* Navigation Arrows - Always visible on mobile */}
                         {product.images && product.images.length > 1 && (
                             <>
                                 <Button
                                     variant="secondary"
                                     size="icon"
                                     onClick={handlePreviousImage}
-                                    className="absolute left-3 top-1/2 -translate-y-1/2 bg-background/90 hover:bg-background shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                                    className="absolute left-2 md:left-3 top-1/2 -translate-y-1/2 bg-background/90 hover:bg-background shadow-lg lg:opacity-0 lg:group-hover:opacity-100 transition-opacity min-h-[44px] min-w-[44px]"
                                 >
-                                    <ChevronLeft className="h-4 w-4" />
+                                    <ChevronLeft className="h-4 w-4 md:h-5 md:w-5" />
                                 </Button>
                                 <Button
                                     variant="secondary"
                                     size="icon"
                                     onClick={handleNextImage}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 bg-background/90 hover:bg-background shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                                    className="absolute right-2 md:right-3 top-1/2 -translate-y-1/2 bg-background/90 hover:bg-background shadow-lg lg:opacity-0 lg:group-hover:opacity-100 transition-opacity min-h-[44px] min-w-[44px]"
                                 >
-                                    <ChevronRight className="h-4 w-4" />
+                                    <ChevronRight className="h-4 w-4 md:h-5 md:w-5" />
                                 </Button>
-                                <div className="absolute bottom-3 right-3 bg-black/70 text-white px-2 py-1 rounded text-sm">
+                                <div className="absolute bottom-3 right-3 bg-black/70 text-white px-2 py-1 rounded text-xs md:text-sm">
                                     {selectedImageIndex + 1} / {product.images.length}
                                 </div>
                             </>
@@ -169,12 +169,12 @@ export default function ProductPage() {
 
                     {/* Thumbnails */}
                     {product.images && product.images.length > 1 && (
-                        <div className="flex gap-2 overflow-x-auto pb-2">
+                        <div className="flex gap-2 overflow-x-auto pb-2 snap-x snap-mandatory">
                             {product.images.map((image, index) => (
                                 <button
                                     key={index}
                                     onClick={() => setSelectedImageIndex(index)}
-                                    className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-colors ${
+                                    className={`flex-shrink-0 w-16 h-16 md:w-20 md:h-20 rounded-lg overflow-hidden border-2 transition-colors snap-start ${
                                         selectedImageIndex === index
                                             ? 'border-primary'
                                             : 'border-muted hover:border-muted-foreground/50'
@@ -187,6 +187,7 @@ export default function ProductPage() {
                                             fill
                                             sizes="80px"
                                             className="object-cover"
+                                            loading="lazy"
                                         />
                                     </div>
                                 </button>
@@ -196,33 +197,33 @@ export default function ProductPage() {
                 </div>
 
                 {/* Product Info */}
-                <div className="space-y-6">
+                <div className="space-y-4 md:space-y-6">
                     {/* Category & Name */}
                     <div>
-                        <Badge variant="secondary" className="mb-3">
+                        <Badge variant="secondary" className="mb-2 md:mb-3">
                             {product.category?.name || 'Uncategorized'}
                         </Badge>
-                        <h1 className="text-3xl md:text-4xl font-bold leading-tight">
+                        <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold leading-tight">
                             {product.name}
                         </h1>
                     </div>
 
                     {/* Description */}
                     {product.description && (
-                        <p className="text-lg text-muted-foreground leading-relaxed">
+                        <p className="text-base md:text-lg text-muted-foreground leading-relaxed">
                             {product.description}
                         </p>
                     )}
 
                     {/* Price */}
-                    <div className="bg-muted/50 p-6 rounded-xl">
-                        <div className="flex items-center flex-wrap gap-3 mb-4">
-                            <span className="text-4xl font-bold text-primary">
+                    <div className="bg-muted/50 p-4 md:p-6 rounded-xl">
+                        <div className="flex items-center flex-wrap gap-2 md:gap-3 mb-3 md:mb-4">
+                            <span className="text-3xl md:text-4xl font-bold text-primary">
                                 {formatPrice(price)}
                             </span>
                             {comparePrice && (
                                 <>
-                                    <span className="text-xl text-muted-foreground line-through">
+                                    <span className="text-lg md:text-xl text-muted-foreground line-through">
                                         {formatPrice(comparePrice)}
                                     </span>
                                     <Badge variant="destructive">
@@ -244,8 +245,8 @@ export default function ProductPage() {
                         )}
                     </div>
 
-                    {/* Add to Cart Section */}
-                    <div className="border rounded-xl p-6 space-y-6">
+                    {/* Add to Cart Section - Hidden on mobile, shown in sticky bar */}
+                    <div className="hidden lg:block border rounded-xl p-6 space-y-6">
                         {/* Quantity Selector */}
                         <div className="flex flex-col sm:flex-row sm:items-center gap-4">
                             <span className="font-medium">Quantity:</span>
@@ -256,6 +257,7 @@ export default function ProductPage() {
                                         size="icon"
                                         onClick={() => setQuantity(Math.max(1, quantity - 1))}
                                         disabled={quantity <= 1}
+                                        className="min-h-[44px] min-w-[44px]"
                                     >
                                         <Minus className="h-4 w-4" />
                                     </Button>
@@ -267,6 +269,7 @@ export default function ProductPage() {
                                         size="icon"
                                         onClick={() => setQuantity(Math.min(10, quantity + 1))}
                                         disabled={quantity >= 10}
+                                        className="min-h-[44px] min-w-[44px]"
                                     >
                                         <Plus className="h-4 w-4" />
                                     </Button>
@@ -280,7 +283,7 @@ export default function ProductPage() {
                         {/* Add to Cart Button */}
                         <Button
                             size="lg"
-                            className="w-full text-lg py-6 font-semibold"
+                            className="w-full text-base md:text-lg min-h-[48px] font-semibold"
                             onClick={handleAddToCart}
                             disabled={isAdding || product.stockQuantity === 0}
                         >
@@ -313,28 +316,94 @@ export default function ProductPage() {
                             </div>
                         </div>
                     </div>
+
+                    {/* Mobile Trust Badges - Shown above sticky bar */}
+                    <div className="lg:hidden grid grid-cols-3 gap-3 py-4">
+                        <div className="flex flex-col items-center text-center gap-2">
+                            <Shield className="h-6 w-6 text-primary" />
+                            <span className="text-xs font-medium">Warranty</span>
+                        </div>
+                        <div className="flex flex-col items-center text-center gap-2">
+                            <Truck className="h-6 w-6 text-green-600" />
+                            <span className="text-xs font-medium">Fast Ship</span>
+                        </div>
+                        <div className="flex flex-col items-center text-center gap-2">
+                            <RefreshCw className="h-6 w-6 text-orange-600" />
+                            <span className="text-xs font-medium">Returns</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Sticky Mobile Add to Cart Bar */}
+            <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-background border-t shadow-lg z-50 p-4">
+                <div className="flex items-center gap-3">
+                    {/* Quantity Selector */}
+                    <div className="flex items-center rounded-lg border">
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                            disabled={quantity <= 1}
+                            className="min-h-[44px] min-w-[44px]"
+                        >
+                            <Minus className="h-4 w-4" />
+                        </Button>
+                        <span className="w-10 text-center text-base font-medium">
+                            {quantity}
+                        </span>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setQuantity(Math.min(10, quantity + 1))}
+                            disabled={quantity >= 10}
+                            className="min-h-[44px] min-w-[44px]"
+                        >
+                            <Plus className="h-4 w-4" />
+                        </Button>
+                    </div>
+                    
+                    {/* Add to Cart Button */}
+                    <Button
+                        size="lg"
+                        className="flex-1 text-base min-h-[44px] font-semibold"
+                        onClick={handleAddToCart}
+                        disabled={isAdding || product.stockQuantity === 0}
+                    >
+                        {isAdding ? (
+                            <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Adding...
+                            </>
+                        ) : (
+                            <>
+                                <ShoppingCart className="mr-2 h-4 w-4" />
+                                Add to Cart
+                            </>
+                        )}
+                    </Button>
                 </div>
             </div>
 
             {/* Key Features Section */}
             {product.features && product.features.length > 0 && (
-                <section className="mt-16">
+                <section className="mt-12 md:mt-16 mb-24 lg:mb-0">
                     <Card>
-                        <CardHeader className="bg-muted/50">
-                            <CardTitle className="flex items-center text-2xl">
-                                <Sparkles className="h-6 w-6 mr-3 text-primary" />
+                        <CardHeader className="bg-muted/50 p-4 md:p-6">
+                            <CardTitle className="flex items-center text-xl md:text-2xl">
+                                <Sparkles className="h-5 w-5 md:h-6 md:w-6 mr-2 md:mr-3 text-primary" />
                                 Key Features
                             </CardTitle>
                         </CardHeader>
-                        <CardContent className="p-6 md:p-8">
-                            <ul className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <CardContent className="p-4 md:p-6 lg:p-8">
+                            <ul className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                                 {product.features.map((feature, index) => (
                                     <li
                                         key={index}
-                                        className="flex items-start bg-muted/30 p-4 rounded-lg border"
+                                        className="flex items-start bg-muted/30 p-3 md:p-4 rounded-lg border"
                                     >
-                                        <Check className="h-5 w-5 text-green-600 mr-3 flex-shrink-0 mt-0.5" />
-                                        <span className="text-foreground leading-relaxed">{feature}</span>
+                                        <Check className="h-5 w-5 text-green-600 mr-2 md:mr-3 flex-shrink-0 mt-0.5" />
+                                        <span className="text-sm md:text-base text-foreground leading-relaxed">{feature}</span>
                                     </li>
                                 ))}
                             </ul>
@@ -345,24 +414,24 @@ export default function ProductPage() {
 
             {/* Technical Specifications Section */}
             {product.specifications && Object.keys(product.specifications).length > 0 && (
-                <section className="mt-8">
+                <section className="mt-6 md:mt-8 mb-24 lg:mb-0">
                     <Card>
-                        <CardHeader className="bg-muted/50">
-                            <CardTitle className="flex items-center text-2xl">
-                                <Shield className="h-6 w-6 mr-3 text-primary" />
+                        <CardHeader className="bg-muted/50 p-4 md:p-6">
+                            <CardTitle className="flex items-center text-xl md:text-2xl">
+                                <Shield className="h-5 w-5 md:h-6 md:w-6 mr-2 md:mr-3 text-primary" />
                                 Technical Specifications
                             </CardTitle>
                         </CardHeader>
-                        <CardContent className="p-6 md:p-8">
-                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                        <CardContent className="p-4 md:p-6 lg:p-8">
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-4">
                                 {Object.entries(product.specifications).map(([key, value]) => (
                                     <div
                                         key={key}
-                                        className="bg-muted/30 rounded-lg p-4 border hover:border-primary/50 transition-colors"
+                                        className="bg-muted/30 rounded-lg p-3 md:p-4 border hover:border-primary/50 transition-colors"
                                     >
                                         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
-                                            <span className="font-semibold text-foreground">{key}:</span>
-                                            <span className="text-muted-foreground bg-background px-3 py-1 rounded-md">
+                                            <span className="font-semibold text-sm md:text-base text-foreground">{key}:</span>
+                                            <span className="text-sm md:text-base text-muted-foreground bg-background px-3 py-1 rounded-md">
                                                 {value}
                                             </span>
                                         </div>
@@ -376,15 +445,15 @@ export default function ProductPage() {
 
             {/* Related Products */}
             {relatedProducts && relatedProducts.length > 0 && (
-                <section className="mt-16">
-                    <Separator className="mb-12" />
-                    <div className="text-center mb-10">
-                        <h2 className="text-3xl font-bold mb-2">Similar Products</h2>
-                        <p className="text-muted-foreground">
+                <section className="mt-12 md:mt-16 mb-24 lg:mb-0">
+                    <Separator className="mb-8 md:mb-12" />
+                    <div className="text-center mb-6 md:mb-10">
+                        <h2 className="text-2xl md:text-3xl font-bold mb-2">Similar Products</h2>
+                        <p className="text-sm md:text-base text-muted-foreground">
                             Discover other products from the same category
                         </p>
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
                         {relatedProducts.map((relatedProduct) => (
                             <Card key={relatedProduct.id} className="overflow-hidden group hover:shadow-lg transition-shadow">
                                 <div className="aspect-square relative bg-muted">
@@ -394,19 +463,20 @@ export default function ProductPage() {
                                             alt={relatedProduct.name}
                                             fill
                                             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                                            loading="lazy"
                                             className="object-cover transition-transform group-hover:scale-105"
                                         />
                                     )}
                                 </div>
-                                <CardHeader className="p-4">
-                                    <p className="text-sm text-muted-foreground">
+                                <CardHeader className="p-3 md:p-4">
+                                    <p className="text-xs md:text-sm text-muted-foreground">
                                         {relatedProduct.category?.name || 'Uncategorized'}
                                     </p>
-                                    <CardTitle className="line-clamp-1 text-lg">{relatedProduct.name}</CardTitle>
+                                    <CardTitle className="line-clamp-1 text-base md:text-lg">{relatedProduct.name}</CardTitle>
                                 </CardHeader>
-                                <CardContent className="p-4 pt-0">
+                                <CardContent className="p-3 md:p-4 pt-0">
                                     <div className="flex items-baseline gap-2">
-                                        <span className="text-xl font-bold">
+                                        <span className="text-lg md:text-xl font-bold">
                                             ${relatedProduct.basePrice || relatedProduct.price}
                                         </span>
                                         {relatedProduct.compareAtPrice && (
@@ -416,17 +486,17 @@ export default function ProductPage() {
                                         )}
                                     </div>
                                 </CardContent>
-                                <CardFooter className="p-4 pt-0">
+                                <CardFooter className="p-3 md:p-4 pt-0">
                                     <Link href={`/products/${relatedProduct.slug}`} className="w-full">
-                                        <Button variant="outline" className="w-full">View Details</Button>
+                                        <Button variant="outline" className="w-full min-h-[44px]">View Details</Button>
                                     </Link>
                                 </CardFooter>
                             </Card>
                         ))}
                     </div>
-                    <div className="text-center mt-8">
+                    <div className="text-center mt-6 md:mt-8">
                         <Link href="/products">
-                            <Button variant="outline" size="lg">
+                            <Button variant="outline" size="lg" className="min-h-[44px]">
                                 View All Products
                                 <ChevronRight className="ml-2 h-4 w-4" />
                             </Button>
