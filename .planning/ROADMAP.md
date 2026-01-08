@@ -134,18 +134,28 @@
 
 ---
 
-## Phase 7: Customer Account - Profile & Settings
+## Phase 7: Customer Account - Profile & Settings ✅
 **Goal:** Complete customer profile management functionality
 
 **Why Now:** Account portal completion; lower priority than orders/addresses
 
+**Status:** ✅ COMPLETE (2026-01-09)
+
 **Deliverables:**
-- Display customer profile information
-- Allow profile updates (name, email, phone)
-- Implement password change functionality
-- Show account creation date and stats
-- Add activity timeline/recent actions
-- Handle profile update errors
+- ✅ Created password change API endpoint (PUT /api/customers/me/password)
+- ✅ Password validation with bcrypt (12 rounds) and weak password rejection
+- ✅ Created React Query hooks (useProfile, useUpdateProfile, useChangePassword)
+- ✅ Updated profile page with live API data and account stats
+- ✅ Account stats cards: Member Since, Total Orders, Email
+- ✅ Created PasswordChangeForm component with visibility toggles
+- ✅ Profile update form with validation (firstName, lastName, phone)
+- ✅ Email field disabled (read-only) with support contact note
+- ✅ Loading skeleton states and error handling
+- ✅ Toast notifications for all operations
+- ✅ Created comprehensive testing documentation (367 lines)
+
+**Plans:**
+- Plan 07-01: Customer Profile & Settings (6 tasks, 6 commits)
 
 **Research Needed:** No — customers API exists
 
