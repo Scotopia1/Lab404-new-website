@@ -11,10 +11,34 @@ export const api = axios.create({
   withCredentials: true,
 });
 
-// Request interceptor - cookies are sent automatically via withCredentials
-api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
-  // Cookies are automatically included with withCredentials: true
-  // No need to manually add Authorization header
+// CSRF token cache
+let csrfToken: string | null = null;
+
+// Fetch CSRF token from server
+const fetchCsrfToken = async (): Promise<string> => {
+  try {
+    const { data } = await axios.get(`${API_BASE_URL}/csrf-token`, {
+      withCredentials: true,
+    });
+    csrfToken = data.csrfToken;
+    return csrfToken;
+  } catch (error) {
+    console.error('Failed to fetch CSRF token:', error);
+    throw error;
+  }
+};
+
+// Request interceptor - add CSRF token for state-changing methods
+api.interceptors.request.use(async (config: InternalAxiosRequestConfig) => {
+  // Add CSRF token for state-changing methods
+  if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(config.method?.toUpperCase() || '')) {
+    try {
+      const token = await fetchCsrfToken();
+      config.headers['x-csrf-token'] = token;
+    } catch (error) {
+      console.error('Failed to get CSRF token:', error);
+    }
+  }
   return config;
 });
 

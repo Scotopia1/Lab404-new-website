@@ -8,6 +8,8 @@ import cookieParser from 'cookie-parser';
 import { config } from './config';
 import { errorHandler, notFoundHandler, defaultLimiter } from './middleware';
 import { logger } from './utils/logger';
+import { generateCsrfToken, doubleCsrfProtection } from './middleware/csrf';
+import { xssSanitize } from './middleware/xss';
 
 // Import routes
 import { router } from './routes';
@@ -55,6 +57,18 @@ export function createApp() {
   app.use(express.json({ limit: '10mb' }));
   app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
+  // XSS Sanitization - Apply after body parsing, before routes
+  app.use(xssSanitize);
+
+  // CSRF Protection - Apply after cookie parser, skip for safe methods and health checks
+  app.use((req, res, next) => {
+    // Skip CSRF for safe methods and health checks
+    if (['GET', 'HEAD', 'OPTIONS'].includes(req.method) || req.path === '/health' || req.path === '/api/health') {
+      return next();
+    }
+    doubleCsrfProtection(req, res, next);
+  });
+
   // Logging
   if (config.isDev) {
     app.use(morgan('dev'));
@@ -67,7 +81,7 @@ export function createApp() {
   }
 
   // ===========================================
-  // Health Check
+  // Health Check & CSRF Token
   // ===========================================
 
   app.get('/health', (_req, res) => {
@@ -76,6 +90,12 @@ export function createApp() {
       timestamp: new Date().toISOString(),
       environment: config.env,
     });
+  });
+
+  // CSRF token endpoint
+  app.get('/api/csrf-token', (req, res) => {
+    const token = generateCsrfToken(req, res);
+    res.json({ csrfToken: token });
   });
 
   // ===========================================

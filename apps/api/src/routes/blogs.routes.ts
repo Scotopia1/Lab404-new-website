@@ -6,6 +6,7 @@ import { requireAuth, requireAdmin } from '../middleware/auth';
 import { sendSuccess, sendCreated, sendNoContent, createPaginationMeta, parsePaginationParams } from '../utils/response';
 import { NotFoundError, ConflictError } from '../utils/errors';
 import { generateSlug } from '../utils/helpers';
+import { sanitizeRichContent } from '../middleware/xss';
 
 export const blogsRoutes = Router();
 
@@ -380,6 +381,9 @@ blogsRoutes.post(
         excerpt = plainText.substring(0, 200) + (plainText.length > 200 ? '...' : '');
       }
 
+      // Sanitize rich content (allow safe HTML for blog content)
+      const sanitizedContent = sanitizeRichContent(data.content);
+
       // Only set authorId if it's a valid UUID
       const isValidUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(req.user?.id || '');
 
@@ -389,7 +393,7 @@ blogsRoutes.post(
           title: data.title,
           slug,
           excerpt,
-          content: data.content,
+          content: sanitizedContent,
           featuredImageUrl: data.featuredImageUrl,
           tags: data.tags || [],
           status: data.status || 'draft',
@@ -432,10 +436,15 @@ blogsRoutes.put(
         throw new NotFoundError('Blog post not found');
       }
 
+      // Sanitize content if provided (allow safe HTML for blog content)
       const updateData: Record<string, unknown> = {
         ...data,
         updatedAt: new Date(),
       };
+
+      if (data.content) {
+        updateData.content = sanitizeRichContent(data.content);
+      }
 
       // Handle slug update
       if (data.slug && data.slug !== existing.slug) {
