@@ -13,6 +13,7 @@ import { Loader2, Calendar, ShoppingBag, Mail } from 'lucide-react';
 import { useProfile, useUpdateProfile } from '@/hooks/use-profile';
 import { format } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
+import { PasswordChangeForm } from '@/components/profile/password-change-form';
 
 const profileSchema = z.object({
   firstName: z.string().min(1, 'First name is required').max(100),
@@ -169,14 +170,14 @@ export default function ProfilePage() {
           </CardContent>
         </Card>
 
-        {/* Password Change - placeholder for Task 4 */}
+        {/* Password Change */}
         <Card>
           <CardHeader>
             <CardTitle>Password</CardTitle>
             <CardDescription>Change your account password</CardDescription>
           </CardHeader>
           <CardContent>
-            <Button variant="outline">Change Password</Button>
+            <PasswordChangeForm />
           </CardContent>
         </Card>
       </div>
