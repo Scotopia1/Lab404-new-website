@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { getDb, orders, orderItems, customers, carts, cartItems, cartPromoCodes, products, productVariants, promoCodes, eq, sql, desc, and, or, ilike } from '@lab404/database';
+import { getDb, orders, orderItems, customers, carts, cartItems, cartPromoCodes, products, productVariants, promoCodes, settings, eq, sql, desc, and, or, ilike } from '@lab404/database';
 import { validateBody, validateQuery } from '../middleware/validator';
 import { optionalAuth, requireAuth, requireAdmin } from '../middleware/auth';
 import { strictLimiter } from '../middleware/rateLimiter';
@@ -9,6 +9,9 @@ import { NotFoundError, BadRequestError, ForbiddenError } from '../utils/errors'
 import { pricingService } from '../services/pricing.service';
 import { pdfService } from '../services/pdf.service';
 import { generateOrderNumber } from '../utils/helpers';
+import { emailTemplatesService } from '../services/email-templates.service';
+import { mailerService } from '../services/mailer.service';
+import { logger } from '../utils/logger';
 
 export const ordersRoutes = Router();
 
@@ -243,6 +246,122 @@ ordersRoutes.post(
         status: order.status,
         paymentMethod: order.paymentMethod,
       });
+
+      // Send emails asynchronously (don't block response)
+      // Email failures will not affect order creation
+      try {
+        // Fetch full order with items for email
+        const orderWithItems = await db.query.orders.findFirst({
+          where: eq(orders.id, order.id),
+          with: {
+            items: true,
+          },
+        });
+
+        if (!orderWithItems) {
+          logger.warn('Order not found for email notification', { orderId: order.id });
+          return;
+        }
+
+        // Get settings for admin email
+        const [storeSettings] = await db
+          .select()
+          .from(settings)
+          .where(eq(settings.key, 'store'));
+
+        const storeConfig = (storeSettings?.value as {
+          orderNotificationEmail?: string;
+          storeEmail?: string;
+          storeName?: string;
+        }) || {};
+
+        // Prepare email data
+        const emailData = {
+          orderNumber: order.orderNumber,
+          customerName: `${order.shippingAddress.firstName} ${order.shippingAddress.lastName}`,
+          customerEmail: order.shippingAddress.email || data.customerEmail,
+          shippingAddress: order.shippingAddress,
+          items: orderWithItems.items.map((item) => ({
+            productName: item.productNameSnapshot,
+            sku: item.skuSnapshot,
+            quantity: item.quantity,
+            unitPrice: Number(item.unitPriceSnapshot),
+            lineTotal: Number(item.unitPriceSnapshot) * item.quantity,
+          })),
+          subtotal: Number(order.subtotalSnapshot),
+          taxRate: Number(order.taxRateSnapshot),
+          taxAmount: Number(order.taxAmountSnapshot),
+          shippingAmount: Number(order.shippingAmountSnapshot),
+          discountAmount: Number(order.discountAmountSnapshot),
+          total: Number(order.totalSnapshot),
+          currency: order.currency,
+          promoCode: order.promoCodeSnapshot || undefined,
+          customerNotes: order.customerNotes || undefined,
+          orderDate: order.createdAt.toISOString(),
+          paymentMethod: order.paymentMethod,
+        };
+
+        // Send customer confirmation email
+        const customerEmailHtml = emailTemplatesService.generateOrderConfirmationEmail(emailData);
+        mailerService
+          .sendEmail({
+            to: emailData.customerEmail,
+            subject: `Order Confirmation - ${order.orderNumber}`,
+            html: customerEmailHtml,
+          })
+          .then((success) => {
+            if (success) {
+              logger.info('Order confirmation email sent', {
+                orderId: order.id,
+                orderNumber: order.orderNumber,
+                customerEmail: emailData.customerEmail,
+              });
+            }
+          })
+          .catch((error) => {
+            logger.error('Failed to send customer order confirmation email', {
+              error,
+              orderId: order.id,
+              orderNumber: order.orderNumber,
+              customerEmail: emailData.customerEmail,
+            });
+          });
+
+        // Send admin notification email (if configured)
+        if (storeConfig.orderNotificationEmail) {
+          const adminEmailHtml = emailTemplatesService.generateNewOrderNotificationEmail(emailData);
+          mailerService
+            .sendEmail({
+              to: storeConfig.orderNotificationEmail,
+              subject: `New Order: ${order.orderNumber}`,
+              html: adminEmailHtml,
+            })
+            .then((success) => {
+              if (success) {
+                logger.info('Admin order notification email sent', {
+                  orderId: order.id,
+                  orderNumber: order.orderNumber,
+                  adminEmail: storeConfig.orderNotificationEmail,
+                });
+              }
+            })
+            .catch((error) => {
+              logger.error('Failed to send admin order notification email', {
+                error,
+                orderId: order.id,
+                orderNumber: order.orderNumber,
+                adminEmail: storeConfig.orderNotificationEmail,
+              });
+            });
+        }
+      } catch (emailError) {
+        // Log email errors but don't fail the request
+        logger.error('Error in email notification process', {
+          error: emailError,
+          orderId: order.id,
+          orderNumber: order.orderNumber,
+        });
+      }
     } catch (error) {
       next(error);
     }
