@@ -15,12 +15,14 @@ export const defaultLimiter = rateLimit({
 });
 
 /**
- * Auth rate limiter - 1000 requests per 15 minutes (increased for testing)
+ * Auth rate limiter - Strict limits for authentication endpoints
+ * Production: 5 requests per 15 minutes (protects against brute force)
+ * Development: 20 requests per 15 minutes (allows testing without being too permissive)
  * For login, register, password reset endpoints
  */
 export const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: process.env['NODE_ENV'] === 'development' ? 1000 : 5,
+  max: process.env['NODE_ENV'] === 'development' ? 20 : 5,
   standardHeaders: true,
   legacyHeaders: false,
   handler: (_req, res) => {
