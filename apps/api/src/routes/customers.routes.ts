@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
+import bcrypt from 'bcryptjs';
 import { getDb, customers, addresses, orders, eq, sql, desc, like, or, and } from '@lab404/database';
 import { validateBody, validateQuery } from '../middleware/validator';
 import { requireAuth, requireAdmin } from '../middleware/auth';
@@ -12,10 +13,42 @@ export const customersRoutes = Router();
 // Validation Schemas
 // ===========================================
 
+// Common weak passwords to reject
+const WEAK_PASSWORDS = [
+  '123456', '123456789', 'qwerty', 'password', '12345678',
+  '111111', '1234567890', '1234567', 'password1', '123123',
+  'abc123', 'qwerty123', '1q2w3e4r', 'admin', 'letmein',
+  'welcome', 'monkey', 'dragon', 'master', 'login'
+];
+
 const updateProfileSchema = z.object({
   firstName: z.string().min(1).max(100).optional(),
   lastName: z.string().min(1).max(100).optional(),
   phone: z.string().max(50).optional(),
+});
+
+const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1, 'Current password is required'),
+  newPassword: z.string()
+    .min(8, 'Password must be at least 8 characters')
+    .max(72, 'Password must be less than 72 characters')
+    .refine(
+      (password) => {
+        const hasUppercase = /[A-Z]/.test(password);
+        const hasLowercase = /[a-z]/.test(password);
+        const hasNumber = /[0-9]/.test(password);
+        return hasUppercase && hasLowercase && hasNumber;
+      },
+      { message: 'Password must contain uppercase, lowercase, and number' }
+    )
+    .refine(
+      (password) => !WEAK_PASSWORDS.includes(password.toLowerCase()),
+      { message: 'Password is too common. Please choose a stronger password.' }
+    ),
+  confirmPassword: z.string().min(1, 'Please confirm your password'),
+}).refine((data) => data.newPassword === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
 });
 
 const addressSchema = z.object({
@@ -206,6 +239,59 @@ customersRoutes.put(
       const customer = customerResult[0];
 
       sendSuccess(res, customer);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+/**
+ * PUT /api/customers/me/password
+ * Change customer password
+ */
+customersRoutes.put(
+  '/me/password',
+  requireAuth,
+  validateBody(changePasswordSchema),
+  async (req, res, next) => {
+    try {
+      const db = getDb();
+      const customerId = req.user?.customerId;
+      const { currentPassword, newPassword } = req.body;
+
+      if (!customerId) {
+        throw new ForbiddenError('Customer not found');
+      }
+
+      // Get customer with password hash
+      const [customer] = await db
+        .select({ id: customers.id, passwordHash: customers.passwordHash })
+        .from(customers)
+        .where(eq(customers.id, customerId));
+
+      if (!customer || !customer.passwordHash) {
+        throw new NotFoundError('Customer not found');
+      }
+
+      // Verify current password
+      const isPasswordValid = await bcrypt.compare(currentPassword, customer.passwordHash);
+      if (!isPasswordValid) {
+        throw new BadRequestError('Current password is incorrect');
+      }
+
+      // Hash new password
+      const newPasswordHash = await bcrypt.hash(newPassword, 12);
+
+      // Update password
+      await db
+        .update(customers)
+        .set({
+          passwordHash: newPasswordHash,
+          updatedAt: new Date(),
+        })
+        .where(eq(customers.id, customerId));
+
+      sendSuccess(res, { message: 'Password changed successfully' });
     } catch (error) {
       next(error);
     }
