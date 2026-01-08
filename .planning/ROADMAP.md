@@ -112,23 +112,25 @@
 
 ---
 
-## Phase 6: Customer Account - Address Management
+## Phase 6: Customer Account - Address Management ✅ COMPLETE
 **Goal:** Allow customers to manage shipping and billing addresses
 
-**Why Now:** Critical for returning customers and faster checkout
+**Status:** ✅ Complete (1/1 plans)
+**Completed:** 2026-01-09
 
 **Deliverables:**
-- Create address list view in account portal
-- Add address form (add/edit)
-- Implement delete address functionality
-- Set default address capability
-- Validate address fields properly
-- Connect to addresses API endpoints
-- Update checkout to use saved addresses
+- ✅ Created React Query hooks for addresses (useAddresses, useCreateAddress, useUpdateAddress, useDeleteAddress)
+- ✅ Created AddressForm component with Zod validation matching API schema
+- ✅ Implemented address list page with full CRUD operations
+- ✅ Added Dialog and AlertDialog UI components for add/edit/delete
+- ✅ Implemented default address logic (one default per type: shipping/billing)
+- ✅ Connected to all addresses API endpoints
+- ✅ Integrated saved addresses into checkout flow with auto-selection
+- ✅ Created centralized TypeScript types file (types/address.ts)
+- ✅ Created comprehensive testing documentation (200+ test cases)
 
-**Research Needed:** No — addresses table and API exist
-
-**Estimated Complexity:** Medium — CRUD operations with validation
+**Plans:**
+- Plan 06-01: Customer Address Management (6 tasks, 6 commits)
 
 ---
 
