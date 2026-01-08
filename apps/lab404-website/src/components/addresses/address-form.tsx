@@ -135,7 +135,7 @@ export function AddressForm({ address, onSubmit, isSubmitting }: AddressFormProp
               <FormControl>
                 <select
                   {...field}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <option value="shipping">Shipping</option>
                   <option value="billing">Billing</option>
@@ -147,7 +147,7 @@ export function AddressForm({ address, onSubmit, isSubmitting }: AddressFormProp
         />
 
         {/* Name fields */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <FormField
             control={form.control}
             name="firstName"
@@ -155,7 +155,11 @@ export function AddressForm({ address, onSubmit, isSubmitting }: AddressFormProp
               <FormItem>
                 <FormLabel>First Name</FormLabel>
                 <FormControl>
-                  <Input {...field} />
+                  <Input 
+                    {...field} 
+                    autoComplete="given-name"
+                    className="text-base"
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -168,7 +172,11 @@ export function AddressForm({ address, onSubmit, isSubmitting }: AddressFormProp
               <FormItem>
                 <FormLabel>Last Name</FormLabel>
                 <FormControl>
-                  <Input {...field} />
+                  <Input 
+                    {...field} 
+                    autoComplete="family-name"
+                    className="text-base"
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -184,7 +192,11 @@ export function AddressForm({ address, onSubmit, isSubmitting }: AddressFormProp
             <FormItem>
               <FormLabel>Company (Optional)</FormLabel>
               <FormControl>
-                <Input {...field} />
+                <Input 
+                  {...field} 
+                  autoComplete="organization"
+                  className="text-base"
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -199,7 +211,11 @@ export function AddressForm({ address, onSubmit, isSubmitting }: AddressFormProp
             <FormItem>
               <FormLabel>Address Line 1</FormLabel>
               <FormControl>
-                <Input {...field} />
+                <Input 
+                  {...field} 
+                  autoComplete="address-line1"
+                  className="text-base"
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -213,7 +229,11 @@ export function AddressForm({ address, onSubmit, isSubmitting }: AddressFormProp
             <FormItem>
               <FormLabel>Address Line 2 (Optional)</FormLabel>
               <FormControl>
-                <Input {...field} />
+                <Input 
+                  {...field} 
+                  autoComplete="address-line2"
+                  className="text-base"
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -221,7 +241,7 @@ export function AddressForm({ address, onSubmit, isSubmitting }: AddressFormProp
         />
 
         {/* City, State, Postal Code */}
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
           <FormField
             control={form.control}
             name="city"
@@ -229,7 +249,11 @@ export function AddressForm({ address, onSubmit, isSubmitting }: AddressFormProp
               <FormItem>
                 <FormLabel>City</FormLabel>
                 <FormControl>
-                  <Input {...field} />
+                  <Input 
+                    {...field} 
+                    autoComplete="address-level2"
+                    className="text-base"
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -242,7 +266,11 @@ export function AddressForm({ address, onSubmit, isSubmitting }: AddressFormProp
               <FormItem>
                 <FormLabel>State (Optional)</FormLabel>
                 <FormControl>
-                  <Input {...field} />
+                  <Input 
+                    {...field} 
+                    autoComplete="address-level1"
+                    className="text-base"
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -255,7 +283,13 @@ export function AddressForm({ address, onSubmit, isSubmitting }: AddressFormProp
               <FormItem>
                 <FormLabel>Postal Code (Optional)</FormLabel>
                 <FormControl>
-                  <Input {...field} />
+                  <Input 
+                    {...field} 
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="postal-code"
+                    className="text-base"
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -271,7 +305,11 @@ export function AddressForm({ address, onSubmit, isSubmitting }: AddressFormProp
             <FormItem>
               <FormLabel>Country</FormLabel>
               <FormControl>
-                <Input {...field} />
+                <Input 
+                  {...field} 
+                  autoComplete="country-name"
+                  className="text-base"
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -286,7 +324,13 @@ export function AddressForm({ address, onSubmit, isSubmitting }: AddressFormProp
             <FormItem>
               <FormLabel>Phone (Optional)</FormLabel>
               <FormControl>
-                <Input {...field} type="tel" />
+                <Input 
+                  {...field} 
+                  type="tel" 
+                  autoComplete="tel"
+                  className="text-base"
+                  placeholder="+1 (555) 000-0000"
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -299,13 +343,13 @@ export function AddressForm({ address, onSubmit, isSubmitting }: AddressFormProp
           name="isDefault"
           render={({ field }) => (
             <FormItem>
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-3 py-2">
                 <FormControl>
                   <input
                     type="checkbox"
                     checked={field.value}
                     onChange={field.onChange}
-                    className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-2 focus:ring-primary"
+                    className="h-5 w-5 min-h-[20px] min-w-[20px] rounded border-gray-300 text-primary focus:ring-2 focus:ring-primary cursor-pointer"
                   />
                 </FormControl>
                 <Label htmlFor="isDefault" className="text-sm font-normal cursor-pointer">
@@ -318,7 +362,7 @@ export function AddressForm({ address, onSubmit, isSubmitting }: AddressFormProp
         />
 
         {/* Submit button */}
-        <Button type="submit" disabled={isSubmitting} className="w-full">
+        <Button type="submit" disabled={isSubmitting} className="w-full min-h-[44px]">
           {isSubmitting ? 'Saving...' : address ? 'Update Address' : 'Add Address'}
         </Button>
       </form>
