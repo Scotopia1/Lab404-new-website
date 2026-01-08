@@ -19,7 +19,7 @@
 |-------|------|--------|----------|
 | 1 | Critical Security Fixes | ✅ Complete (3/3 plans) | 100% |
 | 2 | Backend Tax & Pricing Infrastructure | ✅ Complete (1/1 plan) | 100% |
-| 3 | Checkout Flow Restructure | Not Started | 0% |
+| 3 | Checkout Flow Restructure | Ready (1/2 plans) | 0% |
 | 4 | Email Notification System | Not Started | 0% |
 | 5 | Customer Account - Order History | Not Started | 0% |
 | 6 | Customer Account - Address Management | Not Started | 0% |
@@ -44,7 +44,10 @@
 - ✅ Phase 2: Backend Tax & Pricing Infrastructure (1 plan)
   - Plan 02-01: Tax configuration from database
 
-**Next Up:** `/gsd:plan-phase 3` - Plan checkout flow restructure
+**Phase 3 Plans:**
+- Plan 03-01: COD-Only Checkout (7 tasks) - Remove card payments, align address schema
+
+**Next Up:** `/gsd:execute-plan 03-01` - Execute COD-only checkout restructure
 
 ---
 
