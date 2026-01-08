@@ -1,33 +1,52 @@
 import { MetadataRoute } from 'next';
+import axios from 'axios';
 
 const BASE_URL = 'https://lab404electronics.com';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
 
-// In production, these would be fetched from your API/database
+// Fetch actual products from API
 async function getProducts() {
-    // Mock data - replace with actual API call
-    return [
-        { slug: 'arduino-uno', updatedAt: new Date() },
-        { slug: 'raspberry-pi-4', updatedAt: new Date() },
-        { slug: 'dht22-sensor', updatedAt: new Date() },
-    ];
+    try {
+        const response = await axios.get(`${API_URL}/products`, {
+            params: { limit: 1000 }, // Get all products
+        });
+        return response.data.data.map((product: any) => ({
+            slug: product.slug,
+            updatedAt: product.updatedAt ? new Date(product.updatedAt) : new Date(),
+        }));
+    } catch (error) {
+        console.error('Error fetching products for sitemap:', error);
+        return [];
+    }
 }
 
+// Fetch actual blog posts from API
 async function getBlogPosts() {
-    // Mock data - replace with actual API call
-    return [
-        { slug: 'getting-started-with-arduino', updatedAt: new Date() },
-        { slug: 'best-sensors-for-iot', updatedAt: new Date() },
-    ];
+    try {
+        const response = await axios.get(`${API_URL}/blogs`, {
+            params: { limit: 1000 }, // Get all blogs
+        });
+        return response.data.data.map((blog: any) => ({
+            slug: blog.slug,
+            updatedAt: blog.publishedAt ? new Date(blog.publishedAt) : new Date(),
+        }));
+    } catch (error) {
+        console.error('Error fetching blogs for sitemap:', error);
+        return [];
+    }
 }
 
+// Fetch categories from API
 async function getCategories() {
-    // Mock data - replace with actual API call
-    return [
-        { slug: 'sensors' },
-        { slug: 'microcontrollers' },
-        { slug: 'components' },
-        { slug: 'kits' },
-    ];
+    try {
+        const response = await axios.get(`${API_URL}/categories`);
+        return response.data.data.map((category: any) => ({
+            slug: category.slug,
+        }));
+    } catch (error) {
+        console.error('Error fetching categories for sitemap:', error);
+        return [];
+    }
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
@@ -103,28 +122,28 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
     // Dynamic product pages
     const products = await getProducts();
-    const productPages: MetadataRoute.Sitemap = products.map((product) => ({
+    const productPages: MetadataRoute.Sitemap = products.map((product: { slug: string; updatedAt: Date }) => ({
         url: `${BASE_URL}/products/${product.slug}`,
         lastModified: product.updatedAt,
-        changeFrequency: 'weekly',
+        changeFrequency: 'weekly' as const,
         priority: 0.8,
     }));
 
     // Dynamic blog posts
     const blogPosts = await getBlogPosts();
-    const blogPages: MetadataRoute.Sitemap = blogPosts.map((post) => ({
+    const blogPages: MetadataRoute.Sitemap = blogPosts.map((post: { slug: string; updatedAt: Date }) => ({
         url: `${BASE_URL}/blog/${post.slug}`,
         lastModified: post.updatedAt,
-        changeFrequency: 'monthly',
+        changeFrequency: 'monthly' as const,
         priority: 0.7,
     }));
 
     // Category pages
     const categories = await getCategories();
-    const categoryPages: MetadataRoute.Sitemap = categories.map((category) => ({
+    const categoryPages: MetadataRoute.Sitemap = categories.map((category: { slug: string }) => ({
         url: `${BASE_URL}/products?category=${category.slug}`,
         lastModified: new Date(),
-        changeFrequency: 'weekly',
+        changeFrequency: 'weekly' as const,
         priority: 0.7,
     }));
 

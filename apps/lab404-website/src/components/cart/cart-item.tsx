@@ -41,7 +41,7 @@ export function CartItem({ item }: CartItemProps) {
 
     return (
         <div className="flex gap-4 py-4">
-            <div className="relative h-20 w-20 overflow-hidden rounded-md border bg-muted">
+            <div className="relative h-24 w-24 sm:h-20 sm:w-20 shrink-0 overflow-hidden rounded-md border bg-muted">
                 {item.product.image && (
                     <Image
                         src={item.product.image}
@@ -51,39 +51,39 @@ export function CartItem({ item }: CartItemProps) {
                     />
                 )}
             </div>
-            <div className="flex flex-1 flex-col justify-between">
+            <div className="flex flex-1 flex-col justify-between gap-3">
                 <div className="flex justify-between gap-2">
-                    <h3 className="line-clamp-2 text-sm font-medium leading-none">
+                    <h3 className="line-clamp-2 text-sm font-medium leading-snug">
                         {item.product.name}
                     </h3>
-                    <p className="text-sm font-bold">${item.product.price}</p>
+                    <p className="text-sm font-bold shrink-0">${item.product.price}</p>
                 </div>
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between gap-4">
                     <div className="flex items-center gap-2">
                         <Button
                             variant="outline"
                             size="icon"
-                            className="h-8 w-8"
+                            className="h-11 w-11 shrink-0"
                             onClick={() => handleUpdateQuantity(item.quantity - 1)}
                             disabled={item.quantity <= 1 || isUpdating}
                         >
-                            <Minus className="h-3 w-3" />
+                            <Minus className="h-4 w-4" />
                         </Button>
-                        <span className="w-4 text-center text-sm">{item.quantity}</span>
+                        <span className="w-8 text-center text-base font-medium">{item.quantity}</span>
                         <Button
                             variant="outline"
                             size="icon"
-                            className="h-8 w-8"
+                            className="h-11 w-11 shrink-0"
                             onClick={() => handleUpdateQuantity(item.quantity + 1)}
                             disabled={isUpdating}
                         >
-                            <Plus className="h-3 w-3" />
+                            <Plus className="h-4 w-4" />
                         </Button>
                     </div>
                     <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                        className="h-11 w-11 shrink-0 text-muted-foreground hover:text-destructive"
                         onClick={handleRemove}
                         disabled={isUpdating}
                     >

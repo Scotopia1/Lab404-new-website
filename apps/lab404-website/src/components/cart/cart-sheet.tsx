@@ -32,7 +32,7 @@ export function CartSheet() {
                     <span className="sr-only">Cart</span>
                 </Button>
             </SheetTrigger>
-            <SheetContent className="flex w-full flex-col pr-0 sm:max-w-lg">
+            <SheetContent className="flex w-full flex-col pr-0 sm:max-w-lg h-full">
                 <SheetHeader className="px-1">
                     <SheetTitle>Cart ({cart?.itemCount || 0})</SheetTitle>
                 </SheetHeader>
@@ -41,14 +41,19 @@ export function CartSheet() {
                         <span className="loading">Loading...</span>
                     </div>
                 ) : !cart || cart.items.length === 0 ? (
-                    <div className="flex h-full flex-col items-center justify-center space-y-2">
-                        <ShoppingCart className="h-12 w-12 text-muted-foreground" />
-                        <span className="text-lg font-medium text-muted-foreground">
-                            Your cart is empty
-                        </span>
+                    <div className="flex h-full flex-col items-center justify-center space-y-4 px-6">
+                        <div className="flex h-20 w-20 items-center justify-center rounded-full bg-muted">
+                            <ShoppingCart className="h-10 w-10 text-muted-foreground" />
+                        </div>
+                        <div className="text-center space-y-2">
+                            <p className="text-lg font-semibold">Your cart is empty</p>
+                            <p className="text-sm text-muted-foreground">
+                                Add some products to get started
+                            </p>
+                        </div>
                         <SheetTrigger asChild>
-                            <Link href="/products">
-                                <Button variant="link" size="sm" className="text-sm text-primary">
+                            <Link href="/products" className="w-full max-w-xs">
+                                <Button className="w-full min-h-[44px]">
                                     Start Shopping
                                 </Button>
                             </Link>
@@ -63,25 +68,24 @@ export function CartSheet() {
                                 ))}
                             </div>
                         </ScrollArea>
-                        <div className="space-y-4 pr-6 pt-4 pb-4">
-                            <Separator />
+                        <div className="space-y-4 pr-6 pt-4 pb-6 border-t bg-background sticky bottom-0">
                             <div className="space-y-1.5">
                                 <div className="flex justify-between text-sm">
                                     <span className="text-muted-foreground">Subtotal</span>
-                                    <span>${cart.subtotal.toFixed(2)}</span>
+                                    <span className="font-medium">${cart.subtotal.toFixed(2)}</span>
                                 </div>
                                 <div className="flex justify-between text-sm">
                                     <span className="text-muted-foreground">Shipping</span>
-                                    <span>Calculated at checkout</span>
+                                    <span className="text-sm">Calculated at checkout</span>
                                 </div>
-                                <div className="flex justify-between text-base font-medium">
+                                <div className="flex justify-between text-base font-semibold pt-2 border-t">
                                     <span>Total</span>
                                     <span>${cart.total.toFixed(2)}</span>
                                 </div>
                             </div>
                             <SheetTrigger asChild>
                                 <Link href="/checkout" className="w-full">
-                                    <Button className="w-full" size="lg">
+                                    <Button className="w-full min-h-[52px] text-base font-semibold" size="lg">
                                         Checkout
                                     </Button>
                                 </Link>

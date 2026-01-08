@@ -2,13 +2,16 @@
 
 import MainLayout from '@/components/layout/main-layout';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
+import { useBlog } from '@/hooks/use-blogs';
+import Image from 'next/image';
 
 export default function BlogPostPage() {
     const params = useParams();
     const slug = params.slug as string;
+    const { data: post, isLoading, error } = useBlog(slug);
 
     return (
         <MainLayout>
@@ -20,31 +23,52 @@ export default function BlogPostPage() {
                     </Button>
                 </Link>
 
-                <article className="prose prose-neutral dark:prose-invert lg:prose-xl mx-auto">
-                    <h1>Getting Started with Arduino</h1>
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground not-prose mb-8">
-                        <span>December 15, 2023</span>
-                        <span>•</span>
-                        <span>John Smith</span>
+                {isLoading && (
+                    <div className="flex justify-center items-center py-20">
+                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
                     </div>
+                )}
 
-                    <div className="aspect-video relative bg-muted rounded-xl mb-8 overflow-hidden not-prose">
-                        <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
-                            Feature Image Placeholder
+                {error && (
+                    <div className="text-center py-20">
+                        <h2 className="text-2xl font-bold mb-4">Post Not Found</h2>
+                        <p className="text-muted-foreground">The blog post you're looking for doesn't exist.</p>
+                    </div>
+                )}
+
+                {post && (
+                    <article className="prose prose-neutral dark:prose-invert lg:prose-xl mx-auto">
+                        <h1>{post.title}</h1>
+                        <div className="flex items-center gap-4 text-sm text-muted-foreground not-prose mb-8">
+                            <span>{post.publishedAt ? new Date(post.publishedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'Draft'}</span>
+                            {post.tags && post.tags.length > 0 && (
+                                <>
+                                    <span>•</span>
+                                    <div className="flex gap-2">
+                                        {post.tags.map((tag) => (
+                                            <span key={tag} className="px-2 py-1 bg-muted rounded-md text-xs">
+                                                {tag}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </>
+                            )}
                         </div>
-                    </div>
 
-                    <p>
-                        Arduino is an open-source electronics platform based on easy-to-use hardware and software.
-                        It's intended for anyone making interactive projects.
-                    </p>
-                    <h2>What is Arduino?</h2>
-                    <p>
-                        Arduino boards are able to read inputs - light on a sensor, a finger on a button, or a Twitter message -
-                        and turn it into an output - activating a motor, turning on an LED, publishing something online.
-                    </p>
-                    {/* Content would be fetched from CMS/Markdown */}
-                </article>
+                        {post.featuredImageUrl && (
+                            <div className="aspect-video relative bg-muted rounded-xl mb-8 overflow-hidden not-prose">
+                                <Image
+                                    src={post.featuredImageUrl}
+                                    alt={post.title}
+                                    fill
+                                    className="object-cover"
+                                />
+                            </div>
+                        )}
+
+                        <div dangerouslySetInnerHTML={{ __html: post.content }} />
+                    </article>
+                )}
             </div>
         </MainLayout>
     );

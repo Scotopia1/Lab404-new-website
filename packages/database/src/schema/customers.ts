@@ -10,6 +10,9 @@ export const customers = pgTable('customers', {
   lastName: varchar('last_name', { length: 100 }),
   phone: varchar('phone', { length: 50 }),
 
+  // Authentication
+  passwordHash: varchar('password_hash', { length: 255 }),
+
   // Default addresses stored as JSON
   defaultShippingAddress: jsonb('default_shipping_address').$type<{
     firstName: string;
