@@ -18,7 +18,7 @@ export const config = {
   databaseUrl: process.env['DATABASE_URL'] || '',
 
   // JWT
-  jwtSecret: process.env['JWT_SECRET'] || 'your-super-secret-jwt-key',
+  jwtSecret: process.env['JWT_SECRET'] as string,
   jwtExpiresIn: process.env['JWT_EXPIRES_IN'] || '7d',
 
   // CORS
@@ -78,5 +78,10 @@ export function validateConfig(): void {
 
   if (missing.length > 0) {
     throw new Error(`Missing required environment variables: ${missing.join(', ')}`);
+  }
+
+  // Validate JWT_SECRET length (minimum 32 characters for security)
+  if (config.jwtSecret.length < 32) {
+    throw new Error('JWT_SECRET must be at least 32 characters long. Generate a secure secret with: openssl rand -base64 32');
   }
 }
