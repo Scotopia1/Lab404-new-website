@@ -115,6 +115,7 @@ authRoutes.post(
             lastName,
             isGuest: false,
             acceptsMarketing,
+            passwordHash,
             authUserId: `local_${existing.id}`, // Local auth
             updatedAt: new Date(),
           })
@@ -131,6 +132,7 @@ authRoutes.post(
             lastName,
             isGuest: false,
             acceptsMarketing,
+            passwordHash,
             authUserId: `local_${Date.now()}`, // Will be updated after insert
           })
           .returning();
@@ -148,9 +150,6 @@ authRoutes.post(
       if (!customer) {
         throw new Error('Failed to create or update customer');
       }
-
-      // Store password hash (in a real app, use a separate auth table or Neon Auth)
-      // For now, we'll include it in the token generation
 
       // Generate JWT token
       const token = generateToken({
@@ -201,9 +200,13 @@ authRoutes.post(
         throw new UnauthorizedError('Invalid email or password');
       }
 
-      // In a real app, verify password against stored hash
-      // For demo, we'll just check if it's not empty
-      if (!password) {
+      // Verify password against stored hash
+      if (!customer.passwordHash) {
+        throw new UnauthorizedError('Invalid email or password');
+      }
+
+      const isPasswordValid = await bcrypt.compare(password, customer.passwordHash);
+      if (!isPasswordValid) {
         throw new UnauthorizedError('Invalid email or password');
       }
 
@@ -300,28 +303,53 @@ authRoutes.post(
   async (req, res, next) => {
     try {
       const { email, password } = req.body;
+      const db = getDb();
 
-      // For demo purposes, use a hardcoded admin
-      // In production, use Neon Auth or proper admin user management
-      if (email === 'admin@lab404electronics.com' && password === 'Admin123456') {
-        const token = generateToken({
-          userId: 'admin_1',
-          email: email,
-          role: 'admin',
-        });
+      // Find customer by email
+      const [customer] = await db
+        .select()
+        .from(customers)
+        .where(eq(customers.email, email.toLowerCase()));
 
-        sendSuccess(res, {
-          user: {
-            id: 'admin_1',
-            email: email,
-            role: 'admin',
-          },
-          token,
-          expiresAt: getTokenExpiration().toISOString(),
-        });
-      } else {
-        throw new UnauthorizedError('Invalid admin credentials');
+      if (!customer || customer.isGuest) {
+        throw new UnauthorizedError('Invalid email or password');
       }
+
+      // Verify password against stored hash
+      if (!customer.passwordHash) {
+        throw new UnauthorizedError('Invalid email or password');
+      }
+
+      const isPasswordValid = await bcrypt.compare(password, customer.passwordHash);
+      if (!isPasswordValid) {
+        throw new UnauthorizedError('Invalid email or password');
+      }
+
+      // Verify user has admin role
+      if (customer.role !== 'admin') {
+        throw new UnauthorizedError('Access denied: Admin privileges required');
+      }
+
+      // Generate JWT token with admin role
+      const token = generateToken({
+        userId: customer.authUserId!,
+        email: customer.email,
+        role: 'admin',
+        customerId: customer.id,
+      });
+
+      sendSuccess(res, {
+        user: {
+          id: customer.authUserId,
+          email: customer.email,
+          role: 'admin',
+          customerId: customer.id,
+          firstName: customer.firstName,
+          lastName: customer.lastName,
+        },
+        token,
+        expiresAt: getTokenExpiration().toISOString(),
+      });
     } catch (error) {
       next(error);
     }
