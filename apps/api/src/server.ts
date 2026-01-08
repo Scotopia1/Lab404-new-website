@@ -10,6 +10,13 @@ async function start() {
     // Validate configuration
     validateConfig();
 
+    // Validate CRON_SECRET
+    if (!process.env.CRON_SECRET) {
+      logger.warn('CRON_SECRET not set - cron endpoints will be disabled');
+    } else if (process.env.CRON_SECRET.length < 32) {
+      logger.warn('CRON_SECRET should be at least 32 characters for security');
+    }
+
     // Create Express app
     const app = createApp();
 

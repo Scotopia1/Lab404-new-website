@@ -4,21 +4,27 @@ import { sendSuccess, sendError } from '../utils/response';
 import { notificationService } from '../services/notification.service';
 import { quotationActivityService } from '../services/quotation-activity.service';
 import { logger } from '../utils/logger';
+import { cronLimiter } from '../middleware/rateLimiter';
 
 export const cronRoutes = Router();
+
+// Apply rate limiting to all cron routes
+cronRoutes.use(cronLimiter);
 
 // Middleware to verify cron secret (for security)
 const verifyCronSecret = (req: Request, res: Response, next: NextFunction) => {
   const cronSecret = req.headers['x-cron-secret'] || req.query.secret;
   const expectedSecret = process.env.CRON_SECRET;
 
-  // In development, allow requests without secret
-  if (process.env.NODE_ENV === 'development' && !expectedSecret) {
-    return next();
+  // CRON_SECRET is required in all environments (no dev bypass for security)
+  if (!expectedSecret) {
+    logger.error('CRON_SECRET not configured');
+    return sendError(res, 'Cron jobs not configured', 503);
   }
 
-  if (!expectedSecret || cronSecret !== expectedSecret) {
-    return sendError(res, 'Unauthorized', 401);
+  if (cronSecret !== expectedSecret) {
+    logger.warn('Invalid cron secret attempt', { ip: req.ip });
+    return sendError(res, 'Forbidden', 403);
   }
 
   next();

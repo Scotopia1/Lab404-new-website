@@ -57,3 +57,17 @@ export const strictLimiter = rateLimit({
     sendError(res, 429, 'TOO_MANY_REQUESTS', 'Too many requests, please try again later');
   },
 });
+
+/**
+ * Cron rate limiter - 10 requests per 15 minutes
+ * For cron job endpoints to prevent abuse
+ */
+export const cronLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (_req, res) => {
+    sendError(res, 429, 'TOO_MANY_REQUESTS', 'Too many cron requests, please try again later');
+  },
+});
