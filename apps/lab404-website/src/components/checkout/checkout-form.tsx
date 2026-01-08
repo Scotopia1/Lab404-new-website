@@ -11,11 +11,12 @@ import { useCart } from '@/hooks/use-cart';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Banknote } from 'lucide-react';
 import { api } from '@/lib/api';
+import Link from 'next/link';
 
 export function CheckoutForm() {
-    const { cart, clearCart } = useCart(); // Need to implement clearCart in use-cart
+    const { cart, clearCart } = useCart();
     const router = useRouter();
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -35,39 +36,77 @@ export function CheckoutForm() {
 
         setIsSubmitting(true);
         try {
-            // Send order to backend
-            await api.post('/orders', {
+            // Send order to backend with COD payment
+            const response = await api.post('/orders', {
+                // Customer email at root level (not in address)
+                customerEmail: data.email,
+
+                // Shipping address with correct field names
                 shippingAddress: {
                     firstName: data.firstName,
                     lastName: data.lastName,
-                    address: data.address,
+                    company: data.company,
+                    addressLine1: data.addressLine1,
+                    addressLine2: data.addressLine2,
                     city: data.city,
                     state: data.state,
-                    zipCode: data.zipCode,
+                    postalCode: data.postalCode,
                     country: data.country,
+                    phone: data.phone,
                 },
-                paymentMethod: {
-                    cardNumber: data.cardNumber.slice(-4), // Don't send full card to backend in this demo
-                    provider: 'visa', // Mock provider
-                },
-                items: cart.items.map(item => ({
-                    productId: item.productId,
-                    quantity: item.quantity,
-                    price: item.product.price
-                }))
+
+                // Billing same as shipping (API default: true)
+                sameAsShipping: true,
+
+                // COD payment method (API default: 'cod')
+                paymentMethod: 'cod',
+
+                // Optional customer notes
+                customerNotes: data.customerNotes,
             });
 
             // Clear cart after successful order
             await clearCart.mutateAsync();
 
             toast.success('Order placed successfully!');
-            router.push('/checkout/success');
-        } catch (error) {
-            toast.error('Failed to place order. Please try again.');
+
+            // Navigate to order confirmation with order number
+            const orderNumber = response.data.data.orderNumber;
+            router.push(`/checkout/success?orderNumber=${orderNumber}`);
+        } catch (error: any) {
+            console.error('Order creation error:', error);
+
+            // Specific error handling
+            if (error.response?.status === 400) {
+                const message = error.response.data?.message || 'Invalid order data';
+                toast.error(message);
+            } else if (error.response?.status === 404) {
+                toast.error('Cart not found. Please add items to your cart.');
+            } else if (error.response?.status === 409) {
+                toast.error('Some items in your cart are out of stock.');
+            } else if (error.response?.status === 429) {
+                toast.error('Too many requests. Please wait a moment and try again.');
+            } else {
+                toast.error('Failed to place order. Please try again.');
+            }
         } finally {
             setIsSubmitting(false);
         }
     };
+
+    // Empty cart check
+    if (!cart || cart.items.length === 0) {
+        return (
+            <Card>
+                <CardContent className="p-8 text-center">
+                    <p className="text-muted-foreground mb-4">Your cart is empty</p>
+                    <Button asChild>
+                        <Link href="/products">Continue Shopping</Link>
+                    </Button>
+                </CardContent>
+            </Card>
+        );
+    }
 
     return (
         <form onSubmit={handleSubmit(onSubmit)} className="grid gap-8 lg:grid-cols-3">
@@ -99,10 +138,24 @@ export function CheckoutForm() {
                             )}
                         </div>
                         <div className="space-y-2 sm:col-span-2">
-                            <Label htmlFor="address">Address</Label>
-                            <Input id="address" {...register('address')} />
-                            {errors.address && (
-                                <p className="text-sm text-destructive">{errors.address.message}</p>
+                            <Label htmlFor="company">Company (Optional)</Label>
+                            <Input id="company" {...register('company')} />
+                            {errors.company && (
+                                <p className="text-sm text-destructive">{errors.company.message}</p>
+                            )}
+                        </div>
+                        <div className="space-y-2 sm:col-span-2">
+                            <Label htmlFor="addressLine1">Address Line 1</Label>
+                            <Input id="addressLine1" {...register('addressLine1')} />
+                            {errors.addressLine1 && (
+                                <p className="text-sm text-destructive">{errors.addressLine1.message}</p>
+                            )}
+                        </div>
+                        <div className="space-y-2 sm:col-span-2">
+                            <Label htmlFor="addressLine2">Address Line 2 (Optional)</Label>
+                            <Input id="addressLine2" {...register('addressLine2')} />
+                            {errors.addressLine2 && (
+                                <p className="text-sm text-destructive">{errors.addressLine2.message}</p>
                             )}
                         </div>
                         <div className="space-y-2">
@@ -113,17 +166,17 @@ export function CheckoutForm() {
                             )}
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="state">State</Label>
+                            <Label htmlFor="state">State (Optional)</Label>
                             <Input id="state" {...register('state')} />
                             {errors.state && (
                                 <p className="text-sm text-destructive">{errors.state.message}</p>
                             )}
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="zipCode">Zip Code</Label>
-                            <Input id="zipCode" {...register('zipCode')} />
-                            {errors.zipCode && (
-                                <p className="text-sm text-destructive">{errors.zipCode.message}</p>
+                            <Label htmlFor="postalCode">Postal Code (Optional)</Label>
+                            <Input id="postalCode" {...register('postalCode')} />
+                            {errors.postalCode && (
+                                <p className="text-sm text-destructive">{errors.postalCode.message}</p>
                             )}
                         </div>
                         <div className="space-y-2">
@@ -133,36 +186,24 @@ export function CheckoutForm() {
                                 <p className="text-sm text-destructive">{errors.country.message}</p>
                             )}
                         </div>
-                    </CardContent>
-                </Card>
-
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Payment Details</CardTitle>
-                    </CardHeader>
-                    <CardContent className="grid gap-4">
                         <div className="space-y-2">
-                            <Label htmlFor="cardNumber">Card Number</Label>
-                            <Input id="cardNumber" placeholder="0000 0000 0000 0000" {...register('cardNumber')} />
-                            {errors.cardNumber && (
-                                <p className="text-sm text-destructive">{errors.cardNumber.message}</p>
+                            <Label htmlFor="phone">Phone (Optional)</Label>
+                            <Input id="phone" type="tel" {...register('phone')} />
+                            {errors.phone && (
+                                <p className="text-sm text-destructive">{errors.phone.message}</p>
                             )}
                         </div>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="expiryDate">Expiry Date</Label>
-                                <Input id="expiryDate" placeholder="MM/YY" {...register('expiryDate')} />
-                                {errors.expiryDate && (
-                                    <p className="text-sm text-destructive">{errors.expiryDate.message}</p>
-                                )}
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="cvc">CVC</Label>
-                                <Input id="cvc" placeholder="123" {...register('cvc')} />
-                                {errors.cvc && (
-                                    <p className="text-sm text-destructive">{errors.cvc.message}</p>
-                                )}
-                            </div>
+                        <div className="space-y-2 sm:col-span-2">
+                            <Label htmlFor="customerNotes">Order Notes (Optional)</Label>
+                            <textarea
+                                id="customerNotes"
+                                {...register('customerNotes')}
+                                className="min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                placeholder="Any special instructions for your order?"
+                            />
+                            {errors.customerNotes && (
+                                <p className="text-sm text-destructive">{errors.customerNotes.message}</p>
+                            )}
                         </div>
                     </CardContent>
                 </Card>
@@ -179,24 +220,41 @@ export function CheckoutForm() {
                                 <span>
                                     {item.quantity}x {item.product.name}
                                 </span>
-                                <span>${(Number(item.product.price) * item.quantity).toFixed(2)}</span>
+                                <span>${(Number(item.product.basePrice) * item.quantity).toFixed(2)}</span>
                             </div>
                         ))}
                         <div className="border-t pt-4 space-y-4">
+                            {/* COD Payment Method Indicator */}
+                            <div className="bg-muted p-3 rounded-lg">
+                                <div className="flex items-center gap-2 text-sm font-medium">
+                                    <Banknote className="h-5 w-5" />
+                                    <span>Payment Method: Cash on Delivery (COD)</span>
+                                </div>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                    Pay when you receive your order
+                                </p>
+                            </div>
+
                             <div className="flex gap-2">
                                 <Input placeholder="Promo code" />
-                                <Button variant="outline">Apply</Button>
+                                <Button variant="outline" type="button">Apply</Button>
                             </div>
                             <div className="space-y-1.5">
                                 <div className="flex justify-between text-sm">
                                     <span className="text-muted-foreground">Subtotal</span>
                                     <span>${cart?.subtotal.toFixed(2)}</span>
                                 </div>
+                                {cart?.taxAmount > 0 && (
+                                    <div className="flex justify-between text-sm">
+                                        <span className="text-muted-foreground">Tax</span>
+                                        <span>${cart?.taxAmount.toFixed(2)}</span>
+                                    </div>
+                                )}
                                 <div className="flex justify-between text-sm">
                                     <span className="text-muted-foreground">Shipping</span>
                                     <span>Free</span>
                                 </div>
-                                <div className="flex justify-between text-base font-medium pt-2">
+                                <div className="flex justify-between text-base font-medium pt-2 border-t">
                                     <span>Total</span>
                                     <span>${cart?.total.toFixed(2)}</span>
                                 </div>
@@ -204,7 +262,7 @@ export function CheckoutForm() {
                         </div>
                         <Button className="w-full" size="lg" disabled={isSubmitting}>
                             {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            Place Order
+                            Place Order - Pay on Delivery
                         </Button>
                     </CardContent>
                 </Card>
