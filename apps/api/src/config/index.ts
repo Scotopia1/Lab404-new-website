@@ -57,7 +57,6 @@ export const config = {
   store: {
     name: process.env['STORE_NAME'] || 'Lab404Electronics',
     currency: process.env['STORE_CURRENCY'] || 'USD',
-    defaultTaxRate: parseFloat(process.env['DEFAULT_TAX_RATE'] || '0.11'),
   },
 
   // URLs

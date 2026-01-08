@@ -397,7 +397,21 @@ export class PricingService {
 
   /**
    * Get current tax rate from settings
-   * Settings are stored in grouped format with key 'tax' containing an object
+   *
+   * Tax settings are stored in the database with key 'tax':
+   * {
+   *   tax_enabled: boolean,
+   *   tax_rate: number,     // Percentage (0-100)
+   *   tax_label: string     // Display label (e.g., "VAT", "Sales Tax")
+   * }
+   *
+   * Configure tax via:
+   * - Admin Dashboard → Settings → Tax
+   * - API: PUT /api/settings with tax object
+   *
+   * Fallback behavior: If no tax setting exists in database, returns 0 (no tax applied).
+   * This is a safe default that prevents unexpected charges. Admins must explicitly
+   * enable and configure tax rates.
    */
   private async getTaxRate(): Promise<number> {
     const [taxSetting] = await this.db
@@ -420,8 +434,10 @@ export class PricingService {
       }
     }
 
-    // Default tax rate (11%)
-    return 0.11;
+    // No tax setting found in database - return 0 (no tax)
+    // Admins must configure tax via settings API or admin dashboard
+    logger.warn('Tax setting not found in database, applying 0% tax rate');
+    return 0;
   }
 
   /**
