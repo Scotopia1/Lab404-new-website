@@ -25,10 +25,10 @@ function ProductsContent() {
 
     return (
         <MainLayout>
-            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-8">
+            <div className="flex flex-col gap-3 md:gap-4 md:flex-row md:items-center md:justify-between mb-6 md:mb-8">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Products</h1>
-                    <p className="text-muted-foreground">
+                    <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Products</h1>
+                    <p className="text-sm md:text-base text-muted-foreground mt-1">
                         {data?.meta.total || 0} products found
                     </p>
                 </div>
@@ -36,15 +36,15 @@ function ProductsContent() {
             </div>
 
                 {isLoading ? (
-                    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:gap-6 lg:grid-cols-3 xl:grid-cols-4">
                         {[...Array(8)].map((_, i) => (
                             <div key={i} className="h-[400px] rounded-xl bg-muted animate-pulse" />
                         ))}
                     </div>
                 ) : (
                     <>
-                        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                            {data?.data.map((product) => (
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:gap-6 lg:grid-cols-3 xl:grid-cols-4">
+                            {data?.data.map((product, index) => (
                                 <Card key={product.id} className="overflow-hidden flex flex-col">
                                     <div className="aspect-square relative bg-muted">
                                         {product.thumbnailUrl && (
@@ -53,17 +53,19 @@ function ProductsContent() {
                                                 alt={product.name}
                                                 fill
                                                 sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw"
+                                                loading={index < 4 ? 'eager' : 'lazy'}
+                                                priority={index < 4}
                                                 className="object-cover transition-transform hover:scale-105"
                                             />
                                         )}
                                     </div>
-                                    <CardHeader className="p-4">
-                                        <CardTitle className="line-clamp-1 text-lg">{product.name}</CardTitle>
-                                        <p className="text-sm text-muted-foreground">{product.category?.name || 'Uncategorized'}</p>
+                                    <CardHeader className="p-3 md:p-4">
+                                        <CardTitle className="line-clamp-1 text-base md:text-lg">{product.name}</CardTitle>
+                                        <p className="text-xs md:text-sm text-muted-foreground">{product.category?.name || 'Uncategorized'}</p>
                                     </CardHeader>
-                                    <CardContent className="p-4 pt-0 flex-1">
+                                    <CardContent className="p-3 md:p-4 pt-0 flex-1">
                                         <div className="flex items-baseline gap-2">
-                                            <span className="text-lg font-bold">${product.basePrice || product.price}</span>
+                                            <span className="text-lg md:text-xl font-bold">${product.basePrice || product.price}</span>
                                             {product.compareAtPrice && (
                                                 <span className="text-sm text-muted-foreground line-through">
                                                     ${product.compareAtPrice}
@@ -71,14 +73,14 @@ function ProductsContent() {
                                             )}
                                         </div>
                                         {product.shortDescription && (
-                                            <p className="mt-2 text-sm text-muted-foreground line-clamp-2">
+                                            <p className="mt-2 text-sm text-muted-foreground line-clamp-2 hidden sm:block">
                                                 {product.shortDescription}
                                             </p>
                                         )}
                                     </CardContent>
-                                    <CardFooter className="p-4 pt-0">
+                                    <CardFooter className="p-3 md:p-4 pt-0">
                                         <Link href={`/products/${product.slug}`} className="w-full">
-                                            <Button className="w-full">View Details</Button>
+                                            <Button className="w-full min-h-[44px]">View Details</Button>
                                         </Link>
                                     </CardFooter>
                                 </Card>
@@ -87,10 +89,11 @@ function ProductsContent() {
 
                         {/* Pagination */}
                         {data?.meta && data.meta.totalPages > 1 && (
-                            <div className="mt-10 flex justify-center gap-2">
+                            <div className="mt-8 md:mt-10 flex justify-center gap-3 md:gap-4 items-center">
                                 <Button
                                     variant="outline"
                                     disabled={page <= 1}
+                                    className="min-h-[44px] min-w-[44px] px-4 md:px-6"
                                     onClick={() => {
                                         // Handle navigation
                                         const params = new URLSearchParams(searchParams);
@@ -100,12 +103,13 @@ function ProductsContent() {
                                 >
                                     Previous
                                 </Button>
-                                <div className="flex items-center px-4 text-sm font-medium">
+                                <div className="flex items-center px-3 md:px-4 text-sm md:text-base font-medium">
                                     Page {page} of {data.meta.totalPages}
                                 </div>
                                 <Button
                                     variant="outline"
                                     disabled={page >= data.meta.totalPages}
+                                    className="min-h-[44px] min-w-[44px] px-4 md:px-6"
                                     onClick={() => {
                                         const params = new URLSearchParams(searchParams);
                                         params.set('page', String(page + 1));
