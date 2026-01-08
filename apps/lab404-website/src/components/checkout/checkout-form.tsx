@@ -7,26 +7,66 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { useCart } from '@/hooks/use-cart';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
-import { Loader2, Banknote } from 'lucide-react';
+import { Loader2, Banknote, MapPin } from 'lucide-react';
 import { api } from '@/lib/api';
 import Link from 'next/link';
+import { useAddresses, Address } from '@/hooks/use-addresses';
 
 export function CheckoutForm() {
     const { cart, clearCart } = useCart();
     const router = useRouter();
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const { data: addresses, isLoading: isLoadingAddresses } = useAddresses();
+    const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
+    const [useManualEntry, setUseManualEntry] = useState(false);
 
     const {
         register,
         handleSubmit,
         formState: { errors },
+        setValue,
+        reset,
     } = useForm<CheckoutFormData>({
         resolver: zodResolver(checkoutSchema),
     });
+
+    // Filter shipping addresses and get default
+    const shippingAddresses = addresses?.filter(a => a.type === 'shipping') || [];
+    const defaultShippingAddress = shippingAddresses.find(a => a.isDefault);
+
+    // Auto-select default address on mount
+    useEffect(() => {
+        if (defaultShippingAddress && !selectedAddressId && !useManualEntry && shippingAddresses.length > 0) {
+            setSelectedAddressId(defaultShippingAddress.id);
+        }
+    }, [defaultShippingAddress, selectedAddressId, useManualEntry, shippingAddresses.length]);
+
+    // Get selected address
+    const selectedAddress = shippingAddresses.find(a => a.id === selectedAddressId);
+
+    // Populate form when address selected
+    useEffect(() => {
+        if (selectedAddress && !useManualEntry) {
+            setValue('firstName', selectedAddress.firstName);
+            setValue('lastName', selectedAddress.lastName);
+            setValue('company', selectedAddress.company || '');
+            setValue('addressLine1', selectedAddress.addressLine1);
+            setValue('addressLine2', selectedAddress.addressLine2 || '');
+            setValue('city', selectedAddress.city);
+            setValue('state', selectedAddress.state || '');
+            setValue('postalCode', selectedAddress.postalCode || '');
+            setValue('country', selectedAddress.country);
+            setValue('phone', selectedAddress.phone || '');
+        } else if (useManualEntry && selectedAddressId) {
+            // Clear form when switching to manual entry
+            setSelectedAddressId(null);
+        }
+    }, [selectedAddress, useManualEntry, setValue, selectedAddressId]);
 
     const onSubmit = async (data: CheckoutFormData) => {
         if (!cart || cart.items.length === 0) {
@@ -115,85 +155,191 @@ export function CheckoutForm() {
                     <CardHeader>
                         <CardTitle>Shipping Information</CardTitle>
                     </CardHeader>
-                    <CardContent className="grid gap-4 sm:grid-cols-2">
+                    <CardContent className="space-y-6">
+                        {/* Saved Addresses Section */}
+                        {!isLoadingAddresses && shippingAddresses.length > 0 && !useManualEntry && (
+                            <div className="space-y-4">
+                                <h3 className="text-sm font-medium">Select a saved address</h3>
+                                <div className="space-y-3">
+                                    {shippingAddresses.map((address) => (
+                                        <div
+                                            key={address.id}
+                                            className={`relative flex items-start space-x-3 border rounded-lg p-4 cursor-pointer transition-colors ${
+                                                selectedAddressId === address.id
+                                                    ? 'border-primary bg-primary/5'
+                                                    : 'border-input hover:border-primary/50'
+                                            }`}
+                                            onClick={() => setSelectedAddressId(address.id)}
+                                        >
+                                            <input
+                                                type="radio"
+                                                name="savedAddress"
+                                                value={address.id}
+                                                checked={selectedAddressId === address.id}
+                                                onChange={() => setSelectedAddressId(address.id)}
+                                                className="mt-1 h-4 w-4 text-primary focus:ring-2 focus:ring-primary"
+                                            />
+                                            <div className="flex-1">
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <MapPin className="h-4 w-4 text-muted-foreground" />
+                                                    <span className="font-medium">
+                                                        {address.firstName} {address.lastName}
+                                                    </span>
+                                                    {address.isDefault && (
+                                                        <Badge variant="secondary" className="text-xs">
+                                                            Default
+                                                        </Badge>
+                                                    )}
+                                                </div>
+                                                <div className="text-sm text-muted-foreground">
+                                                    {address.addressLine1}, {address.city}
+                                                    {address.state && `, ${address.state}`}
+                                                    {address.postalCode && ` ${address.postalCode}`}
+                                                    <br />
+                                                    {address.country}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => {
+                                        setUseManualEntry(true);
+                                        reset();
+                                    }}
+                                    className="w-full"
+                                >
+                                    Use a different address
+                                </Button>
+                            </div>
+                        )}
+
+                        {/* Manual Address Entry */}
+                        {(useManualEntry || shippingAddresses.length === 0) && (
+                            <div className="space-y-4">
+                                {shippingAddresses.length > 0 && (
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        onClick={() => setUseManualEntry(false)}
+                                        className="w-full mb-4"
+                                    >
+                                        Choose from saved addresses
+                                    </Button>
+                                )}
+
+                                {/* Email field */}
+                                <div className="space-y-2">
+                                    <Label htmlFor="email">Email</Label>
+                                    <Input id="email" type="email" {...register('email')} />
+                                    {errors.email && (
+                                        <p className="text-sm text-destructive">{errors.email.message}</p>
+                                    )}
+                                </div>
+
+                                {/* Name fields */}
+                                <div className="grid gap-4 sm:grid-cols-2">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="firstName">First Name</Label>
+                                        <Input id="firstName" {...register('firstName')} />
+                                        {errors.firstName && (
+                                            <p className="text-sm text-destructive">{errors.firstName.message}</p>
+                                        )}
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="lastName">Last Name</Label>
+                                        <Input id="lastName" {...register('lastName')} />
+                                        {errors.lastName && (
+                                            <p className="text-sm text-destructive">{errors.lastName.message}</p>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Company */}
+                                <div className="space-y-2">
+                                    <Label htmlFor="company">Company (Optional)</Label>
+                                    <Input id="company" {...register('company')} />
+                                    {errors.company && (
+                                        <p className="text-sm text-destructive">{errors.company.message}</p>
+                                    )}
+                                </div>
+
+                                {/* Address fields */}
+                                <div className="space-y-2">
+                                    <Label htmlFor="addressLine1">Address Line 1</Label>
+                                    <Input id="addressLine1" {...register('addressLine1')} />
+                                    {errors.addressLine1 && (
+                                        <p className="text-sm text-destructive">{errors.addressLine1.message}</p>
+                                    )}
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="addressLine2">Address Line 2 (Optional)</Label>
+                                    <Input id="addressLine2" {...register('addressLine2')} />
+                                    {errors.addressLine2 && (
+                                        <p className="text-sm text-destructive">{errors.addressLine2.message}</p>
+                                    )}
+                                </div>
+
+                                {/* City, State, Postal Code */}
+                                <div className="grid gap-4 grid-cols-2 sm:grid-cols-3">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="city">City</Label>
+                                        <Input id="city" {...register('city')} />
+                                        {errors.city && (
+                                            <p className="text-sm text-destructive">{errors.city.message}</p>
+                                        )}
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="state">State (Optional)</Label>
+                                        <Input id="state" {...register('state')} />
+                                        {errors.state && (
+                                            <p className="text-sm text-destructive">{errors.state.message}</p>
+                                        )}
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="postalCode">Postal Code (Optional)</Label>
+                                        <Input id="postalCode" {...register('postalCode')} />
+                                        {errors.postalCode && (
+                                            <p className="text-sm text-destructive">{errors.postalCode.message}</p>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Country */}
+                                <div className="space-y-2">
+                                    <Label htmlFor="country">Country</Label>
+                                    <Input id="country" {...register('country')} />
+                                    {errors.country && (
+                                        <p className="text-sm text-destructive">{errors.country.message}</p>
+                                    )}
+                                </div>
+
+                                {/* Phone */}
+                                <div className="space-y-2">
+                                    <Label htmlFor="phone">Phone (Optional)</Label>
+                                    <Input id="phone" type="tel" {...register('phone')} />
+                                    {errors.phone && (
+                                        <p className="text-sm text-destructive">{errors.phone.message}</p>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Email field when using saved address */}
+                        {!useManualEntry && shippingAddresses.length > 0 && (
+                            <div className="space-y-2">
+                                <Label htmlFor="email">Email</Label>
+                                <Input id="email" type="email" {...register('email')} />
+                                {errors.email && (
+                                    <p className="text-sm text-destructive">{errors.email.message}</p>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Order Notes */}
                         <div className="space-y-2">
-                            <Label htmlFor="firstName">First Name</Label>
-                            <Input id="firstName" {...register('firstName')} />
-                            {errors.firstName && (
-                                <p className="text-sm text-destructive">{errors.firstName.message}</p>
-                            )}
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="lastName">Last Name</Label>
-                            <Input id="lastName" {...register('lastName')} />
-                            {errors.lastName && (
-                                <p className="text-sm text-destructive">{errors.lastName.message}</p>
-                            )}
-                        </div>
-                        <div className="space-y-2 sm:col-span-2">
-                            <Label htmlFor="email">Email</Label>
-                            <Input id="email" type="email" {...register('email')} />
-                            {errors.email && (
-                                <p className="text-sm text-destructive">{errors.email.message}</p>
-                            )}
-                        </div>
-                        <div className="space-y-2 sm:col-span-2">
-                            <Label htmlFor="company">Company (Optional)</Label>
-                            <Input id="company" {...register('company')} />
-                            {errors.company && (
-                                <p className="text-sm text-destructive">{errors.company.message}</p>
-                            )}
-                        </div>
-                        <div className="space-y-2 sm:col-span-2">
-                            <Label htmlFor="addressLine1">Address Line 1</Label>
-                            <Input id="addressLine1" {...register('addressLine1')} />
-                            {errors.addressLine1 && (
-                                <p className="text-sm text-destructive">{errors.addressLine1.message}</p>
-                            )}
-                        </div>
-                        <div className="space-y-2 sm:col-span-2">
-                            <Label htmlFor="addressLine2">Address Line 2 (Optional)</Label>
-                            <Input id="addressLine2" {...register('addressLine2')} />
-                            {errors.addressLine2 && (
-                                <p className="text-sm text-destructive">{errors.addressLine2.message}</p>
-                            )}
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="city">City</Label>
-                            <Input id="city" {...register('city')} />
-                            {errors.city && (
-                                <p className="text-sm text-destructive">{errors.city.message}</p>
-                            )}
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="state">State (Optional)</Label>
-                            <Input id="state" {...register('state')} />
-                            {errors.state && (
-                                <p className="text-sm text-destructive">{errors.state.message}</p>
-                            )}
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="postalCode">Postal Code (Optional)</Label>
-                            <Input id="postalCode" {...register('postalCode')} />
-                            {errors.postalCode && (
-                                <p className="text-sm text-destructive">{errors.postalCode.message}</p>
-                            )}
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="country">Country</Label>
-                            <Input id="country" {...register('country')} />
-                            {errors.country && (
-                                <p className="text-sm text-destructive">{errors.country.message}</p>
-                            )}
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="phone">Phone (Optional)</Label>
-                            <Input id="phone" type="tel" {...register('phone')} />
-                            {errors.phone && (
-                                <p className="text-sm text-destructive">{errors.phone.message}</p>
-                            )}
-                        </div>
-                        <div className="space-y-2 sm:col-span-2">
                             <Label htmlFor="customerNotes">Order Notes (Optional)</Label>
                             <textarea
                                 id="customerNotes"
