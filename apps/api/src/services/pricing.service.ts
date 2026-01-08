@@ -397,18 +397,30 @@ export class PricingService {
 
   /**
    * Get current tax rate from settings
+   * Settings are stored in grouped format with key 'tax' containing an object
    */
   private async getTaxRate(): Promise<number> {
     const [taxSetting] = await this.db
       .select()
       .from(settings)
-      .where(eq(settings.key, 'taxRate'));
+      .where(eq(settings.key, 'tax'));
 
-    if (taxSetting && typeof taxSetting.value === 'number') {
-      return taxSetting.value;
+    if (taxSetting && taxSetting.value && typeof taxSetting.value === 'object') {
+      const taxValue = taxSetting.value as { tax_rate?: number; tax_enabled?: boolean };
+
+      // Only apply tax if tax_enabled is true
+      if (taxValue.tax_enabled && typeof taxValue.tax_rate === 'number') {
+        // Tax rate is stored as percentage (0-100), convert to decimal (0-1)
+        return taxValue.tax_rate / 100;
+      }
+
+      // If tax is disabled, return 0
+      if (taxValue.tax_enabled === false) {
+        return 0;
+      }
     }
 
-    // Default tax rate
+    // Default tax rate (11%)
     return 0.11;
   }
 

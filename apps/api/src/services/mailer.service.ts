@@ -32,7 +32,9 @@ class MailerService {
   private isConfigured: boolean = false;
 
   constructor() {
-    this.fromEmail = process.env['SMTP_FROM_EMAIL'] || 'noreply@lab404electronics.com';
+    // Use SMTP_FROM_EMAIL if set, otherwise fall back to SMTP_USER (the authenticated account)
+    // This prevents "Sender address rejected" errors when FROM doesn't match authenticated user
+    this.fromEmail = process.env['SMTP_FROM_EMAIL'] || process.env['SMTP_USER'] || 'noreply@lab404electronics.com';
     this.fromName = process.env['SMTP_FROM_NAME'] || 'Lab404 Electronics';
     this.initialize();
   }
