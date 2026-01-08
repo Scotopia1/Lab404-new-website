@@ -51,6 +51,8 @@ interface SystemSettings {
 }
 
 // Default values for grouped settings
+// These defaults are returned when settings don't exist in the database yet.
+// Admins can update these values via PUT /api/settings endpoint.
 const DEFAULT_BUSINESS: BusinessSettings = {
   business_name: 'Lab404 Electronics',
   business_email: 'info@lab404.com',
@@ -60,6 +62,9 @@ const DEFAULT_BUSINESS: BusinessSettings = {
   currency_symbol: '$',
 };
 
+// Tax is DISABLED by default with 0% rate for safety.
+// Admins must explicitly enable tax and set the rate via settings.
+// This prevents unexpected charges to customers.
 const DEFAULT_TAX: TaxSettings = {
   tax_rate: 0,
   tax_label: 'VAT',
