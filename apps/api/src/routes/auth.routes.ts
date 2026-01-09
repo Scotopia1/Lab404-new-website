@@ -572,3 +572,119 @@ authRoutes.post(
     }
   }
 );
+
+/**
+ * POST /api/auth/reset-password
+ * Reset password with valid verification code
+ * Auto-logins user with new JWT token
+ * Rate limited: 5 requests per 15 minutes (authLimiter)
+ */
+authRoutes.post(
+  '/reset-password',
+  authLimiter,
+  xssSanitize,
+  validateBody(resetPasswordSchema),
+  async (req, res, next) => {
+    try {
+      const { email, code, newPassword } = req.body;
+      const normalizedEmail = email.toLowerCase();
+      const db = getDb();
+
+      // Validate code (throws if invalid/expired/max attempts)
+      const isValid = await verificationCodeService.validateCode({
+        email: normalizedEmail,
+        code,
+        type: 'password_reset',
+      });
+
+      if (!isValid) {
+        throw new BadRequestError('Invalid or expired verification code');
+      }
+
+      // Look up customer
+      const [customer] = await db
+        .select()
+        .from(customers)
+        .where(eq(customers.email, normalizedEmail))
+        .limit(1);
+
+      if (!customer) {
+        logger.error('Customer not found after valid code validation', {
+          email: normalizedEmail
+        });
+        throw new BadRequestError('Invalid verification code');
+      }
+
+      // Additional security checks
+      if (!customer.isActive) {
+        logger.warn('Password reset attempt for inactive account', {
+          customerId: customer.id
+        });
+        throw new BadRequestError('Account is inactive');
+      }
+
+      if (customer.isGuest) {
+        logger.warn('Password reset attempt for guest account', {
+          customerId: customer.id
+        });
+        throw new BadRequestError('Invalid account type');
+      }
+
+      // Hash new password
+      const passwordHash = await bcrypt.hash(newPassword, 12);
+
+      // Update password
+      await db
+        .update(customers)
+        .set({
+          passwordHash,
+          updatedAt: new Date(),
+        })
+        .where(eq(customers.id, customer.id));
+
+      // Invalidate all password_reset codes for this email
+      await verificationCodeService.invalidateCodes(
+        normalizedEmail,
+        'password_reset'
+      );
+
+      // Generate new JWT token (auto-login)
+      const token = generateToken({
+        userId: customer.authUserId!,
+        email: customer.email,
+        role: 'customer',
+        customerId: customer.id,
+      });
+
+      // Set auth cookie
+      res.cookie('auth_token', token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      });
+
+      logger.info('Password reset successful', {
+        customerId: customer.id,
+        email: customer.email
+      });
+
+      // Return user object and token (same as login)
+      sendSuccess(res, {
+        message: 'Password reset successfully',
+        user: {
+          id: customer.authUserId,
+          email: customer.email,
+          role: 'customer',
+          customerId: customer.id,
+          firstName: customer.firstName,
+          lastName: customer.lastName,
+        },
+        token,
+        expiresAt: getTokenExpiration().toISOString(),
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
