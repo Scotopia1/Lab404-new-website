@@ -434,7 +434,7 @@ export function CheckoutForm() {
                                 <span>
                                     {item.quantity}x {item.product.name}
                                 </span>
-                                <span>${(Number(item.product.basePrice) * item.quantity).toFixed(2)}</span>
+                                <span>${(Number(item.product.price) * item.quantity).toFixed(2)}</span>
                             </div>
                         ))}
                         <div className="border-t pt-4 space-y-4">

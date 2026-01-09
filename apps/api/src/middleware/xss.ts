@@ -1,7 +1,5 @@
-import createDOMPurify from 'isomorphic-dompurify';
+import DOMPurify from 'isomorphic-dompurify';
 import { Request, Response, NextFunction } from 'express';
-
-const DOMPurify = createDOMPurify();
 
 /**
  * Sanitize function - recursively sanitizes strings in objects
@@ -28,9 +26,27 @@ const sanitize = (obj: any): any => {
  * Sanitizes all user input by default (strips all HTML)
  */
 export const xssSanitize = (req: Request, res: Response, next: NextFunction) => {
-  if (req.body) req.body = sanitize(req.body);
-  if (req.query) req.query = sanitize(req.query);
-  if (req.params) req.params = sanitize(req.params);
+  // Sanitize body
+  if (req.body) {
+    req.body = sanitize(req.body);
+  }
+
+  // Sanitize query params - need to copy properties individually
+  if (req.query) {
+    const sanitizedQuery = sanitize(req.query);
+    for (const key in sanitizedQuery) {
+      req.query[key] = sanitizedQuery[key];
+    }
+  }
+
+  // Sanitize route params - need to copy properties individually
+  if (req.params) {
+    const sanitizedParams = sanitize(req.params);
+    for (const key in sanitizedParams) {
+      req.params[key] = sanitizedParams[key];
+    }
+  }
+
   next();
 };
 

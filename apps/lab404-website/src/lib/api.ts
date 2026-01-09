@@ -20,6 +20,9 @@ const fetchCsrfToken = async (): Promise<string> => {
       withCredentials: true,
     });
     csrfToken = data.csrfToken;
+    if (!csrfToken) {
+      throw new Error('CSRF token not received from server');
+    }
     return csrfToken;
   } catch (error) {
     console.error('Failed to fetch CSRF token:', error);

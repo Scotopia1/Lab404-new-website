@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { CheckCircle } from 'lucide-react';
@@ -8,12 +8,12 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 /**
- * Order Success Page
+ * Order Success Content Component
  *
  * Displays confirmation after successful COD order placement.
  * Shows order number and next steps for COD payment.
  */
-export default function CheckoutSuccessPage() {
+function CheckoutSuccessContent() {
     const searchParams = useSearchParams();
     const orderNumber = searchParams.get('orderNumber');
     const [mounted, setMounted] = useState(false);
@@ -90,5 +90,24 @@ export default function CheckoutSuccessPage() {
                 </CardContent>
             </Card>
         </div>
+    );
+}
+
+/**
+ * Order Success Page with Suspense boundary
+ */
+export default function CheckoutSuccessPage() {
+    return (
+        <Suspense fallback={
+            <div className="container mx-auto px-4 py-8 md:py-16">
+                <Card className="max-w-2xl mx-auto">
+                    <CardContent className="p-6 md:p-8 text-center">
+                        <p className="text-base">Loading...</p>
+                    </CardContent>
+                </Card>
+            </div>
+        }>
+            <CheckoutSuccessContent />
+        </Suspense>
     );
 }

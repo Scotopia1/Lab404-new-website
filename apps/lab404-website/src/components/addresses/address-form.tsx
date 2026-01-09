@@ -21,7 +21,7 @@ const addressFormSchema = z.object({
   type: z.enum(['shipping', 'billing'], {
     errorMap: () => ({ message: 'Address type must be shipping or billing' }),
   }),
-  isDefault: z.boolean().optional().default(false),
+  isDefault: z.boolean().optional(),
   firstName: z.string()
     .min(1, 'First name is required')
     .max(100, 'First name must be less than 100 characters'),
