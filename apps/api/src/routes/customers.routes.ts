@@ -9,6 +9,8 @@ import { NotFoundError, ForbiddenError, BadRequestError } from '../utils/errors'
 import { PasswordSecurityService } from '../services/password-security.service';
 import { LoginAttemptService } from '../services/login-attempt.service';
 import { notificationService } from '../services/notification.service';
+import { auditLogService } from '../services/audit-log.service';
+import { SecurityEventType, ActorType, EventStatus } from '../types/audit-events';
 
 export const customersRoutes = Router();
 
@@ -314,6 +316,33 @@ customersRoutes.put(
         ipAddress: req.ip || req.socket.remoteAddress,
         userAgent: req.headers['user-agent'],
       });
+
+      // Log password change event
+      await auditLogService.logFromRequest(req, {
+        eventType: SecurityEventType.PASSWORD_CHANGED,
+        actorType: ActorType.CUSTOMER,
+        actorId: customerId,
+        actorEmail: customer.email,
+        action: 'password_change',
+        status: EventStatus.SUCCESS,
+        metadata: {
+          changeReason: 'user_action',
+          strengthScore: validation.strengthScore,
+        },
+      });
+
+      // Log breach/reuse warnings if any
+      if (validation.warnings?.includes('breached')) {
+        await auditLogService.logFromRequest(req, {
+          eventType: SecurityEventType.PASSWORD_BREACH_DETECTED,
+          actorType: ActorType.CUSTOMER,
+          actorId: customerId,
+          actorEmail: customer.email,
+          action: 'password_breach_check',
+          status: EventStatus.SUCCESS,
+          metadata: { breachCount: validation.breachCount || 0 },
+        });
+      }
 
       // Send confirmation email (non-blocking)
       notificationService.sendPasswordChangedConfirmation({
