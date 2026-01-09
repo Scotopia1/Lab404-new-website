@@ -1,20 +1,48 @@
-import DOMPurify from 'isomorphic-dompurify';
+import xss, { IFilterXSSOptions } from 'xss';
 import { Request, Response, NextFunction } from 'express';
+
+/**
+ * XSS filter options for strict sanitization (strips all HTML)
+ */
+const strictOptions: IFilterXSSOptions = {
+  whiteList: {}, // No tags allowed
+  stripIgnoreTag: true,
+  stripIgnoreTagBody: ['script', 'style'],
+};
+
+/**
+ * XSS filter options for rich content (allows safe HTML)
+ */
+const richContentOptions: IFilterXSSOptions = {
+  whiteList: {
+    p: [], br: [], b: [], i: [], u: [], strong: [], em: [],
+    a: ['href', 'title', 'target'],
+    ul: [], ol: [], li: [],
+    h1: [], h2: [], h3: [], h4: [], h5: [], h6: [],
+    blockquote: [], code: [], pre: [],
+    img: ['src', 'alt', 'title'],
+    span: ['class'], div: ['class'],
+    hr: [],
+    table: [], thead: [], tbody: [], tr: [], th: [], td: [],
+  },
+  stripIgnoreTag: false,
+  stripIgnoreTagBody: ['script'],
+};
 
 /**
  * Sanitize function - recursively sanitizes strings in objects
  */
-const sanitize = (obj: any): any => {
+const sanitize = (obj: any, options: IFilterXSSOptions = strictOptions): any => {
   if (typeof obj === 'string') {
-    return DOMPurify.sanitize(obj, { ALLOWED_TAGS: [] }); // Strip all HTML by default
+    return xss(obj, options);
   }
   if (Array.isArray(obj)) {
-    return obj.map(sanitize);
+    return obj.map(item => sanitize(item, options));
   }
   if (obj && typeof obj === 'object') {
     const sanitized: any = {};
     for (const key in obj) {
-      sanitized[key] = sanitize(obj[key]);
+      sanitized[key] = sanitize(obj[key], options);
     }
     return sanitized;
   }
@@ -55,12 +83,5 @@ export const xssSanitize = (req: Request, res: Response, next: NextFunction) => 
  * Use this function explicitly for fields that should allow HTML formatting
  */
 export const sanitizeRichContent = (html: string): string => {
-  return DOMPurify.sanitize(html, {
-    ALLOWED_TAGS: [
-      'p', 'br', 'b', 'i', 'u', 'strong', 'em', 'a', 'ul', 'ol', 'li',
-      'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'blockquote', 'code', 'pre',
-      'img', 'span', 'div', 'hr', 'table', 'thead', 'tbody', 'tr', 'th', 'td'
-    ],
-    ALLOWED_ATTR: ['href', 'src', 'alt', 'title', 'class', 'id'],
-  });
+  return xss(html, richContentOptions);
 };
