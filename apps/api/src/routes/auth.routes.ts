@@ -240,6 +240,34 @@ authRoutes.post(
         email: customer.email,
       });
 
+      // Log account creation
+      await auditLogService.logFromRequest(req, {
+        eventType: SecurityEventType.ACCOUNT_CREATED,
+        actorType: ActorType.CUSTOMER,
+        actorId: customer.id,
+        actorEmail: customer.email,
+        action: 'account_registration',
+        status: EventStatus.SUCCESS,
+        metadata: {
+          registrationType: existing && existing.isGuest ? 'guest_conversion' : 'new',
+          emailVerified: false,
+        },
+      });
+
+      // Log email verification sent
+      await auditLogService.logFromRequest(req, {
+        eventType: SecurityEventType.EMAIL_VERIFICATION_SENT,
+        actorType: ActorType.SYSTEM,
+        targetType: 'customer',
+        targetId: customer.id,
+        action: 'send_verification_email',
+        status: EventStatus.SUCCESS,
+        metadata: {
+          email: customer.email,
+          expiryMinutes: 15,
+        },
+      });
+
       // NO TOKEN, NO COOKIE - User must verify email first
       sendSuccess(res, {
         message: 'Registration successful. Please check your email to verify your account.',
