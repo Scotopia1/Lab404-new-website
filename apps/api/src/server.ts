@@ -2,6 +2,7 @@ import { createApp } from './app';
 import { config, validateConfig } from './config';
 import { logger } from './utils/logger';
 import { startSessionCleanupJob } from './jobs/session-cleanup.job';
+import { startAuditLogCleanupJob } from './jobs/audit-log-cleanup.job';
 
 /**
  * Start the server
@@ -31,6 +32,9 @@ async function start() {
 
       // Start session cleanup cron job
       startSessionCleanupJob();
+
+      // Start audit log cleanup cron job
+      startAuditLogCleanupJob();
 
       if (config.isDev) {
         console.log(`
