@@ -43,6 +43,13 @@
       "when": 1767972438867,
       "tag": "0005_jittery_firestar",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1767974011820,
+      "tag": "0006_same_argent",
+      "breakpoints": true
     }
   ]
 }
