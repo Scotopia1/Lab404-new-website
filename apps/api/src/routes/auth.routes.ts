@@ -12,6 +12,8 @@ import { notificationService } from '../services/notification.service';
 import { sessionService } from '../services/session.service';
 import { PasswordSecurityService } from '../services/password-security.service';
 import { LoginAttemptService } from '../services/login-attempt.service';
+import { auditLogService } from '../services/audit-log.service';
+import { SecurityEventType, ActorType, EventStatus } from '../types/audit-events';
 import { xssSanitize } from '../middleware/xss';
 import { logger } from '../utils/logger';
 
@@ -287,6 +289,20 @@ authRoutes.post(
           remainingTime,
         });
 
+        // Log lockout event
+        await auditLogService.logFromRequest(req, {
+          eventType: SecurityEventType.AUTH_LOGIN_LOCKED,
+          actorType: ActorType.CUSTOMER,
+          actorEmail: normalizedEmail,
+          action: 'login_attempt',
+          status: EventStatus.DENIED,
+          metadata: {
+            reason: 'account_locked',
+            remainingTime: lockoutStatus.remainingTime,
+            lockoutEndTime: lockoutStatus.lockoutEndTime?.toISOString(),
+          },
+        });
+
         return sendError(
           res,
           `Account temporarily locked due to too many failed login attempts. Please try again in ${remainingTime}.`,
@@ -314,6 +330,17 @@ authRoutes.post(
           'invalid_credentials',
           deviceInfo
         );
+
+        // Log failed login
+        await auditLogService.logFromRequest(req, {
+          eventType: SecurityEventType.AUTH_LOGIN_FAILURE,
+          actorType: ActorType.CUSTOMER,
+          actorEmail: normalizedEmail,
+          action: 'login_attempt',
+          status: EventStatus.FAILURE,
+          metadata: { reason: 'invalid_credentials' },
+        });
+
         throw new UnauthorizedError('Invalid email or password');
       }
 
@@ -326,6 +353,18 @@ authRoutes.post(
           'invalid_credentials',
           deviceInfo
         );
+
+        // Log failed login
+        await auditLogService.logFromRequest(req, {
+          eventType: SecurityEventType.AUTH_LOGIN_FAILURE,
+          actorType: ActorType.CUSTOMER,
+          actorId: customer.id,
+          actorEmail: normalizedEmail,
+          action: 'login_attempt',
+          status: EventStatus.FAILURE,
+          metadata: { reason: 'no_password_hash' },
+        });
+
         throw new UnauthorizedError('Invalid email or password');
       }
 
@@ -338,6 +377,18 @@ authRoutes.post(
           'invalid_credentials',
           deviceInfo
         );
+
+        // Log failed login
+        await auditLogService.logFromRequest(req, {
+          eventType: SecurityEventType.AUTH_LOGIN_FAILURE,
+          actorType: ActorType.CUSTOMER,
+          actorId: customer.id,
+          actorEmail: normalizedEmail,
+          action: 'login_attempt',
+          status: EventStatus.FAILURE,
+          metadata: { reason: 'invalid_password' },
+        });
+
         throw new UnauthorizedError('Invalid email or password');
       }
 
@@ -354,6 +405,17 @@ authRoutes.post(
         logger.info('Login blocked: Email not verified', {
           email: customer.email,
           customerId: customer.id,
+        });
+
+        // Log failed login
+        await auditLogService.logFromRequest(req, {
+          eventType: SecurityEventType.AUTH_LOGIN_FAILURE,
+          actorType: ActorType.CUSTOMER,
+          actorId: customer.id,
+          actorEmail: normalizedEmail,
+          action: 'login_attempt',
+          status: EventStatus.DENIED,
+          metadata: { reason: 'email_unverified' },
         });
 
         return sendError(
@@ -380,6 +442,17 @@ authRoutes.post(
         logger.warn('Login blocked: Account disabled', {
           email: customer.email,
           customerId: customer.id,
+        });
+
+        // Log failed login
+        await auditLogService.logFromRequest(req, {
+          eventType: SecurityEventType.AUTH_LOGIN_FAILURE,
+          actorType: ActorType.CUSTOMER,
+          actorId: customer.id,
+          actorEmail: normalizedEmail,
+          action: 'login_attempt',
+          status: EventStatus.DENIED,
+          metadata: { reason: 'account_disabled' },
         });
 
         throw new UnauthorizedError('Account is disabled. Please contact support.');
@@ -422,6 +495,21 @@ authRoutes.post(
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'strict',
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      });
+
+      // Log successful login
+      await auditLogService.logFromRequest(req, {
+        eventType: SecurityEventType.AUTH_LOGIN_SUCCESS,
+        actorType: ActorType.CUSTOMER,
+        actorId: customer.id,
+        actorEmail: customer.email,
+        action: 'login',
+        status: EventStatus.SUCCESS,
+        sessionId,
+        metadata: {
+          sessionId,
+          deviceType: deviceInfo.userAgent,
+        },
       });
 
       logger.info('Login successful', {
