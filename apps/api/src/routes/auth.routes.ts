@@ -750,6 +750,20 @@ authRoutes.post(
           email: customer.email,
           ip: req.ip
         });
+
+        // Log password reset requested event
+        await auditLogService.logFromRequest(req, {
+          eventType: SecurityEventType.PASSWORD_RESET_REQUESTED,
+          actorType: ActorType.CUSTOMER,
+          actorId: customer.id,
+          actorEmail: customer.email,
+          action: 'password_reset_request',
+          status: EventStatus.SUCCESS,
+          metadata: {
+            method: 'email_code',
+            expiryMinutes: 15,
+          },
+        });
       } else {
         // Log attempt for security monitoring
         const reason = !customer ? 'not_found'
@@ -939,6 +953,20 @@ authRoutes.post(
         changeReason: 'password_reset',
         ipAddress: req.ip || req.socket.remoteAddress,
         userAgent: req.headers['user-agent'],
+      });
+
+      // Log password reset completed event
+      await auditLogService.logFromRequest(req, {
+        eventType: SecurityEventType.PASSWORD_RESET_COMPLETED,
+        actorType: ActorType.CUSTOMER,
+        actorId: customer.id,
+        actorEmail: customer.email,
+        action: 'password_reset_complete',
+        status: EventStatus.SUCCESS,
+        metadata: {
+          method: 'email_code',
+          strengthScore: validation.strengthScore,
+        },
       });
 
       // Invalidate all password_reset codes for this email
