@@ -219,18 +219,18 @@ pdfTemplatesRoutes.put(
         updatedAt: new Date(),
       };
 
-      if (data.name !== undefined) updateData.name = data.name;
-      if (data.isDefault !== undefined) updateData.isDefault = data.isDefault;
-      if (data.logoUrl !== undefined) updateData.logoUrl = data.logoUrl;
-      if (data.primaryColor !== undefined) updateData.primaryColor = data.primaryColor;
-      if (data.accentColor !== undefined) updateData.accentColor = data.accentColor;
-      if (data.showCompanyLogo !== undefined) updateData.showCompanyLogo = data.showCompanyLogo;
-      if (data.showLineItemImages !== undefined) updateData.showLineItemImages = data.showLineItemImages;
-      if (data.showLineItemDescription !== undefined) updateData.showLineItemDescription = data.showLineItemDescription;
-      if (data.showSku !== undefined) updateData.showSku = data.showSku;
-      if (data.headerText !== undefined) updateData.headerText = data.headerText;
-      if (data.footerText !== undefined) updateData.footerText = data.footerText;
-      if (data.thankYouMessage !== undefined) updateData.thankYouMessage = data.thankYouMessage;
+      if (data.name !== undefined) {updateData.name = data.name;}
+      if (data.isDefault !== undefined) {updateData.isDefault = data.isDefault;}
+      if (data.logoUrl !== undefined) {updateData.logoUrl = data.logoUrl;}
+      if (data.primaryColor !== undefined) {updateData.primaryColor = data.primaryColor;}
+      if (data.accentColor !== undefined) {updateData.accentColor = data.accentColor;}
+      if (data.showCompanyLogo !== undefined) {updateData.showCompanyLogo = data.showCompanyLogo;}
+      if (data.showLineItemImages !== undefined) {updateData.showLineItemImages = data.showLineItemImages;}
+      if (data.showLineItemDescription !== undefined) {updateData.showLineItemDescription = data.showLineItemDescription;}
+      if (data.showSku !== undefined) {updateData.showSku = data.showSku;}
+      if (data.headerText !== undefined) {updateData.headerText = data.headerText;}
+      if (data.footerText !== undefined) {updateData.footerText = data.footerText;}
+      if (data.thankYouMessage !== undefined) {updateData.thankYouMessage = data.thankYouMessage;}
 
       const [template] = await db
         .update(pdfTemplates)

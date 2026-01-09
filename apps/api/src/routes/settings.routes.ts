@@ -340,27 +340,27 @@ settingsRoutes.put(
       const systemUpdates: Partial<SystemSettings> = {};
 
       // Map flat fields to groups
-      if (updates.business_name !== undefined) businessUpdates.business_name = updates.business_name;
-      if (updates.business_email !== undefined) businessUpdates.business_email = updates.business_email;
-      if (updates.business_phone !== undefined) businessUpdates.business_phone = updates.business_phone;
-      if (updates.business_address !== undefined) businessUpdates.business_address = updates.business_address;
-      if (updates.currency !== undefined) businessUpdates.currency = updates.currency;
-      if (updates.currency_symbol !== undefined) businessUpdates.currency_symbol = updates.currency_symbol;
+      if (updates.business_name !== undefined) {businessUpdates.business_name = updates.business_name;}
+      if (updates.business_email !== undefined) {businessUpdates.business_email = updates.business_email;}
+      if (updates.business_phone !== undefined) {businessUpdates.business_phone = updates.business_phone;}
+      if (updates.business_address !== undefined) {businessUpdates.business_address = updates.business_address;}
+      if (updates.currency !== undefined) {businessUpdates.currency = updates.currency;}
+      if (updates.currency_symbol !== undefined) {businessUpdates.currency_symbol = updates.currency_symbol;}
 
-      if (updates.tax_rate !== undefined) taxUpdates.tax_rate = updates.tax_rate;
-      if (updates.tax_label !== undefined) taxUpdates.tax_label = updates.tax_label;
-      if (updates.tax_enabled !== undefined) taxUpdates.tax_enabled = updates.tax_enabled;
+      if (updates.tax_rate !== undefined) {taxUpdates.tax_rate = updates.tax_rate;}
+      if (updates.tax_label !== undefined) {taxUpdates.tax_label = updates.tax_label;}
+      if (updates.tax_enabled !== undefined) {taxUpdates.tax_enabled = updates.tax_enabled;}
 
-      if (updates.delivery_fee !== undefined) deliveryUpdates.delivery_fee = updates.delivery_fee;
-      if (updates.delivery_enabled !== undefined) deliveryUpdates.delivery_enabled = updates.delivery_enabled;
-      if (updates.free_delivery_threshold !== undefined) deliveryUpdates.free_delivery_threshold = updates.free_delivery_threshold;
+      if (updates.delivery_fee !== undefined) {deliveryUpdates.delivery_fee = updates.delivery_fee;}
+      if (updates.delivery_enabled !== undefined) {deliveryUpdates.delivery_enabled = updates.delivery_enabled;}
+      if (updates.free_delivery_threshold !== undefined) {deliveryUpdates.free_delivery_threshold = updates.free_delivery_threshold;}
 
-      if (updates.email_notifications !== undefined) notificationUpdates.email_notifications = updates.email_notifications;
-      if (updates.low_stock_notifications !== undefined) notificationUpdates.low_stock_notifications = updates.low_stock_notifications;
-      if (updates.new_order_notifications !== undefined) notificationUpdates.new_order_notifications = updates.new_order_notifications;
+      if (updates.email_notifications !== undefined) {notificationUpdates.email_notifications = updates.email_notifications;}
+      if (updates.low_stock_notifications !== undefined) {notificationUpdates.low_stock_notifications = updates.low_stock_notifications;}
+      if (updates.new_order_notifications !== undefined) {notificationUpdates.new_order_notifications = updates.new_order_notifications;}
 
-      if (updates.site_title !== undefined) systemUpdates.site_title = updates.site_title;
-      if (updates.site_description !== undefined) systemUpdates.site_description = updates.site_description;
+      if (updates.site_title !== undefined) {systemUpdates.site_title = updates.site_title;}
+      if (updates.site_description !== undefined) {systemUpdates.site_description = updates.site_description;}
 
       // Update each group if there are changes
       if (Object.keys(businessUpdates).length > 0) {

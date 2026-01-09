@@ -173,19 +173,19 @@ quotationTemplatesRoutes.put(
         updatedAt: new Date(),
       };
 
-      if (data.name !== undefined) updateData.name = data.name;
-      if (data.description !== undefined) updateData.description = data.description;
-      if (data.items !== undefined) updateData.items = data.items;
+      if (data.name !== undefined) {updateData.name = data.name;}
+      if (data.description !== undefined) {updateData.description = data.description;}
+      if (data.items !== undefined) {updateData.items = data.items;}
       if (data.defaultDiscount !== undefined) {
         updateData.defaultDiscount = data.defaultDiscount !== null ? String(data.defaultDiscount) : null;
       }
-      if (data.defaultDiscountType !== undefined) updateData.defaultDiscountType = data.defaultDiscountType;
+      if (data.defaultDiscountType !== undefined) {updateData.defaultDiscountType = data.defaultDiscountType;}
       if (data.defaultTaxRate !== undefined) {
         updateData.defaultTaxRate = data.defaultTaxRate !== null ? String(data.defaultTaxRate) : null;
       }
-      if (data.defaultValidDays !== undefined) updateData.defaultValidDays = data.defaultValidDays;
-      if (data.defaultTerms !== undefined) updateData.defaultTerms = data.defaultTerms;
-      if (data.isActive !== undefined) updateData.isActive = data.isActive ? 1 : 0;
+      if (data.defaultValidDays !== undefined) {updateData.defaultValidDays = data.defaultValidDays;}
+      if (data.defaultTerms !== undefined) {updateData.defaultTerms = data.defaultTerms;}
+      if (data.isActive !== undefined) {updateData.isActive = data.isActive ? 1 : 0;}
 
       const [template] = await db
         .update(quotationTemplates)

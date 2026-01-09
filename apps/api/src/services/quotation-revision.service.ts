@@ -176,7 +176,7 @@ class QuotationRevisionService {
 
     // Get revision A
     const revisionA = await this.getRevision(revisionIdA);
-    if (!revisionA) return null;
+    if (!revisionA) {return null;}
 
     let snapshotB: RevisionSnapshot;
     let versionB: number | 'current';
@@ -184,7 +184,7 @@ class QuotationRevisionService {
     if (revisionIdB) {
       // Compare with another revision
       const revisionB = await this.getRevision(revisionIdB);
-      if (!revisionB) return null;
+      if (!revisionB) {return null;}
       snapshotB = revisionB.snapshot;
       versionB = revisionB.versionNumber;
     } else {
@@ -194,7 +194,7 @@ class QuotationRevisionService {
         .from(quotations)
         .where(eq(quotations.id, quotationId));
 
-      if (!quotation) return null;
+      if (!quotation) {return null;}
 
       const items = await db
         .select()

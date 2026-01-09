@@ -87,7 +87,7 @@ class SearchService {
      * Initialize the search index with proper settings
      */
     async initialize(): Promise<void> {
-        if (this.initialized) return;
+        if (this.initialized) {return;}
 
         try {
             const client = this.getClient();

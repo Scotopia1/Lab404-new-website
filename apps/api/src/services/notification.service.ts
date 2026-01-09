@@ -349,7 +349,7 @@ class NotificationService {
     };
 
     const formatDate = (date: Date | null) => {
-      if (!date) return 'No expiration';
+      if (!date) {return 'No expiration';}
       return new Date(date).toLocaleDateString('en-US', {
         year: 'numeric',
         month: 'long',

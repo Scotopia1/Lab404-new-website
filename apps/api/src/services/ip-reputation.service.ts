@@ -40,7 +40,7 @@ class IpReputationService {
   ): Promise<void> {
     try {
       // Get or create IP record
-      let ipRecord = await this.getOrCreateIP(ip, metadata);
+      const ipRecord = await this.getOrCreateIP(ip, metadata);
 
       // Update counters based on action
       const updates: Partial<IpReputation> = {

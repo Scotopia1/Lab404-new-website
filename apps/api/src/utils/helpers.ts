@@ -78,7 +78,7 @@ export function formatPrice(amount: number, currency = 'USD'): string {
  */
 export function maskEmail(email: string): string {
   const [name, domain] = email.split('@');
-  if (!name || !domain) return email;
+  if (!name || !domain) {return email;}
 
   if (name.length <= 2) {
     return `${name[0]}***@${domain}`;
@@ -92,7 +92,7 @@ export function maskEmail(email: string): string {
  * +1234567890 -> +123****890
  */
 export function maskPhone(phone: string): string {
-  if (phone.length < 7) return phone;
+  if (phone.length < 7) {return phone;}
 
   const start = phone.slice(0, 3);
   const end = phone.slice(-3);

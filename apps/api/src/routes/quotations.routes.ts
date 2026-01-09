@@ -753,22 +753,22 @@ quotationsRoutes.put(
       };
 
       // Customer fields
-      if (data.customerName !== undefined) updateData.customerName = data.customerName;
-      if (data.customerEmail !== undefined) updateData.customerEmail = data.customerEmail.toLowerCase();
-      if (data.customerPhone !== undefined) updateData.customerPhone = data.customerPhone || null;
-      if (data.customerCompany !== undefined) updateData.customerCompany = data.customerCompany || null;
+      if (data.customerName !== undefined) {updateData.customerName = data.customerName;}
+      if (data.customerEmail !== undefined) {updateData.customerEmail = data.customerEmail.toLowerCase();}
+      if (data.customerPhone !== undefined) {updateData.customerPhone = data.customerPhone || null;}
+      if (data.customerCompany !== undefined) {updateData.customerCompany = data.customerCompany || null;}
 
       // Status
-      if (data.status !== undefined) updateData.status = data.status;
+      if (data.status !== undefined) {updateData.status = data.status;}
 
       // Notes and terms (map 'terms' to 'termsAndConditions')
-      if (data.notes !== undefined) updateData.notes = data.notes || null;
-      if (data.terms !== undefined) updateData.termsAndConditions = data.terms || null;
+      if (data.notes !== undefined) {updateData.notes = data.notes || null;}
+      if (data.terms !== undefined) {updateData.termsAndConditions = data.terms || null;}
 
       // Discount and tax fields
-      if (data.discountType !== undefined) updateData.discountType = data.discountType;
-      if (data.discountValue !== undefined) updateData.discountValue = String(data.discountValue);
-      if (data.taxRate !== undefined) updateData.taxRate = String(data.taxRate);
+      if (data.discountType !== undefined) {updateData.discountType = data.discountType;}
+      if (data.discountValue !== undefined) {updateData.discountValue = String(data.discountValue);}
+      if (data.taxRate !== undefined) {updateData.taxRate = String(data.taxRate);}
 
       // Update valid until if validDays provided
       if (data.validDays !== undefined) {

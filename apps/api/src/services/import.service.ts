@@ -45,7 +45,7 @@ export class ImportService {
 
     for (let i = 1; i < lines.length; i++) {
       const line = lines[i];
-      if (!line) continue;
+      if (!line) {continue;}
 
       const values = this.parseCSVLine(line);
       const row: Record<string, string> = {};
@@ -110,7 +110,7 @@ export class ImportService {
 
     for (let i = 0; i < data.length; i++) {
       const row = data[i];
-      if (!row) continue;
+      if (!row) {continue;}
 
       const rowNumber = i + 2; // Account for header row and 0-indexing
 
@@ -226,10 +226,10 @@ export class ImportService {
         csvColumn: 'dimensions',
         field: 'dimensions',
         transform: (v) => {
-          if (!v) return undefined;
+          if (!v) {return undefined;}
           try {
             // Support JSON format: {"width": 10, "height": 20, "depth": 5}
-            if (v.startsWith('{')) return JSON.parse(v);
+            if (v.startsWith('{')) {return JSON.parse(v);}
             // Support simple format: 10x20x5
             const parts = v.split('x').map(p => parseFloat(p.trim()));
             if (parts.length === 3) {
@@ -257,9 +257,9 @@ export class ImportService {
         csvColumn: 'images',
         field: 'images',
         transform: (v) => {
-          if (!v) return [];
+          if (!v) {return [];}
           try {
-            if (v.startsWith('[')) return JSON.parse(v);
+            if (v.startsWith('[')) {return JSON.parse(v);}
             // Support comma-separated URLs
             return v.split(',').map(url => ({ url: url.trim() })).filter(img => img.url);
           } catch {
@@ -302,14 +302,14 @@ export class ImportService {
         csvColumn: 'specifications',
         field: 'specifications',
         transform: (v) => {
-          if (!v) return {};
+          if (!v) {return {};}
           try {
-            if (v.startsWith('{')) return JSON.parse(v);
+            if (v.startsWith('{')) {return JSON.parse(v);}
             // Support simple format: key1:value1,key2:value2
             const specs: Record<string, string> = {};
             v.split(',').forEach(pair => {
               const [key, value] = pair.split(':').map(s => s.trim());
-              if (key && value) specs[key] = value;
+              if (key && value) {specs[key] = value;}
             });
             return specs;
           } catch {
@@ -618,7 +618,7 @@ export class ImportService {
    */
   buildAddressFromFlatFields(data: Record<string, unknown>, prefix: 'shipping' | 'billing'): Record<string, unknown> | null {
     const addressLine1 = data[`${prefix}AddressLine1`];
-    if (!addressLine1) return null;
+    if (!addressLine1) {return null;}
 
     return {
       firstName: data[`${prefix}FirstName`] || '',

@@ -132,9 +132,9 @@ googleImagesRoutes.get(
         safe: safeSearch || 'medium',
       };
 
-      if (imageSize) searchParams.imgSize = imageSize;
-      if (imageType) searchParams.imgType = imageType;
-      if (fileType) searchParams.fileType = fileType;
+      if (imageSize) {searchParams.imgSize = imageSize;}
+      if (imageType) {searchParams.imgType = imageType;}
+      if (fileType) {searchParams.fileType = fileType;}
 
       // Execute search
       const response = await client.cse.list(searchParams);

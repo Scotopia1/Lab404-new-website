@@ -241,11 +241,11 @@ uploadRoutes.get('/transform/:filePath(*)', async (req, res, next) => {
 
     if (width || height || quality || format || crop) {
       const transform: typeof transformations[0] = {};
-      if (width) transform.width = parseInt(width as string);
-      if (height) transform.height = parseInt(height as string);
-      if (quality) transform.quality = parseInt(quality as string);
-      if (format) transform.format = format as string;
-      if (crop) transform.cropMode = crop as string;
+      if (width) {transform.width = parseInt(width as string);}
+      if (height) {transform.height = parseInt(height as string);}
+      if (quality) {transform.quality = parseInt(quality as string);}
+      if (format) {transform.format = format as string;}
+      if (crop) {transform.cropMode = crop as string;}
       transformations.push(transform);
     }
 

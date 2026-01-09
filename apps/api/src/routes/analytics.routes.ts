@@ -94,8 +94,8 @@ analyticsRoutes.get('/dashboard', validateQuery(dateRangeSchema), async (req, re
 
     // Build date conditions
     const orderConditions = [];
-    if (startDate) orderConditions.push(gte(orders.createdAt, startDate));
-    if (endDate) orderConditions.push(lte(orders.createdAt, endDate));
+    if (startDate) {orderConditions.push(gte(orders.createdAt, startDate));}
+    if (endDate) {orderConditions.push(lte(orders.createdAt, endDate));}
     const orderWhere = orderConditions.length > 0 ? and(...orderConditions) : undefined;
 
     // Total revenue
@@ -125,8 +125,8 @@ analyticsRoutes.get('/dashboard', validateQuery(dateRangeSchema), async (req, re
 
     // Total customers
     const customerConditions = [];
-    if (startDate) customerConditions.push(gte(customers.createdAt, startDate));
-    if (endDate) customerConditions.push(lte(customers.createdAt, endDate));
+    if (startDate) {customerConditions.push(gte(customers.createdAt, startDate));}
+    if (endDate) {customerConditions.push(lte(customers.createdAt, endDate));}
     const customerWhere = customerConditions.length > 0 ? and(...customerConditions) : undefined;
 
     const [customerResult] = await db
@@ -232,8 +232,8 @@ analyticsRoutes.get('/sales', validateQuery(dateRangeSchema), async (req, res, n
     }
 
     const conditions = [eq(orders.paymentStatus, 'paid')];
-    if (startDate) conditions.push(gte(orders.createdAt, startDate));
-    if (endDate) conditions.push(lte(orders.createdAt, endDate));
+    if (startDate) {conditions.push(gte(orders.createdAt, startDate));}
+    if (endDate) {conditions.push(lte(orders.createdAt, endDate));}
 
     // Create the period expression as a reusable SQL fragment
     const periodExpr = sql`TO_CHAR(${orders.createdAt}, ${sql.raw(`'${dateFormat}'`)})`;
@@ -271,8 +271,8 @@ analyticsRoutes.get('/sales/by-status', validateQuery(dateRangeSchema), async (r
     const { startDate, endDate } = getDateRange(req.query);
 
     const conditions = [];
-    if (startDate) conditions.push(gte(orders.createdAt, startDate));
-    if (endDate) conditions.push(lte(orders.createdAt, endDate));
+    if (startDate) {conditions.push(gte(orders.createdAt, startDate));}
+    if (endDate) {conditions.push(lte(orders.createdAt, endDate));}
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
     const statusData = await db
@@ -310,8 +310,8 @@ analyticsRoutes.get('/products/top-selling', validateQuery(dateRangeSchema), asy
     const limit = parseInt(req.query['limit'] as string) || 10;
 
     const conditions = [];
-    if (startDate) conditions.push(gte(orders.createdAt, startDate));
-    if (endDate) conditions.push(lte(orders.createdAt, endDate));
+    if (startDate) {conditions.push(gte(orders.createdAt, startDate));}
+    if (endDate) {conditions.push(lte(orders.createdAt, endDate));}
 
     // Only count delivered/completed orders
     conditions.push(eq(orders.paymentStatus, 'paid'));
@@ -416,8 +416,8 @@ analyticsRoutes.get('/customers/overview', validateQuery(dateRangeSchema), async
     const { startDate, endDate } = getDateRange(req.query);
 
     const conditions = [];
-    if (startDate) conditions.push(gte(customers.createdAt, startDate));
-    if (endDate) conditions.push(lte(customers.createdAt, endDate));
+    if (startDate) {conditions.push(gte(customers.createdAt, startDate));}
+    if (endDate) {conditions.push(lte(customers.createdAt, endDate));}
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
     // Total customers
@@ -500,8 +500,8 @@ analyticsRoutes.get('/customers/new', validateQuery(dateRangeSchema), async (req
     }
 
     const conditions = [];
-    if (startDate) conditions.push(gte(customers.createdAt, startDate));
-    if (endDate) conditions.push(lte(customers.createdAt, endDate));
+    if (startDate) {conditions.push(gte(customers.createdAt, startDate));}
+    if (endDate) {conditions.push(lte(customers.createdAt, endDate));}
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
     const customerData = await db
@@ -541,8 +541,8 @@ analyticsRoutes.get('/revenue/breakdown', validateQuery(dateRangeSchema), async 
     const { startDate, endDate } = getDateRange(req.query);
 
     const conditions = [eq(orders.paymentStatus, 'paid')];
-    if (startDate) conditions.push(gte(orders.createdAt, startDate));
-    if (endDate) conditions.push(lte(orders.createdAt, endDate));
+    if (startDate) {conditions.push(gte(orders.createdAt, startDate));}
+    if (endDate) {conditions.push(lte(orders.createdAt, endDate));}
 
     const [breakdown] = await db
       .select({
@@ -579,8 +579,8 @@ analyticsRoutes.get('/revenue/by-payment-method', validateQuery(dateRangeSchema)
     const { startDate, endDate } = getDateRange(req.query);
 
     const conditions = [eq(orders.paymentStatus, 'paid')];
-    if (startDate) conditions.push(gte(orders.createdAt, startDate));
-    if (endDate) conditions.push(lte(orders.createdAt, endDate));
+    if (startDate) {conditions.push(gte(orders.createdAt, startDate));}
+    if (endDate) {conditions.push(lte(orders.createdAt, endDate));}
 
     const byPaymentMethod = await db
       .select({
@@ -662,8 +662,8 @@ analyticsRoutes.get('/export', validateQuery(dateRangeSchema), async (req, res, 
 
     // Gather all analytics data
     const conditions = [];
-    if (startDate) conditions.push(gte(orders.createdAt, startDate));
-    if (endDate) conditions.push(lte(orders.createdAt, endDate));
+    if (startDate) {conditions.push(gte(orders.createdAt, startDate));}
+    if (endDate) {conditions.push(lte(orders.createdAt, endDate));}
 
     // Get all orders in range
     const orderData = await db
@@ -681,8 +681,8 @@ analyticsRoutes.get('/export', validateQuery(dateRangeSchema), async (req, res, 
 
     // Get customer data
     const customerConditions = [];
-    if (startDate) customerConditions.push(gte(customers.createdAt, startDate));
-    if (endDate) customerConditions.push(lte(customers.createdAt, endDate));
+    if (startDate) {customerConditions.push(gte(customers.createdAt, startDate));}
+    if (endDate) {customerConditions.push(lte(customers.createdAt, endDate));}
 
     const customerData = await db
       .select({

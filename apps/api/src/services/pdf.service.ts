@@ -90,7 +90,7 @@ export class PDFService {
    * Converts HTML tags to readable plain text format
    */
   private parseHtmlToText(html: string): string {
-    if (!html) return '';
+    if (!html) {return '';}
 
     let text = html;
 
