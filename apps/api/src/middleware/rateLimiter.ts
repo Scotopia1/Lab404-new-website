@@ -71,3 +71,27 @@ export const cronLimiter = rateLimit({
     sendError(res, 429, 'TOO_MANY_REQUESTS', 'Too many cron requests, please try again later');
   },
 });
+
+/**
+ * Verification code rate limiter - 3 requests per hour
+ * Rate limited by email address from request body (fallback to IP)
+ * For verification code generation endpoints (password reset, email verification)
+ */
+export const verificationLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 3, // 3 requests per hour
+
+  // Rate limit by email address from request body, fallback to IP
+  keyGenerator: (req) => {
+    const email = req.body?.email;
+    return email ? email.toLowerCase() : req.ip;
+  },
+
+  standardHeaders: true,
+  legacyHeaders: false,
+
+  handler: (_req, res) => {
+    sendError(res, 429, 'TOO_MANY_REQUESTS',
+      'Too many verification code requests. Please try again in 1 hour.');
+  },
+});
