@@ -10,6 +10,7 @@ import { errorHandler, notFoundHandler, defaultLimiter } from './middleware';
 import { logger } from './utils/logger';
 import { generateCsrfToken, doubleCsrfProtection } from './middleware/csrf';
 import { xssSanitize } from './middleware/xss';
+import { requestIdMiddleware } from './middleware/request-id';
 
 // Import routes
 import { router } from './routes';
@@ -22,6 +23,13 @@ export function createApp() {
 
   // Trust proxy for Vercel/cloud deployments
   app.set('trust proxy', 1);
+
+  // ===========================================
+  // Request Identification
+  // ===========================================
+
+  // Generate unique ID for each request (for audit logging & correlation)
+  app.use(requestIdMiddleware);
 
   // ===========================================
   // Security Middleware
