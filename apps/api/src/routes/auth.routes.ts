@@ -399,15 +399,30 @@ authRoutes.get('/me', requireAuth, async (req, res, next) => {
  * POST /api/auth/logout
  * Logout current user (clear auth cookie)
  */
-authRoutes.post('/logout', requireAuth, (_req, res) => {
-  // Clear the auth cookie
-  res.clearCookie('auth_token', {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
-  });
+authRoutes.post('/logout', requireAuth, async (req, res, next) => {
+  try {
+    const sessionId = req.user?.sessionId;
 
-  sendSuccess(res, { message: 'Logged out successfully' });
+    // Revoke session if present
+    if (sessionId) {
+      await sessionService.revokeSession(sessionId, 'user_action');
+      logger.info('Session revoked on logout', {
+        sessionId,
+        customerId: req.user?.customerId,
+      });
+    }
+
+    // Clear the auth cookie
+    res.clearCookie('auth_token', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+    });
+
+    sendSuccess(res, { message: 'Logged out successfully' });
+  } catch (error) {
+    next(error);
+  }
 });
 
 /**
