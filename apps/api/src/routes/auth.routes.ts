@@ -285,6 +285,24 @@ authRoutes.post(
         throw new UnauthorizedError('Invalid email or password');
       }
 
+      // Check email verification status
+      if (!customer.emailVerified) {
+        logger.info('Login blocked: Email not verified', {
+          email: customer.email,
+          customerId: customer.id,
+        });
+
+        return sendError(
+          res,
+          'Email not verified. Please check your inbox for the verification code.',
+          403,
+          {
+            code: 'EMAIL_NOT_VERIFIED',
+            email: customer.email,
+          }
+        );
+      }
+
       // Generate JWT token
       const token = generateToken({
         userId: customer.authUserId!,
