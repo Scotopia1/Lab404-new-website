@@ -82,8 +82,22 @@ export function createApp() {
 
   // CSRF Protection - Apply after cookie parser, skip for safe methods and health checks
   app.use((req, res, next) => {
-    // Skip CSRF for safe methods and health checks
-    if (['GET', 'HEAD', 'OPTIONS'].includes(req.method) || req.path === '/health' || req.path === '/api/health') {
+    // Skip CSRF for safe methods, health checks, and public auth endpoints
+    const publicAuthPaths = [
+      '/api/auth/login',
+      '/api/auth/register',
+      '/api/auth/forgot-password',
+      '/api/auth/verify-reset-code',
+      '/api/auth/reset-password',
+      '/api/auth/verify-email',
+    ];
+
+    if (
+      ['GET', 'HEAD', 'OPTIONS'].includes(req.method) ||
+      req.path === '/health' ||
+      req.path === '/api/health' ||
+      publicAuthPaths.includes(req.path)
+    ) {
       return next();
     }
     doubleCsrfProtection(req, res, next);
