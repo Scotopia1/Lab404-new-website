@@ -29,6 +29,20 @@
       "when": 1767657250084,
       "tag": "0003_solid_meggan",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1767923144200,
+      "tag": "0004_burly_morlocks",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1767972438867,
+      "tag": "0005_jittery_firestar",
+      "breakpoints": true
     }
   ]
 }

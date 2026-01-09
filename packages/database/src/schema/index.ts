@@ -40,3 +40,12 @@ export * from './verificationCodes';
 
 // Sessions
 export * from './sessions';
+
+// Password History
+export * from './passwordHistory';
+
+// Login Attempts
+export * from './loginAttempts';
+
+// Breach Checks
+export * from './breachChecks';
