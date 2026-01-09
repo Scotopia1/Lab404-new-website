@@ -11,6 +11,7 @@ import { verificationCodeService } from '../services';
 import { notificationService } from '../services/notification.service';
 import { sessionService } from '../services/session.service';
 import { PasswordSecurityService } from '../services/password-security.service';
+import { LoginAttemptService } from '../services/login-attempt.service';
 import { xssSanitize } from '../middleware/xss';
 import { logger } from '../utils/logger';
 
@@ -265,30 +266,91 @@ authRoutes.post(
   async (req, res, next) => {
     try {
       const { email, password } = req.body;
+      const normalizedEmail = email.toLowerCase();
       const db = getDb();
+
+      // Extract device info for logging
+      const deviceInfo = {
+        ipAddress: req.ip || req.socket.remoteAddress || '',
+        userAgent: req.headers['user-agent'],
+      };
+
+      // Check lockout status BEFORE any other checks
+      const lockoutStatus = await LoginAttemptService.checkLockoutStatus(normalizedEmail);
+      if (lockoutStatus.isLocked) {
+        const remainingTime = LoginAttemptService.formatRemainingTime(
+          lockoutStatus.remainingTime || 0
+        );
+
+        logger.warn('Login blocked: Account locked', {
+          email: normalizedEmail,
+          remainingTime,
+        });
+
+        return sendError(
+          res,
+          `Account temporarily locked due to too many failed login attempts. Please try again in ${remainingTime}.`,
+          403,
+          {
+            code: 'ACCOUNT_LOCKED',
+            lockoutEndTime: lockoutStatus.lockoutEndTime?.toISOString(),
+            remainingTime: lockoutStatus.remainingTime,
+          }
+        );
+      }
 
       // Find customer by email
       const [customer] = await db
         .select()
         .from(customers)
-        .where(eq(customers.email, email.toLowerCase()));
+        .where(eq(customers.email, normalizedEmail));
 
       if (!customer || customer.isGuest) {
+        // Record failed attempt (no customer ID)
+        await LoginAttemptService.recordAttempt(
+          normalizedEmail,
+          false,
+          null,
+          'invalid_credentials',
+          deviceInfo
+        );
         throw new UnauthorizedError('Invalid email or password');
       }
 
       // Verify password against stored hash
       if (!customer.passwordHash) {
+        await LoginAttemptService.recordAttempt(
+          normalizedEmail,
+          false,
+          customer.id,
+          'invalid_credentials',
+          deviceInfo
+        );
         throw new UnauthorizedError('Invalid email or password');
       }
 
       const isPasswordValid = await bcrypt.compare(password, customer.passwordHash);
       if (!isPasswordValid) {
+        await LoginAttemptService.recordAttempt(
+          normalizedEmail,
+          false,
+          customer.id,
+          'invalid_credentials',
+          deviceInfo
+        );
         throw new UnauthorizedError('Invalid email or password');
       }
 
       // Check email verification status
       if (!customer.emailVerified) {
+        await LoginAttemptService.recordAttempt(
+          normalizedEmail,
+          false,
+          customer.id,
+          'email_unverified',
+          deviceInfo
+        );
+
         logger.info('Login blocked: Email not verified', {
           email: customer.email,
           customerId: customer.id,
@@ -304,6 +366,36 @@ authRoutes.post(
           }
         );
       }
+
+      // Check if account is disabled
+      if (!customer.isActive) {
+        await LoginAttemptService.recordAttempt(
+          normalizedEmail,
+          false,
+          customer.id,
+          'account_disabled',
+          deviceInfo
+        );
+
+        logger.warn('Login blocked: Account disabled', {
+          email: customer.email,
+          customerId: customer.id,
+        });
+
+        throw new UnauthorizedError('Account is disabled. Please contact support.');
+      }
+
+      // Record successful login attempt
+      await LoginAttemptService.recordAttempt(
+        normalizedEmail,
+        true,
+        customer.id,
+        null,
+        deviceInfo
+      );
+
+      // Clear any failed attempts and unlock account
+      await LoginAttemptService.clearFailedAttempts(normalizedEmail);
 
       // Create session
       const sessionId = await sessionService.createSession({
@@ -330,6 +422,12 @@ authRoutes.post(
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'strict',
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      });
+
+      logger.info('Login successful', {
+        email: customer.email,
+        customerId: customer.id,
+        sessionId,
       });
 
       sendSuccess(res, {
