@@ -12,6 +12,7 @@ export const customers = pgTable('customers', {
 
   // Authentication
   passwordHash: varchar('password_hash', { length: 255 }),
+  role: varchar('role', { length: 20 }).default('customer').notNull(), // 'customer' | 'admin'
 
   // Email verification
   emailVerified: boolean('email_verified').default(false).notNull(),

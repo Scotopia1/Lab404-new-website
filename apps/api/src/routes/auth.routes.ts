@@ -502,7 +502,7 @@ authRoutes.post(
       const token = generateToken({
         userId: customer.authUserId!,
         email: customer.email,
-        role: 'customer',
+        role: (customer.role || 'customer') as 'customer' | 'admin',
         customerId: customer.id,
         sessionId,
       });
@@ -542,7 +542,7 @@ authRoutes.post(
         user: {
           id: customer.authUserId,
           email: customer.email,
-          role: 'customer',
+          role: (customer.role || 'customer') as 'customer' | 'admin',
           customerId: customer.id,
           firstName: customer.firstName,
           lastName: customer.lastName,
