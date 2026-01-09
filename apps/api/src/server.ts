@@ -3,6 +3,7 @@ import { config, validateConfig } from './config';
 import { logger } from './utils/logger';
 import { startSessionCleanupJob } from './jobs/session-cleanup.job';
 import { startAuditLogCleanupJob } from './jobs/audit-log-cleanup.job';
+import { startIpReputationCleanupJob } from './jobs/ip-reputation-cleanup.job';
 
 /**
  * Start the server
@@ -35,6 +36,9 @@ async function start() {
 
       // Start audit log cleanup cron job
       startAuditLogCleanupJob();
+
+      // Start IP reputation cleanup cron job
+      startIpReputationCleanupJob();
 
       if (config.isDev) {
         console.log(`
