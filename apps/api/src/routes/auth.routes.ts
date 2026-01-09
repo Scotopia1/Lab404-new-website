@@ -423,3 +423,83 @@ authRoutes.post(
     }
   }
 );
+
+/**
+ * POST /api/auth/forgot-password
+ * Request password reset code
+ * Rate limited: 3 requests per hour per email
+ */
+authRoutes.post(
+  '/forgot-password',
+  verificationLimiter,
+  xssSanitize,
+  validateBody(forgotPasswordSchema),
+  async (req, res, next) => {
+    try {
+      const { email } = req.body;
+      const db = getDb();
+
+      // Look up customer by email (case-insensitive)
+      const [customer] = await db
+        .select()
+        .from(customers)
+        .where(eq(customers.email, email.toLowerCase()))
+        .limit(1);
+
+      // Security: Always return success (prevent user enumeration)
+      // Process reset only if customer exists, is active, and not guest
+      if (customer && customer.isActive && !customer.isGuest && customer.passwordHash) {
+        // Create verification code
+        const code = await verificationCodeService.createCode({
+          email: customer.email,
+          type: 'password_reset',
+          ipAddress: req.ip,
+          expiryMinutes: 15,
+        });
+
+        // Send verification code email
+        const emailSent = await notificationService.sendVerificationCode({
+          email: customer.email,
+          code,
+          type: 'password_reset',
+          expiryMinutes: 15,
+        });
+
+        if (!emailSent) {
+          logger.error('Failed to send password reset email', {
+            email: customer.email,
+            code
+          });
+        }
+
+        logger.info('Password reset code sent', {
+          email: customer.email,
+          ip: req.ip
+        });
+      } else {
+        // Log attempt for security monitoring
+        const reason = !customer ? 'not_found'
+          : !customer.isActive ? 'inactive'
+          : customer.isGuest ? 'guest'
+          : !customer.passwordHash ? 'no_password'
+          : 'unknown';
+
+        logger.warn('Password reset attempt for invalid account', {
+          email,
+          reason,
+          ip: req.ip
+        });
+
+        // Small delay to prevent timing attacks
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+
+      // Always return success message (security: no user enumeration)
+      sendSuccess(res, {
+        message: 'If an account exists with this email, a verification code has been sent.',
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
