@@ -3,10 +3,14 @@ import { z } from 'zod';
 import bcrypt from 'bcryptjs';
 import { getDb, customers, eq } from '@lab404/database';
 import { validateBody } from '../middleware/validator';
-import { authLimiter } from '../middleware/rateLimiter';
+import { authLimiter, verificationLimiter } from '../middleware/rateLimiter';
 import { requireAuth, generateToken, getTokenExpiration } from '../middleware/auth';
 import { sendSuccess, sendError } from '../utils/response';
-import { ConflictError, NotFoundError, UnauthorizedError } from '../utils/errors';
+import { ConflictError, NotFoundError, UnauthorizedError, BadRequestError } from '../utils/errors';
+import { verificationCodeService } from '../services';
+import { notificationService } from '../services/notification.service';
+import { xssSanitize } from '../middleware/xss';
+import { logger } from '../utils/logger';
 
 export const authRoutes = Router();
 
@@ -71,6 +75,41 @@ const loginSchema = z.object({
     .email('Invalid email format')
     .transform(sanitizeEmail),
   password: z.string().min(1, 'Password is required'),
+});
+
+const forgotPasswordSchema = z.object({
+  email: z.string()
+    .email('Invalid email format')
+    .max(255)
+    .transform(sanitizeEmail),
+});
+
+const verifyResetCodeSchema = z.object({
+  email: z.string()
+    .email('Invalid email format')
+    .transform(sanitizeEmail),
+  code: z.string()
+    .length(6, 'Code must be 6 digits')
+    .regex(/^\d+$/, 'Code must contain only digits'),
+});
+
+const resetPasswordSchema = z.object({
+  email: z.string()
+    .email('Invalid email format')
+    .transform(sanitizeEmail),
+  code: z.string()
+    .length(6, 'Code must be 6 digits')
+    .regex(/^\d+$/, 'Code must contain only digits'),
+  newPassword: z.string()
+    .min(8, 'Password must be at least 8 characters')
+    .max(100)
+    .refine(isStrongPassword, {
+      message: 'Password must contain uppercase, lowercase, and number'
+    })
+    .refine(
+      (p) => !WEAK_PASSWORDS.includes(p.toLowerCase()),
+      { message: 'Password is too common. Please choose a stronger password.' }
+    ),
 });
 
 // ===========================================
