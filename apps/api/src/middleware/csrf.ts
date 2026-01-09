@@ -9,7 +9,7 @@ const {
   cookieName: 'x-csrf-token',
   cookieOptions: {
     httpOnly: true,
-    sameSite: 'strict',
+    sameSite: process.env['NODE_ENV'] === 'production' ? 'none' : 'lax',
     secure: process.env['NODE_ENV'] === 'production',
     path: '/',
   },
