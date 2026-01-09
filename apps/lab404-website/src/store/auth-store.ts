@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { api } from '@/lib/api';
 import { User, AuthResponse } from '@/types/auth';
+import { Session } from '@/types/session';
 import { AxiosError } from 'axios';
 
 import { LoginFormData, RegisterFormData } from '@/lib/validations';
@@ -36,6 +37,10 @@ interface AuthState {
     error: string | null;
     verificationPending: boolean;
     pendingEmail: string | null;
+    currentSessionId: string | null;
+    activeSessions: Session[];
+    sessionsLoading: boolean;
+    sessionsError: string | null;
     login: (credentials: LoginFormData) => Promise<void>;
     register: (data: RegisterFormData) => Promise<void>;
     logout: () => Promise<void>;
@@ -46,6 +51,10 @@ interface AuthState {
     verifyEmail: (email: string, code: string) => Promise<void>;
     resendVerificationEmail: (email: string) => Promise<void>;
     setVerificationPending: (email: string | null) => void;
+    fetchActiveSessions: () => Promise<void>;
+    revokeSession: (sessionId: string) => Promise<void>;
+    logoutOthers: () => Promise<{ message: string; count: number }>;
+    logoutAll: () => Promise<{ message: string; count: number }>;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -57,6 +66,10 @@ export const useAuthStore = create<AuthState>()(
             error: null,
             verificationPending: false,
             pendingEmail: null,
+            currentSessionId: null,
+            activeSessions: [],
+            sessionsLoading: false,
+            sessionsError: null,
 
             login: async (credentials: LoginFormData) => {
                 set({ isLoading: true, error: null });
@@ -245,6 +258,91 @@ export const useAuthStore = create<AuthState>()(
                     verificationPending: !!email,
                     pendingEmail: email,
                 });
+            },
+
+            /**
+             * Fetch all active sessions
+             */
+            fetchActiveSessions: async () => {
+                set({ sessionsLoading: true, sessionsError: null });
+                try {
+                    const response = await api.get<{ success: boolean; data: { sessions: Session[]; currentSessionId: string } }>('/auth/sessions');
+                    set({
+                        activeSessions: response.data.data.sessions,
+                        currentSessionId: response.data.data.currentSessionId,
+                        sessionsLoading: false,
+                    });
+                } catch (error) {
+                    const err = error as AxiosError<{ error: { message: string } }>;
+                    const message = err.response?.data?.error?.message || 'Failed to fetch sessions';
+                    set({ sessionsError: message, sessionsLoading: false });
+                    throw new Error(message);
+                }
+            },
+
+            /**
+             * Revoke specific session
+             */
+            revokeSession: async (sessionId: string) => {
+                set({ sessionsLoading: true, sessionsError: null });
+                try {
+                    await api.delete(`/auth/sessions/${sessionId}`);
+                    // Remove session from local state
+                    set((state) => ({
+                        activeSessions: state.activeSessions.filter((s) => s.id !== sessionId),
+                        sessionsLoading: false,
+                    }));
+                } catch (error) {
+                    const err = error as AxiosError<{ error: { message: string } }>;
+                    const message = err.response?.data?.error?.message || 'Failed to revoke session';
+                    set({ sessionsError: message, sessionsLoading: false });
+                    throw new Error(message);
+                }
+            },
+
+            /**
+             * Logout all other sessions
+             */
+            logoutOthers: async () => {
+                set({ sessionsLoading: true, sessionsError: null });
+                try {
+                    const response = await api.post<{ success: boolean; data: { message: string; count: number } }>('/auth/sessions/logout-others');
+                    // Keep only current session
+                    set((state) => ({
+                        activeSessions: state.activeSessions.filter((s) => s.isCurrent),
+                        sessionsLoading: false,
+                    }));
+                    return response.data.data;
+                } catch (error) {
+                    const err = error as AxiosError<{ error: { message: string } }>;
+                    const message = err.response?.data?.error?.message || 'Failed to logout others';
+                    set({ sessionsError: message, sessionsLoading: false });
+                    throw new Error(message);
+                }
+            },
+
+            /**
+             * Logout all sessions
+             */
+            logoutAll: async () => {
+                set({ sessionsLoading: true, sessionsError: null });
+                try {
+                    const response = await api.post<{ success: boolean; data: { message: string; count: number } }>('/auth/sessions/logout-all');
+                    // Clear all state (user logged out)
+                    set({
+                        user: null,
+                        isAuthenticated: false,
+                        currentSessionId: null,
+                        activeSessions: [],
+                        sessionsLoading: false,
+                    });
+                    return response.data.data;
+                } catch (error) {
+                    const err = error as AxiosError<{ error: { message: string } }>;
+                    const message = err.response?.data?.error?.message || 'Failed to logout all';
+                    set({ sessionsError: message, sessionsLoading: false });
+                    throw new Error(message);
+                }
             },
         }),
         {
