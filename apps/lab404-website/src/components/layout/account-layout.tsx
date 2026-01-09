@@ -4,7 +4,7 @@ import MainLayout from '@/components/layout/main-layout';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { User, Package, MapPin, LogOut } from 'lucide-react';
+import { User, Package, MapPin, LogOut, Shield } from 'lucide-react';
 import { useAuthStore } from '@/store/auth-store';
 import { Button } from '@/components/ui/button';
 
@@ -23,6 +23,11 @@ const sidebarItems = [
         title: 'Addresses',
         href: '/account/addresses',
         icon: MapPin,
+    },
+    {
+        title: 'Security',
+        href: '/account/security',
+        icon: Shield,
     },
 ];
 
