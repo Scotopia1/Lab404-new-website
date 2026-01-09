@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import rateLimit, { Options as RateLimitOptions } from 'express-rate-limit';
+import rateLimit, { Options as RateLimitOptions, RateLimitInfo } from 'express-rate-limit';
 import { ipReputationService } from '../services/ip-reputation.service';
 import { sendError } from '../utils/response';
 import { logger } from '../utils/logger';
@@ -12,7 +12,7 @@ import { logger } from '../utils/logger';
  * - Blocks low-reputation IPs (score < 20)
  * - Stricter limits for suspicious IPs (score < 50)
  * - Rate limit violation tracking
- * - Standard rate limit headers
+ * - Standard rate limit headers (X-RateLimit-*)
  * - Retry-After header on 429 responses
  */
 
@@ -23,6 +23,14 @@ interface EnhancedRateLimiterOptions {
   skipSuccessfulRequests?: boolean;
   skipFailedRequests?: boolean;
   message?: string;
+}
+
+// In-memory store for tracking rate limits per IP
+interface RateLimitStore {
+  [key: string]: {
+    count: number;
+    resetTime: number;
+  };
 }
 
 /**
@@ -72,10 +80,14 @@ export function createEnhancedRateLimiter(options: EnhancedRateLimiterOptions) {
       }
 
       // Create dynamic rate limiter for this request
+      // standardHeaders: true automatically adds:
+      // - X-RateLimit-Limit
+      // - X-RateLimit-Remaining
+      // - X-RateLimit-Reset
       const limiter = rateLimit({
         windowMs: options.windowMs,
         max: maxRequests,
-        standardHeaders: true,
+        standardHeaders: true, // Adds X-RateLimit-* headers automatically
         legacyHeaders: false,
         skipSuccessfulRequests: options.skipSuccessfulRequests,
         skipFailedRequests: options.skipFailedRequests,
@@ -89,16 +101,20 @@ export function createEnhancedRateLimiter(options: EnhancedRateLimiterOptions) {
             reason: 'Rate limit exceeded',
           });
 
-          // Calculate retry after time
+          // Calculate retry after time in seconds
           const retryAfter = Math.ceil(options.windowMs / 1000);
 
-          // Add rate limit headers
+          // Add rate limit headers (reinforce standardHeaders)
+          // X-RateLimit-Limit: Maximum requests allowed
           res.setHeader('X-RateLimit-Limit', maxRequests.toString());
+          // X-RateLimit-Remaining: Requests remaining (0 when exceeded)
           res.setHeader('X-RateLimit-Remaining', '0');
+          // X-RateLimit-Reset: ISO timestamp when limit resets
           res.setHeader(
             'X-RateLimit-Reset',
             new Date(Date.now() + options.windowMs).toISOString()
           );
+          // Retry-After: Seconds to wait before retrying (RFC 6585)
           res.setHeader('Retry-After', retryAfter.toString());
 
           logger.warn('Rate limit exceeded', {
