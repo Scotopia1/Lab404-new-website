@@ -24,6 +24,7 @@ import { searchRoutes } from './search.routes';
 import { googleImagesRoutes } from './google-images.routes';
 import { pdfTemplatesRoutes } from './pdfTemplates.routes';
 import { cronRoutes } from './cron.routes';
+import { adminRoutes } from './admin.routes';
 
 export const router = Router();
 
@@ -104,6 +105,9 @@ router.use('/google-images', googleImagesRoutes);
 
 // PDF Templates (Admin only)
 router.use('/pdf-templates', pdfTemplatesRoutes);
+
+// Admin (Admin only)
+router.use('/admin', adminRoutes);
 
 // Cron Jobs (Protected by secret)
 router.use('/cron', cronRoutes);
