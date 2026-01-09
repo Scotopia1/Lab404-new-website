@@ -6,6 +6,29 @@ import { AxiosError } from 'axios';
 
 import { LoginFormData, RegisterFormData } from '@/lib/validations';
 
+interface ForgotPasswordResponse {
+    success: boolean;
+    data: {
+        message: string;
+    };
+}
+
+interface VerifyCodeResponse {
+    success: boolean;
+    data: {
+        valid: boolean;
+    };
+}
+
+interface ResetPasswordResponse {
+    success: boolean;
+    data: {
+        user: User;
+        token: string;
+        expiresAt: string;
+    };
+}
+
 interface AuthState {
     user: User | null;
     isAuthenticated: boolean;
@@ -15,6 +38,9 @@ interface AuthState {
     register: (data: RegisterFormData) => Promise<void>;
     logout: () => Promise<void>;
     checkAuth: () => Promise<void>;
+    forgotPassword: (email: string) => Promise<string>;
+    verifyResetCode: (email: string, code: string) => Promise<boolean>;
+    resetPassword: (email: string, code: string, newPassword: string) => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -81,6 +107,79 @@ export const useAuthStore = create<AuthState>()(
                 } catch {
                     // Cookie expired or invalid
                     set({ user: null, isAuthenticated: false });
+                }
+            },
+
+            forgotPassword: async (email: string) => {
+                set({ isLoading: true, error: null });
+                try {
+                    const response = await api.post<ForgotPasswordResponse>('/auth/forgot-password', {
+                        email: email.toLowerCase().trim(),
+                    });
+                    set({ isLoading: false });
+                    return response.data.data.message;
+                } catch (error) {
+                    const err = error as AxiosError<{ error: { message: string } }>;
+                    const errorMsg = err.response?.data?.error?.message || 'Failed to send reset code';
+                    set({ error: errorMsg, isLoading: false });
+                    throw new Error(errorMsg);
+                }
+            },
+
+            verifyResetCode: async (email: string, code: string) => {
+                set({ isLoading: true, error: null });
+                try {
+                    const response = await api.post<VerifyCodeResponse>('/auth/verify-reset-code', {
+                        email: email.toLowerCase().trim(),
+                        code,
+                    });
+                    set({ isLoading: false });
+                    return response.data.data.valid;
+                } catch (error) {
+                    const err = error as AxiosError<{ error: { message: string } }>;
+                    let errorMsg = 'Invalid or expired code';
+
+                    if (err.response?.status === 429) {
+                        errorMsg = 'Too many attempts. Please try again in 1 hour.';
+                    } else if (err.response?.data?.error?.message) {
+                        errorMsg = err.response.data.error.message;
+                    }
+
+                    set({ error: errorMsg, isLoading: false });
+                    throw new Error(errorMsg);
+                }
+            },
+
+            resetPassword: async (email: string, code: string, newPassword: string) => {
+                set({ isLoading: true, error: null });
+                try {
+                    const response = await api.post<ResetPasswordResponse>('/auth/reset-password', {
+                        email: email.toLowerCase().trim(),
+                        code,
+                        newPassword,
+                    });
+
+                    // Auto-login: Update auth state
+                    set({
+                        user: response.data.data.user,
+                        isAuthenticated: true,
+                        isLoading: false,
+                        error: null,
+                    });
+                } catch (error) {
+                    const err = error as AxiosError<{ error: { message: string } }>;
+                    let errorMsg = 'Failed to reset password';
+
+                    if (err.response?.status === 400) {
+                        errorMsg = 'Invalid or expired code';
+                    } else if (err.response?.status === 422) {
+                        errorMsg = err.response?.data?.error?.message || 'Password does not meet requirements';
+                    } else if (err.response?.data?.error?.message) {
+                        errorMsg = err.response.data.error.message;
+                    }
+
+                    set({ error: errorMsg, isLoading: false });
+                    throw new Error(errorMsg);
                 }
             },
         }),
