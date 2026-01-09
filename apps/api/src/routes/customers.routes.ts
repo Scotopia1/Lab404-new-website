@@ -102,6 +102,14 @@ const customerFiltersSchema = z.object({
   isGuest: z.enum(['true', 'false']).optional(),
 });
 
+const auditLogFiltersSchema = z.object({
+  startDate: z.string().optional(),
+  endDate: z.string().optional(),
+  eventType: z.nativeEnum(SecurityEventType).optional(),
+  limit: z.string().optional(),
+  offset: z.string().optional(),
+});
+
 const adminUpdateCustomerSchema = z.object({
   email: z.string()
     .email('Please enter a valid email address')
@@ -1135,6 +1143,49 @@ customersRoutes.get('/me/security/login-attempts', requireAuth, async (req, res,
     next(error);
   }
 });
+
+/**
+ * GET /api/customers/me/audit-logs
+ * Get audit logs for the current customer
+ */
+customersRoutes.get(
+  '/me/audit-logs',
+  requireAuth,
+  validateQuery(auditLogFiltersSchema),
+  async (req, res, next) => {
+    try {
+      const customerId = req.user?.customerId;
+
+      if (!customerId) {
+        throw new ForbiddenError('Customer not found');
+      }
+
+      const {
+        startDate,
+        endDate,
+        eventType,
+        limit,
+        offset,
+      } = req.query;
+
+      // Parse query parameters
+      const filters: Parameters<typeof auditLogService.query>[0] = {
+        actorId: customerId, // Only return logs for this customer
+        startDate: startDate ? new Date(startDate as string) : undefined,
+        endDate: endDate ? new Date(endDate as string) : undefined,
+        eventTypes: eventType ? [eventType as SecurityEventType] : undefined,
+        limit: limit ? parseInt(limit as string, 10) : 50,
+        offset: offset ? parseInt(offset as string, 10) : 0,
+      };
+
+      const logs = await auditLogService.query(filters);
+
+      sendSuccess(res, logs);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
 
 /**
  * POST /api/admin/customers/:id/unlock
