@@ -11,7 +11,7 @@
 
 **Target:** Comprehensive password reset, email verification, session management, and advanced security features
 
-**Status:** 4/10 phases complete (40%)
+**Status:** 5/10 phases complete (50%)
 
 ### Phase Progress
 
@@ -21,7 +21,7 @@
 | 14 | Password Reset Backend API | ✅ Complete | 100% |
 | 15 | Password Reset Frontend Flow | ✅ Complete | 100% |
 | 16 | Security Email Templates | ✅ Complete | 100% |
-| 17 | Email Verification for New Signups | 🔜 Not Started | 0% |
+| 17 | Email Verification for New Signups | ✅ Complete | 100% |
 | 18 | Session Management System | 🔜 Not Started | 0% |
 | 19 | Advanced Password Security | 🔜 Not Started | 0% |
 | 20 | Security Audit Logging | 🔜 Not Started | 0% |
@@ -32,9 +32,9 @@
 
 ## Active Work
 
-**Current Focus:** ✅ Phase 16 complete - Ready to begin Phase 17 - Email Verification for New Signups
+**Current Focus:** ✅ Phase 17 complete - Ready to begin Phase 18 - Session Management System
 
-**Next Up:** Plan Phase 17 implementation
+**Next Up:** Plan Phase 18 implementation
 
 **Security Parameters (v2.0):**
 - Password reset code: 6-digit numeric, 15-minute expiration
@@ -88,6 +88,19 @@ None currently.
   - ✅ Non-blocking email delivery (failures logged, don't prevent password reset)
   - ✅ Created comprehensive test structure documentation (30+ test scenarios)
   - ✅ Consistent styling with existing email templates
+- **2026-01-09:** Phase 17 COMPLETE - Email Verification for New Signups
+  - ✅ Database migration: Added emailVerified and emailVerifiedAt columns to customers table
+  - ✅ Existing users auto-verified (zero disruption to production)
+  - ✅ Added sendEmailVerification() method with professional welcome email template
+  - ✅ POST /api/auth/verify-email - Verify code with auto-login
+  - ✅ POST /api/auth/resend-verification - Resend code (no user enumeration)
+  - ✅ Modified registration: No auto-login, sends verification email
+  - ✅ Modified login: Blocks unverified users with clear error message
+  - ✅ Frontend: Email verification form with paste support, resend cooldown
+  - ✅ Frontend: /verify-email page with mobile-optimized inputs
+  - ✅ Frontend: Registration/login flows redirect to verification
+  - ✅ Security: Rate limiting (3 req/hour), code invalidation, 15-min expiration
+  - ✅ Created comprehensive test structure documentation (60+ test scenarios)
 
 ### v1.0 Decisions (Archived)
 - **2026-01-08:** Mode set to YOLO (auto-approve)
