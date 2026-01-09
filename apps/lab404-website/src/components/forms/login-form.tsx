@@ -22,7 +22,7 @@ import { Loader2 } from 'lucide-react';
 
 export function LoginForm() {
     const router = useRouter();
-    const { login, isLoading, error } = useAuthStore();
+    const { login, isLoading, error, setVerificationPending } = useAuthStore();
 
     const form = useForm<LoginFormData>({
         resolver: zodResolver(loginSchema),
@@ -36,9 +36,16 @@ export function LoginForm() {
         try {
             await login(data);
             router.push('/account/profile'); // Redirect to profile or home
-        } catch {
-            // Error is handled in store, but we can also set local state if needed
-            // Store error is already available via hook
+        } catch (err: any) {
+            // Check if error is EMAIL_NOT_VERIFIED
+            if (err?.message?.includes('not verified')) {
+                // Set verification pending
+                setVerificationPending(data.email);
+
+                // Redirect to verification page
+                router.push(`/verify-email?email=${encodeURIComponent(data.email)}`);
+            }
+            // Other errors are handled by store
         }
     }
 
