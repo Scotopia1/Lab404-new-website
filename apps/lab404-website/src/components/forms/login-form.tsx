@@ -85,6 +85,15 @@ export function LoginForm() {
                             )}
                         />
 
+                        <div className="flex justify-end">
+                            <Link
+                                href="/reset-password"
+                                className="text-sm text-primary hover:underline"
+                            >
+                                Forgot password?
+                            </Link>
+                        </div>
+
                         <Button type="submit" className="w-full" disabled={isLoading}>
                             {isLoading ? (
                                 <>
