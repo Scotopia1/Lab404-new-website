@@ -575,6 +575,74 @@ class NotificationService {
   }
 
   /**
+   * Send email verification code for new account registration
+   * Welcomes user and provides 6-digit verification code
+   */
+  async sendEmailVerification(data: {
+    email: string;
+    firstName: string | null;
+    code: string;
+    expiryMinutes: number;
+  }): Promise<boolean> {
+    const { email, firstName, code, expiryMinutes } = data;
+    const companyName = process.env.COMPANY_NAME || 'Lab404 Electronics';
+
+    const greeting = firstName ? `Hello ${firstName},` : 'Hello,';
+
+    const html = this.wrapCustomerTemplate(`
+      <div style="text-align: center; margin-bottom: 24px;">
+        <div style="display: inline-block; background: #2563eb; color: white; width: 48px; height: 48px; border-radius: 50%; line-height: 48px; font-size: 24px; margin-bottom: 16px;">
+          ✉️
+        </div>
+      </div>
+
+      <h2 style="color: #1f2937; margin-bottom: 24px; text-align: center;">
+        Welcome to ${companyName}!
+      </h2>
+
+      <p style="color: #4b5563; font-size: 16px; line-height: 24px; margin-bottom: 20px;">
+        ${greeting}
+      </p>
+
+      <p style="color: #4b5563; font-size: 16px; line-height: 24px; margin-bottom: 30px;">
+        Thank you for creating an account with us. To complete your registration and activate your account, please verify your email address using the code below.
+      </p>
+
+      <div style="background: #eff6ff; border: 2px solid #2563eb; padding: 24px; border-radius: 8px; margin: 30px 0; text-align: center;">
+        <p style="color: #1e40af; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; margin: 0 0 12px 0;">
+          Your Verification Code
+        </p>
+        <p style="color: #1e3a8a; font-size: 36px; font-weight: bold; letter-spacing: 8px; margin: 0; font-family: 'Courier New', monospace;">
+          ${code}
+        </p>
+      </div>
+
+      <p style="color: #6b7280; font-size: 14px; line-height: 20px; margin-bottom: 20px; text-align: center;">
+        This code will expire in <strong>${expiryMinutes} minutes</strong>.
+      </p>
+
+      <div style="background: #f3f4f6; padding: 16px; border-radius: 8px; margin: 24px 0;">
+        <p style="margin: 0; color: #6b7280; font-size: 14px; line-height: 20px;">
+          <strong>Didn't create an account?</strong><br>
+          If you didn't request this verification code, you can safely ignore this email. Your email address will not be used without verification.
+        </p>
+      </div>
+
+      <p style="color: #6b7280; font-size: 14px; line-height: 20px; margin-top: 30px;">
+        Need help? Contact our support team at <a href="mailto:contact@lab404electronics.com" style="color: #2563eb; text-decoration: none;">contact@lab404electronics.com</a>
+      </p>
+    `, companyName);
+
+    logger.info('Sending email verification code', { email });
+
+    return mailerService.sendEmail({
+      to: email,
+      subject: `Verify Your Email Address - ${companyName}`,
+      html,
+    });
+  }
+
+  /**
    * Send quotation expiry reminder to customer
    */
   async sendQuotationExpiryReminder(
