@@ -13,6 +13,10 @@ export const customers = pgTable('customers', {
   // Authentication
   passwordHash: varchar('password_hash', { length: 255 }),
 
+  // Email verification
+  emailVerified: boolean('email_verified').default(false).notNull(),
+  emailVerifiedAt: timestamp('email_verified_at'),
+
   // Default addresses stored as JSON
   defaultShippingAddress: jsonb('default_shipping_address').$type<{
     firstName: string;
