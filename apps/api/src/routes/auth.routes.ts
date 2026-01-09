@@ -10,6 +10,7 @@ import { ConflictError, NotFoundError, UnauthorizedError, BadRequestError } from
 import { verificationCodeService } from '../services';
 import { notificationService } from '../services/notification.service';
 import { sessionService } from '../services/session.service';
+import { PasswordSecurityService } from '../services/password-security.service';
 import { xssSanitize } from '../middleware/xss';
 import { logger } from '../utils/logger';
 
@@ -972,6 +973,79 @@ authRoutes.post(
       sendSuccess(res, {
         message: 'If an unverified account exists, a verification code has been sent.',
       });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+/**
+ * POST /api/auth/password/check
+ * Check password strength and breach status
+ *
+ * Request body:
+ * {
+ *   password: string,
+ *   email?: string,        // Optional: for personalized feedback
+ *   customerId?: string    // Optional: for history checking
+ * }
+ *
+ * Response:
+ * {
+ *   score: number,         // 0-4 (zxcvbn)
+ *   feedback: {
+ *     warning: string,
+ *     suggestions: string[]
+ *   },
+ *   crackTime: string,
+ *   isBreached: boolean,
+ *   breachCount: number,
+ *   isReused: boolean
+ * }
+ *
+ * Rate limit: 10 requests per 15 minutes
+ */
+const passwordCheckSchema = z.object({
+  password: z.string().min(1),
+  email: z.string().email().optional(),
+  customerId: z.string().uuid().optional(),
+});
+
+authRoutes.post(
+  '/password/check',
+  authLimiter,
+  validateBody(passwordCheckSchema),
+  async (req, res, next) => {
+    try {
+      const { password, email, customerId } = req.body;
+
+      // Build user inputs for personalized feedback
+      const userInputs: string[] = [];
+      if (email) {
+        userInputs.push(email);
+        const emailParts = email.split('@');
+        userInputs.push(emailParts[0]); // Add username part
+      }
+
+      // If customerId provided, check history and breach
+      let result;
+      if (customerId) {
+        const validation = await PasswordSecurityService.validatePassword(
+          password,
+          customerId,
+          userInputs
+        );
+        result = validation.strengthResult;
+      } else {
+        // New user - just check strength and breach
+        const validation = await PasswordSecurityService.validateNewPassword(
+          password,
+          userInputs
+        );
+        result = validation.strengthResult;
+      }
+
+      sendSuccess(res, result);
     } catch (error) {
       next(error);
     }
