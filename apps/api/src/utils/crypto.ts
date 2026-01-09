@@ -29,3 +29,15 @@ export function hashToken(token: string): string {
 export function generateUrlSafeToken(length = 32): string {
   return crypto.randomBytes(length).toString('base64url');
 }
+
+/**
+ * Generate a cryptographically secure 6-digit verification code
+ * @returns 6-digit string (000000-999999)
+ */
+export function generateVerificationCode(): string {
+  // Generate random number between 0 and 999999
+  const code = crypto.randomInt(0, 1000000);
+
+  // Pad with leading zeros to ensure 6 digits
+  return code.toString().padStart(6, '0');
+}
