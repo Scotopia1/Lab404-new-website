@@ -34,6 +34,8 @@ interface AuthState {
     isAuthenticated: boolean;
     isLoading: boolean;
     error: string | null;
+    verificationPending: boolean;
+    pendingEmail: string | null;
     login: (credentials: LoginFormData) => Promise<void>;
     register: (data: RegisterFormData) => Promise<void>;
     logout: () => Promise<void>;
@@ -41,6 +43,9 @@ interface AuthState {
     forgotPassword: (email: string) => Promise<string>;
     verifyResetCode: (email: string, code: string) => Promise<boolean>;
     resetPassword: (email: string, code: string, newPassword: string) => Promise<void>;
+    verifyEmail: (email: string, code: string) => Promise<void>;
+    resendVerificationEmail: (email: string) => Promise<void>;
+    setVerificationPending: (email: string | null) => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -50,6 +55,8 @@ export const useAuthStore = create<AuthState>()(
             isAuthenticated: false,
             isLoading: false,
             error: null,
+            verificationPending: false,
+            pendingEmail: null,
 
             login: async (credentials: LoginFormData) => {
                 set({ isLoading: true, error: null });
@@ -181,6 +188,63 @@ export const useAuthStore = create<AuthState>()(
                     set({ error: errorMsg, isLoading: false });
                     throw new Error(errorMsg);
                 }
+            },
+
+            /**
+             * Verify email address with code
+             * Auto-logs in user after successful verification
+             */
+            verifyEmail: async (email: string, code: string) => {
+                set({ isLoading: true, error: null });
+                try {
+                    const response = await api.post<{ success: boolean; data: AuthResponse }>('/auth/verify-email', {
+                        email: email.toLowerCase().trim(),
+                        code,
+                    });
+
+                    // Update store with verified user
+                    set({
+                        user: response.data.data.user,
+                        isAuthenticated: true,
+                        verificationPending: false,
+                        pendingEmail: null,
+                        isLoading: false,
+                    });
+                } catch (error) {
+                    const err = error as AxiosError<{ error: { message: string } }>;
+                    const errorMsg = err.response?.data?.error?.message || 'Verification failed';
+                    set({ error: errorMsg, isLoading: false });
+                    throw new Error(errorMsg);
+                }
+            },
+
+            /**
+             * Resend verification email
+             */
+            resendVerificationEmail: async (email: string) => {
+                set({ isLoading: true, error: null });
+                try {
+                    await api.post<{ success: boolean; data: { message: string } }>('/auth/resend-verification', {
+                        email: email.toLowerCase().trim(),
+                    });
+
+                    set({ isLoading: false });
+                } catch (error) {
+                    const err = error as AxiosError<{ error: { message: string } }>;
+                    const errorMsg = err.response?.data?.error?.message || 'Failed to resend';
+                    set({ error: errorMsg, isLoading: false });
+                    throw new Error(errorMsg);
+                }
+            },
+
+            /**
+             * Set verification pending state
+             */
+            setVerificationPending: (email: string | null) => {
+                set({
+                    verificationPending: !!email,
+                    pendingEmail: email,
+                });
             },
         }),
         {
