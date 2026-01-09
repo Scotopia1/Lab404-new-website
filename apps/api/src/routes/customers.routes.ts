@@ -6,6 +6,8 @@ import { validateBody, validateQuery } from '../middleware/validator';
 import { requireAuth, requireAdmin } from '../middleware/auth';
 import { sendSuccess, sendCreated, sendNoContent, createPaginationMeta, parsePaginationParams } from '../utils/response';
 import { NotFoundError, ForbiddenError, BadRequestError } from '../utils/errors';
+import { PasswordSecurityService } from '../services/password-security.service';
+import { notificationService } from '../services/notification.service';
 
 export const customersRoutes = Router();
 
@@ -263,9 +265,9 @@ customersRoutes.put(
         throw new ForbiddenError('Customer not found');
       }
 
-      // Get customer with password hash
+      // Get customer with password hash and email
       const [customer] = await db
-        .select({ id: customers.id, passwordHash: customers.passwordHash })
+        .select()
         .from(customers)
         .where(eq(customers.id, customerId));
 
@@ -279,6 +281,18 @@ customersRoutes.put(
         throw new BadRequestError('Current password is incorrect');
       }
 
+      // Validate new password with security checks
+      const userInputs = [customer.email, customer.firstName, customer.lastName].filter(Boolean) as string[];
+      const validation = await PasswordSecurityService.validatePassword(
+        newPassword,
+        customerId,
+        userInputs
+      );
+
+      if (!validation.isValid) {
+        throw new BadRequestError(validation.errors.join('. '));
+      }
+
       // Hash new password
       const newPasswordHash = await bcrypt.hash(newPassword, 12);
 
@@ -290,6 +304,25 @@ customersRoutes.put(
           updatedAt: new Date(),
         })
         .where(eq(customers.id, customerId));
+
+      // Record password change in history
+      await PasswordSecurityService.recordPasswordChange({
+        customerId,
+        passwordHash: newPasswordHash,
+        changeReason: 'user_action',
+        ipAddress: req.ip || req.socket.remoteAddress,
+        userAgent: req.headers['user-agent'],
+      });
+
+      // Send confirmation email (non-blocking)
+      notificationService.sendPasswordChangedConfirmation({
+        email: customer.email,
+        firstName: customer.firstName,
+        changedAt: new Date(),
+        ipAddress: req.ip || req.socket.remoteAddress,
+      }).catch((error) => {
+        console.error('Failed to send password change confirmation:', error);
+      });
 
       sendSuccess(res, { message: 'Password changed successfully' });
     } catch (error) {
