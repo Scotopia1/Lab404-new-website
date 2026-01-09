@@ -49,3 +49,6 @@ export * from './loginAttempts';
 
 // Breach Checks
 export * from './breachChecks';
+
+// Security Audit Logs
+export * from './securityAuditLogs';
