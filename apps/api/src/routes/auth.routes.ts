@@ -93,6 +93,23 @@ const verifyResetCodeSchema = z.object({
     .regex(/^\d+$/, 'Code must contain only digits'),
 });
 
+const verifyEmailSchema = z.object({
+  email: z.string()
+    .email('Invalid email address')
+    .max(255, 'Email too long')
+    .transform(sanitizeEmail),
+  code: z.string()
+    .length(6, 'Code must be 6 digits')
+    .regex(/^\d+$/, 'Code must contain only digits'),
+});
+
+const resendVerificationSchema = z.object({
+  email: z.string()
+    .email('Invalid email address')
+    .max(255, 'Email too long')
+    .transform(sanitizeEmail),
+});
+
 const resetPasswordSchema = z.object({
   email: z.string()
     .email('Invalid email format')
@@ -698,6 +715,206 @@ authRoutes.post(
         },
         token,
         expiresAt: getTokenExpiration().toISOString(),
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+/**
+ * POST /api/auth/verify-email
+ * Verify email address with code and auto-login
+ *
+ * Request body:
+ * {
+ *   email: string,
+ *   code: string
+ * }
+ *
+ * Response:
+ * {
+ *   user: { id, email, emailVerified, firstName, lastName },
+ *   token: string,
+ *   expiresAt: string
+ * }
+ *
+ * Rate limit: 3 requests per hour (via verificationLimiter)
+ * Security: Auto-login after successful verification
+ */
+authRoutes.post(
+  '/verify-email',
+  verificationLimiter,
+  xssSanitize,
+  validateBody(verifyEmailSchema),
+  async (req, res, next) => {
+    try {
+      const { email, code } = req.body;
+      const normalizedEmail = email.toLowerCase().trim();
+      const db = getDb();
+
+      // Validate verification code
+      const isValid = await verificationCodeService.validateCode({
+        email: normalizedEmail,
+        code,
+        type: 'email_verification',
+      });
+
+      if (!isValid) {
+        return sendError(res, 'Invalid or expired verification code.', 400);
+      }
+
+      // Find customer by email
+      const [customer] = await db
+        .select()
+        .from(customers)
+        .where(eq(customers.email, normalizedEmail))
+        .limit(1);
+
+      if (!customer || customer.isGuest) {
+        return sendError(res, 'Invalid verification code.', 400);
+      }
+
+      // Check if already verified
+      if (customer.emailVerified) {
+        return sendError(res, 'Email already verified.', 400);
+      }
+
+      // Update customer: mark email as verified
+      await db
+        .update(customers)
+        .set({
+          emailVerified: true,
+          emailVerifiedAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .where(eq(customers.id, customer.id));
+
+      // Invalidate all email_verification codes for this email
+      await verificationCodeService.invalidateCodes(
+        normalizedEmail,
+        'email_verification'
+      );
+
+      logger.info('Email verified successfully', {
+        email: customer.email,
+        customerId: customer.id,
+      });
+
+      // Generate JWT token (auto-login after verification)
+      const token = generateToken({
+        userId: customer.authUserId!,
+        email: customer.email,
+        role: 'customer',
+        customerId: customer.id,
+      });
+
+      // Set httpOnly cookie
+      res.cookie('auth_token', token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      });
+
+      const user = {
+        id: customer.authUserId,
+        email: customer.email,
+        emailVerified: true,
+        firstName: customer.firstName,
+        lastName: customer.lastName,
+        phone: customer.phone,
+        role: 'customer',
+        customerId: customer.id,
+      };
+
+      sendSuccess(res, {
+        message: 'Email verified successfully',
+        user,
+        token,
+        expiresAt: getTokenExpiration().toISOString(),
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+/**
+ * POST /api/auth/resend-verification
+ * Resend email verification code
+ *
+ * Request body:
+ * {
+ *   email: string
+ * }
+ *
+ * Response:
+ * {
+ *   message: string (generic success message)
+ * }
+ *
+ * Rate limit: 3 requests per hour (via verificationLimiter)
+ * Security: No user enumeration, always returns success
+ */
+authRoutes.post(
+  '/resend-verification',
+  verificationLimiter,
+  xssSanitize,
+  validateBody(resendVerificationSchema),
+  async (req, res, next) => {
+    try {
+      const { email } = req.body;
+      const normalizedEmail = email.toLowerCase().trim();
+      const db = getDb();
+
+      // Find customer by email
+      const [customer] = await db
+        .select()
+        .from(customers)
+        .where(eq(customers.email, normalizedEmail))
+        .limit(1);
+
+      // Only send if account exists, is not guest, and is not verified
+      if (customer && !customer.isGuest && !customer.emailVerified) {
+        // Invalidate previous codes
+        await verificationCodeService.invalidateCodes(
+          normalizedEmail,
+          'email_verification'
+        );
+
+        // Generate new verification code
+        const code = await verificationCodeService.createCode({
+          email: customer.email,
+          type: 'email_verification',
+          ipAddress: req.ip,
+          expiryMinutes: 15,
+        });
+
+        // Send verification email
+        const emailSent = await notificationService.sendEmailVerification({
+          email: customer.email,
+          firstName: customer.firstName,
+          code,
+          expiryMinutes: 15,
+        });
+
+        if (!emailSent) {
+          logger.error('Failed to send verification email', {
+            email: customer.email,
+            customerId: customer.id,
+          });
+        } else {
+          logger.info('Verification email resent', {
+            email: customer.email,
+            customerId: customer.id,
+          });
+        }
+      }
+
+      // Always return success (no user enumeration)
+      sendSuccess(res, {
+        message: 'If an unverified account exists, a verification code has been sent.',
       });
     } catch (error) {
       next(error);
