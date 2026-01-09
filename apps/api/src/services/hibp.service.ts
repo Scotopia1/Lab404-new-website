@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import { getDb, breachChecks, eq } from '@repo/database';
+import { getDb, breachChecks, eq } from '@lab404/database';
 
 /**
  * Have I Been Pwned (HIBP) Service

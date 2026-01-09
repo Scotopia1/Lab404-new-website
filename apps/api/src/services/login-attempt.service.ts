@@ -1,4 +1,4 @@
-import { getDb, loginAttempts, customers, eq, desc, and, gte, NewLoginAttempt } from '@repo/database';
+import { getDb, loginAttempts, customers, eq, desc, and, gte, NewLoginAttempt } from '@lab404/database';
 import { auditLogService } from './audit-log.service';
 import { SecurityEventType, ActorType, EventStatus } from '../types/audit-events';
 

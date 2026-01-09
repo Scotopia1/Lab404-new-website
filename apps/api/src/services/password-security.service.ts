@@ -1,6 +1,6 @@
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import zxcvbn from 'zxcvbn';
-import { getDb, passwordHistory, eq, desc, NewPasswordHistory } from '@repo/database';
+import { getDb, passwordHistory, eq, desc, NewPasswordHistory } from '@lab404/database';
 import { HIBPService } from './hibp.service';
 
 /**

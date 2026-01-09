@@ -32,3 +32,8 @@ export function getDb(): Database {
   }
   return dbInstance;
 }
+
+/**
+ * Default database instance for easy importing
+ */
+export const db = getDb();

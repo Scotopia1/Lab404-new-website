@@ -3,7 +3,7 @@
 // ===========================================
 
 // Database client
-export { createDb, getDb, type Database } from './client';
+export { createDb, getDb, db, type Database } from './client';
 
 // Re-export schema
 export * from './schema';
