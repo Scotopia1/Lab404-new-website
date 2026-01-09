@@ -15,6 +15,7 @@ export interface AuthUser {
   email: string;
   role: UserRole;
   customerId?: UUID;
+  sessionId?: string;
   firstName?: string;
   lastName?: string;
 }

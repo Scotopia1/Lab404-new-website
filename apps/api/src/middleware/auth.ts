@@ -19,6 +19,7 @@ interface JwtPayload {
   email: string;
   role: UserRole;
   customerId?: string;
+  sessionId?: string;
 }
 
 /**
@@ -75,6 +76,7 @@ export function optionalAuth(req: Request, _res: Response, next: NextFunction): 
         email: payload.email,
         role: payload.role,
         customerId: payload.customerId,
+        sessionId: payload.sessionId,
       };
     }
 
@@ -110,6 +112,7 @@ export function requireAuth(req: Request, _res: Response, next: NextFunction): v
       email: payload.email,
       role: payload.role,
       customerId: payload.customerId,
+      sessionId: payload.sessionId,
     };
 
     next();
