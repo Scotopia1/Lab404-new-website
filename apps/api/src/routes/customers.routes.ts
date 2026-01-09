@@ -7,6 +7,7 @@ import { requireAuth, requireAdmin } from '../middleware/auth';
 import { sendSuccess, sendCreated, sendNoContent, createPaginationMeta, parsePaginationParams } from '../utils/response';
 import { NotFoundError, ForbiddenError, BadRequestError } from '../utils/errors';
 import { PasswordSecurityService } from '../services/password-security.service';
+import { LoginAttemptService } from '../services/login-attempt.service';
 import { notificationService } from '../services/notification.service';
 
 export const customersRoutes = Router();
@@ -1077,6 +1078,62 @@ customersRoutes.get('/:id/orders', requireAuth, requireAdmin, async (req, res, n
       200,
       createPaginationMeta(page, limit, Number(count))
     );
+  } catch (error) {
+    next(error);
+  }
+});
+
+// ===========================================
+// Customer Security Routes
+// ===========================================
+
+/**
+ * GET /api/customers/me/security/login-attempts
+ * Get login attempt history for the current customer
+ */
+customersRoutes.get('/me/security/login-attempts', requireAuth, async (req, res, next) => {
+  try {
+    const customerId = req.user?.customerId;
+
+    if (!customerId) {
+      throw new ForbiddenError('Customer not found');
+    }
+
+    const attempts = await LoginAttemptService.getAttemptHistory(customerId, 50);
+
+    sendSuccess(res, attempts);
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * POST /api/admin/customers/:id/unlock
+ * Admin: Unlock a customer account
+ */
+customersRoutes.post('/admin/customers/:id/unlock', requireAdmin, async (req, res, next) => {
+  try {
+    const id = req.params['id'] as string;
+    const db = getDb();
+
+    // Verify customer exists
+    const [customer] = await db
+      .select({ id: customers.id, email: customers.email })
+      .from(customers)
+      .where(eq(customers.id, id));
+
+    if (!customer) {
+      throw new NotFoundError('Customer not found');
+    }
+
+    // Unlock the account
+    await LoginAttemptService.unlockAccount(id);
+
+    sendSuccess(res, {
+      message: 'Customer account unlocked successfully',
+      customerId: id,
+      email: customer.email,
+    });
   } catch (error) {
     next(error);
   }
