@@ -22,7 +22,7 @@ import { Loader2 } from 'lucide-react';
 
 export function RegisterForm() {
     const router = useRouter();
-    const { register, isLoading, error } = useAuthStore();
+    const { register, isLoading, error, setVerificationPending } = useAuthStore();
 
     const form = useForm<RegisterFormData>({
         resolver: zodResolver(registerSchema),
@@ -38,7 +38,12 @@ export function RegisterForm() {
     async function onSubmit(data: RegisterFormData) {
         try {
             await register(data);
-            router.push('/account/profile');
+
+            // Store email for verification page
+            setVerificationPending(data.email);
+
+            // Redirect to verification page with email
+            router.push(`/verify-email?email=${encodeURIComponent(data.email)}`);
         } catch {
             // Error handled by store
         }
