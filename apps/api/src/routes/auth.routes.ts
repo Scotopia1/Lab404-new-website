@@ -648,6 +648,22 @@ authRoutes.post(
         'password_reset'
       );
 
+      // Send password changed confirmation email (non-blocking)
+      const emailSent = await notificationService.sendPasswordChangedConfirmation({
+        email: customer.email,
+        firstName: customer.firstName,
+        timestamp: new Date(),
+        ipAddress: req.ip,
+      });
+
+      if (!emailSent) {
+        logger.error('Failed to send password changed email', {
+          email: customer.email,
+          customerId: customer.id
+        });
+        // Continue - don't fail the password reset if email fails
+      }
+
       // Generate new JWT token (auto-login)
       const token = generateToken({
         userId: customer.authUserId!,
