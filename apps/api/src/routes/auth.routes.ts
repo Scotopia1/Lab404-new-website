@@ -1139,6 +1139,20 @@ authRoutes.post(
         customerId: customer.id,
       });
 
+      // Log account verified event
+      await auditLogService.logFromRequest(req, {
+        eventType: SecurityEventType.ACCOUNT_VERIFIED,
+        actorType: ActorType.CUSTOMER,
+        actorId: customer.id,
+        actorEmail: customer.email,
+        action: 'email_verification',
+        status: EventStatus.SUCCESS,
+        metadata: {
+          verificationMethod: 'email_code',
+          verifiedAt: new Date().toISOString(),
+        },
+      });
+
       // Generate JWT token (auto-login after verification)
       const token = generateToken({
         userId: customer.authUserId!,
