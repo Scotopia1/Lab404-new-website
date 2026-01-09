@@ -50,6 +50,13 @@
       "when": 1767974011820,
       "tag": "0006_same_argent",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1767975207863,
+      "tag": "0007_silly_nova",
+      "breakpoints": true
     }
   ]
 }

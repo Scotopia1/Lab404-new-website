@@ -52,3 +52,6 @@ export * from './breachChecks';
 
 // Security Audit Logs
 export * from './securityAuditLogs';
+
+// IP Reputation
+export * from './ipReputation';
