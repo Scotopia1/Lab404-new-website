@@ -802,6 +802,22 @@ authRoutes.post(
         throw new BadRequestError('Invalid account type');
       }
 
+      // Validate new password with security checks
+      const userInputs = [customer.email, customer.firstName, customer.lastName].filter(Boolean) as string[];
+      const validation = await PasswordSecurityService.validatePassword(
+        newPassword,
+        customer.id,
+        userInputs
+      );
+
+      if (!validation.isValid) {
+        logger.warn('Password reset rejected due to security checks', {
+          customerId: customer.id,
+          errors: validation.errors
+        });
+        throw new BadRequestError(validation.errors.join('. '));
+      }
+
       // Hash new password
       const passwordHash = await bcrypt.hash(newPassword, 12);
 
@@ -813,6 +829,15 @@ authRoutes.post(
           updatedAt: new Date(),
         })
         .where(eq(customers.id, customer.id));
+
+      // Record password change in history
+      await PasswordSecurityService.recordPasswordChange({
+        customerId: customer.id,
+        passwordHash,
+        changeReason: 'password_reset',
+        ipAddress: req.ip || req.socket.remoteAddress,
+        userAgent: req.headers['user-agent'],
+      });
 
       // Invalidate all password_reset codes for this email
       await verificationCodeService.invalidateCodes(
