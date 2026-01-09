@@ -599,6 +599,20 @@ authRoutes.post('/logout', requireAuth, async (req, res, next) => {
       });
     }
 
+    // Log logout event
+    await auditLogService.logFromRequest(req, {
+      eventType: SecurityEventType.AUTH_LOGOUT,
+      actorType: ActorType.CUSTOMER,
+      actorId: req.user?.customerId,
+      actorEmail: req.user?.email,
+      action: 'logout',
+      status: EventStatus.SUCCESS,
+      sessionId,
+      metadata: {
+        sessionId,
+      },
+    });
+
     // Clear the auth cookie
     res.clearCookie('auth_token', {
       httpOnly: true,
