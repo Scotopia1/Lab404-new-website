@@ -30,10 +30,28 @@ const fetchCsrfToken = async (): Promise<string> => {
   }
 };
 
+// Public endpoints that don't require CSRF tokens
+const PUBLIC_ENDPOINTS = [
+  '/auth/login',
+  '/auth/register',
+  '/auth/forgot-password',
+  '/auth/verify-reset-code',
+  '/auth/reset-password',
+  '/auth/verify-email',
+];
+
 // Request interceptor - add CSRF token for state-changing methods
 api.interceptors.request.use(async (config) => {
-  // Add CSRF token for state-changing methods
-  if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(config.method?.toUpperCase() || '')) {
+  // Skip CSRF for public auth endpoints
+  const isPublicEndpoint = PUBLIC_ENDPOINTS.some(endpoint =>
+    config.url?.includes(endpoint)
+  );
+
+  // Add CSRF token for state-changing methods (except public endpoints)
+  if (
+    !isPublicEndpoint &&
+    ['POST', 'PUT', 'DELETE', 'PATCH'].includes(config.method?.toUpperCase() || '')
+  ) {
     try {
       const token = await fetchCsrfToken();
       config.headers['x-csrf-token'] = token;
