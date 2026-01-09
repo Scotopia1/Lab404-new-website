@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { PasswordStrengthMeter } from '@/components/auth/PasswordStrengthMeter';
 import Link from 'next/link';
 import { Loader2 } from 'lucide-react';
 
@@ -117,6 +118,10 @@ export function RegisterForm() {
                                     <FormControl>
                                         <Input type="password" placeholder="******" {...field} />
                                     </FormControl>
+                                    <PasswordStrengthMeter
+                                        password={field.value}
+                                        email={form.getValues('email')}
+                                    />
                                     <FormMessage />
                                 </FormItem>
                             )}
