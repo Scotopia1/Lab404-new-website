@@ -431,6 +431,67 @@ class NotificationService {
   }
 
   /**
+   * Send verification code email
+   */
+  async sendVerificationCode(data: {
+    email: string;
+    code: string;
+    type: 'password_reset' | 'email_verification' | 'account_unlock';
+    expiryMinutes: number;
+  }): Promise<boolean> {
+    const { email, code, type, expiryMinutes } = data;
+    const companyName = process.env.COMPANY_NAME || 'Lab404 Electronics';
+
+    // Subject based on type
+    const subjects = {
+      password_reset: 'Password Reset Verification Code',
+      email_verification: 'Email Verification Code',
+      account_unlock: 'Account Unlock Verification Code',
+    };
+    const subject = subjects[type];
+
+    // Title based on type
+    const titles = {
+      password_reset: 'Reset Your Password',
+      email_verification: 'Verify Your Email',
+      account_unlock: 'Unlock Your Account',
+    };
+    const title = titles[type];
+
+    const html = this.wrapCustomerTemplate(`
+      <h2 style="color: #1f2937; margin-bottom: 24px;">${title}</h2>
+
+      <p style="color: #4b5563; font-size: 16px; line-height: 24px; margin-bottom: 20px;">
+        Your verification code is:
+      </p>
+
+      <div style="text-align: center; margin: 30px 0;">
+        <div style="display: inline-block; background: #f3f4f6; padding: 20px 40px; border-radius: 8px; border: 2px dashed #d1d5db;">
+          <span style="font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #1f2937; font-family: 'Courier New', monospace;">
+            ${code}
+          </span>
+        </div>
+      </div>
+
+      <p style="color: #dc2626; font-weight: bold; font-size: 14px; margin: 20px 0;">
+        ⚠️ This code will expire in ${expiryMinutes} minutes.
+      </p>
+
+      <p style="color: #6b7280; font-size: 14px; line-height: 20px; margin-top: 30px;">
+        If you didn't request this code, please ignore this email or contact our support team if you have concerns.
+      </p>
+    `, companyName);
+
+    logger.info('Sending verification code email', { email, type });
+
+    return mailerService.sendEmail({
+      to: email,
+      subject,
+      html,
+    });
+  }
+
+  /**
    * Send quotation expiry reminder to customer
    */
   async sendQuotationExpiryReminder(
