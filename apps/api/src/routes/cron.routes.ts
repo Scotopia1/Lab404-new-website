@@ -3,6 +3,7 @@ import { getDb, quotations, settings, eq, and, lte, gte, sql } from '@lab404/dat
 import { sendSuccess, sendError } from '../utils/response';
 import { notificationService } from '../services/notification.service';
 import { quotationActivityService } from '../services/quotation-activity.service';
+import { verificationCodeService } from '../services';
 import { logger } from '../utils/logger';
 import { cronLimiter } from '../middleware/rateLimiter';
 
@@ -151,6 +152,37 @@ cronRoutes.post('/quotation-expiry-check', verifyCronSecret, async (req, res, ne
     logger.info('Quotation expiry check completed:', summary);
     sendSuccess(res, summary);
   } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * POST /api/cron/cleanup-verification-codes
+ * Remove expired and used verification codes older than 24 hours
+ *
+ * Should be called every 6 hours by a cron job (Vercel cron, GitHub Actions, or external service)
+ */
+cronRoutes.post('/cleanup-verification-codes', verifyCronSecret, async (req, res, next) => {
+  try {
+    const startTime = Date.now();
+
+    const deletedCount = await verificationCodeService.cleanupExpiredCodes();
+
+    const duration = Date.now() - startTime;
+
+    logger.info('Verification codes cleanup cron completed', {
+      deletedCount,
+      durationMs: duration
+    });
+
+    sendSuccess(res, {
+      message: 'Verification codes cleanup completed',
+      deletedCount,
+      durationMs: duration,
+      processedAt: new Date().toISOString(),
+    });
+  } catch (error) {
+    logger.error('Verification codes cleanup cron failed', { error });
     next(error);
   }
 });
