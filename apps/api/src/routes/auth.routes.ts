@@ -207,33 +207,44 @@ authRoutes.post(
         throw new Error('Failed to create or update customer');
       }
 
-      // Generate JWT token
-      const token = generateToken({
-        userId: customer.authUserId!,
+      // Generate verification code
+      const code = await verificationCodeService.createCode({
         email: customer.email,
-        role: 'customer',
+        type: 'email_verification',
+        ipAddress: req.ip,
+        expiryMinutes: 15,
+      });
+
+      // Send verification email (non-blocking)
+      const emailSent = await notificationService.sendEmailVerification({
+        email: customer.email,
+        firstName: customer.firstName,
+        code,
+        expiryMinutes: 15,
+      });
+
+      if (!emailSent) {
+        logger.error('Failed to send verification email', {
+          email: customer.email,
+          customerId: customer.id,
+        });
+      }
+
+      logger.info('Customer registered, verification email sent', {
         customerId: customer.id,
+        email: customer.email,
       });
 
-      // Set httpOnly cookie for secure token storage
-      res.cookie('auth_token', token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      });
-
+      // NO TOKEN, NO COOKIE - User must verify email first
       sendSuccess(res, {
+        message: 'Registration successful. Please check your email to verify your account.',
         user: {
           id: customer.authUserId,
           email: customer.email,
-          role: 'customer',
-          customerId: customer.id,
+          emailVerified: false,
           firstName: customer.firstName,
           lastName: customer.lastName,
         },
-        token,
-        expiresAt: getTokenExpiration().toISOString(),
       }, 201);
     } catch (error) {
       next(error);
