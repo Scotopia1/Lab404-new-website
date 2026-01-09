@@ -11,14 +11,14 @@
 
 **Target:** Comprehensive password reset, email verification, session management, and advanced security features
 
-**Status:** 0/10 phases complete (0%)
+**Status:** 2/10 phases complete (20%)
 
 ### Phase Progress
 
 | Phase | Name | Status | Progress |
 |-------|------|--------|----------|
-| 13 | Email Verification Code System | 🔜 Not Started | 0% |
-| 14 | Password Reset Backend API | 🔜 Not Started | 0% |
+| 13 | Email Verification Code System | ✅ Complete | 100% |
+| 14 | Password Reset Backend API | ✅ Complete | 100% |
 | 15 | Password Reset Frontend Flow | 🔜 Not Started | 0% |
 | 16 | Security Email Templates | 🔜 Not Started | 0% |
 | 17 | Email Verification for New Signups | 🔜 Not Started | 0% |
@@ -32,9 +32,9 @@
 
 ## Active Work
 
-**Current Focus:** 🔜 Ready to begin Phase 13 - Email Verification Code System
+**Current Focus:** ✅ Phase 14 complete - Ready to begin Phase 15 - Password Reset Frontend Flow
 
-**Next Up:** Plan Phase 13 implementation
+**Next Up:** Plan Phase 15 implementation
 
 **Security Parameters (v2.0):**
 - Password reset code: 6-digit numeric, 15-minute expiration
@@ -57,6 +57,18 @@ None currently.
 - **2026-01-09:** Password reset with 6-digit email codes (15min expiration)
 - **2026-01-09:** Rate limiting: 3 attempts/hour, lockout after 10 failures
 - **2026-01-09:** Comprehensive security scope: password reset, email verification, session management, breach detection, audit logging
+- **2026-01-09:** Phase 13 COMPLETE - Email Verification Code System
+  - ✅ Created verification_codes table with type-based isolation
+  - ✅ Implemented verificationCodeService with create/validate/invalidate
+  - ✅ Added notificationService.sendVerificationCode() for email delivery
+  - ✅ Rate limiting: verificationLimiter (3 requests/hour per email)
+  - ✅ Security: max 3 attempts, 15-minute expiration, single-use codes
+- **2026-01-09:** Phase 14 COMPLETE - Password Reset Backend API
+  - ✅ POST /api/auth/forgot-password - Request reset code (no user enumeration)
+  - ✅ POST /api/auth/verify-reset-code - Validate code without marking as used
+  - ✅ POST /api/auth/reset-password - Reset password with auto-login
+  - ✅ Security: bcrypt (12 rounds), rate limiting, XSS sanitization, httpOnly cookies
+  - ✅ Password validation: 8-100 chars, strength requirements, weak password rejection
 
 ### v1.0 Decisions (Archived)
 - **2026-01-08:** Mode set to YOLO (auto-approve)
