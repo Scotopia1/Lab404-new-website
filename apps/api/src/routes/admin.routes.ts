@@ -6,7 +6,7 @@ import { sendSuccess } from '../utils/response';
 import { NotFoundError } from '../utils/errors';
 import { auditLogService } from '../services/audit-log.service';
 import { ipReputationService } from '../services/ip-reputation.service';
-import { SecurityEventType, EventStatus } from '../types/audit-events';
+import { SecurityEventType, EventStatus, ActorType } from '../types/audit-events';
 
 export const adminRoutes = Router();
 
@@ -215,7 +215,7 @@ adminRoutes.get('/abuse/ips/:ip', async (req, res, next) => {
  */
 adminRoutes.post('/abuse/ips/:ip/block', validateBody(blockIPSchema), async (req, res, next) => {
   try {
-    const ip = req.params.ip as string;
+    const ip = req.params['ip'] as string;
     const { reason, duration } = req.body;
 
     // Block the IP
@@ -224,7 +224,7 @@ adminRoutes.post('/abuse/ips/:ip/block', validateBody(blockIPSchema), async (req
     // Log the admin action
     await auditLogService.logFromRequest(req, {
       eventType: SecurityEventType.ADMIN_ACTION,
-      actorType: 'user',
+      actorType: ActorType.ADMIN,
       actorId: (req as any).user?.id,
       actorEmail: (req as any).user?.email,
       action: 'block_ip',
@@ -248,7 +248,7 @@ adminRoutes.post('/abuse/ips/:ip/block', validateBody(blockIPSchema), async (req
  */
 adminRoutes.delete('/abuse/ips/:ip/unblock', async (req, res, next) => {
   try {
-    const ip = req.params.ip as string;
+    const ip = req.params['ip'] as string;
 
     // Unblock the IP
     await ipReputationService.unblockIP(ip);
@@ -256,7 +256,7 @@ adminRoutes.delete('/abuse/ips/:ip/unblock', async (req, res, next) => {
     // Log the admin action
     await auditLogService.logFromRequest(req, {
       eventType: SecurityEventType.ADMIN_ACTION,
-      actorType: 'user',
+      actorType: ActorType.ADMIN,
       actorId: (req as any).user?.id,
       actorEmail: (req as any).user?.email,
       action: 'unblock_ip',

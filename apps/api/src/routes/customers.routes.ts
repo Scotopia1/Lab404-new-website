@@ -335,12 +335,12 @@ customersRoutes.put(
         status: EventStatus.SUCCESS,
         metadata: {
           changeReason: 'user_action',
-          strengthScore: validation.strengthScore,
+          strengthScore: validation.strengthResult?.score,
         },
       });
 
       // Log breach/reuse warnings if any
-      if (validation.warnings?.includes('breached')) {
+      if (validation.strengthResult?.isBreached) {
         await auditLogService.logFromRequest(req, {
           eventType: SecurityEventType.PASSWORD_BREACH_DETECTED,
           actorType: ActorType.CUSTOMER,
@@ -348,7 +348,7 @@ customersRoutes.put(
           actorEmail: customer.email,
           action: 'password_breach_check',
           status: EventStatus.SUCCESS,
-          metadata: { breachCount: validation.breachCount || 0 },
+          metadata: { breachCount: validation.strengthResult?.breachCount || 0 },
         });
       }
 
@@ -356,7 +356,7 @@ customersRoutes.put(
       notificationService.sendPasswordChangedConfirmation({
         email: customer.email,
         firstName: customer.firstName,
-        changedAt: new Date(),
+        timestamp: new Date(),
         ipAddress: req.ip || req.socket.remoteAddress,
       }).catch((error) => {
         console.error('Failed to send password change confirmation:', error);

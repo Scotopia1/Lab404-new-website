@@ -440,7 +440,7 @@ class NotificationService {
     expiryMinutes: number;
   }): Promise<boolean> {
     const { email, code, type, expiryMinutes } = data;
-    const companyName = process.env.COMPANY_NAME || 'Lab404 Electronics';
+    const companyName = process.env['COMPANY_NAME'] || 'Lab404 Electronics';
 
     // Subject based on type
     const subjects = {
@@ -502,7 +502,7 @@ class NotificationService {
     ipAddress?: string;
   }): Promise<boolean> {
     const { email, firstName, timestamp, ipAddress } = data;
-    const companyName = process.env.COMPANY_NAME || 'Lab404 Electronics';
+    const companyName = process.env['COMPANY_NAME'] || 'Lab404 Electronics';
 
     // Format timestamp for display
     const formattedTimestamp = timestamp.toLocaleString('en-US', {
@@ -585,7 +585,7 @@ class NotificationService {
     expiryMinutes: number;
   }): Promise<boolean> {
     const { email, firstName, code, expiryMinutes } = data;
-    const companyName = process.env.COMPANY_NAME || 'Lab404 Electronics';
+    const companyName = process.env['COMPANY_NAME'] || 'Lab404 Electronics';
 
     const greeting = firstName ? `Hello ${firstName},` : 'Hello,';
 
@@ -653,8 +653,8 @@ class NotificationService {
     expiryDate: Date,
     acceptanceToken?: string
   ): Promise<boolean> {
-    const companyName = process.env.COMPANY_NAME || 'Lab404 Electronics';
-    const websiteUrl = process.env.WEBSITE_URL || 'https://lab404electronics.com';
+    const companyName = process.env['COMPANY_NAME'] || 'Lab404 Electronics';
+    const websiteUrl = process.env['WEBSITE_URL'] || 'https://lab404electronics.com';
 
     const formatDate = (date: Date) => {
       return new Date(date).toLocaleDateString('en-US', {

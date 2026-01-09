@@ -5,19 +5,19 @@ const {
   generateCsrfToken,
   doubleCsrfProtection,
 } = doubleCsrf({
-  getSecret: () => process.env.CSRF_SECRET || process.env.JWT_SECRET || '',
+  getSecret: () => process.env['CSRF_SECRET'] || process.env['JWT_SECRET'] || '',
   cookieName: 'x-csrf-token',
   cookieOptions: {
     httpOnly: true,
     sameSite: 'strict',
-    secure: process.env.NODE_ENV === 'production',
+    secure: process.env['NODE_ENV'] === 'production',
     path: '/',
   },
-  getTokenFromRequest: (req) => req.headers['x-csrf-token'] as string,
-  getSessionIdentifier: (req) => {
+  getCsrfTokenFromRequest: (req: Request) => req.headers['x-csrf-token'] as string,
+  getSessionIdentifier: (req: Request) => {
     // Use session ID if available, otherwise use a combination of user-agent and IP
     // This is safe because the secret is used for HMAC
-    return req.sessionID || `${req.headers['user-agent']}-${req.ip}`;
+    return req.sessionId || `${req.headers['user-agent']}-${req.ip}`;
   },
 });
 

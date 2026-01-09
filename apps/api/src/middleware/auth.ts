@@ -30,7 +30,7 @@ interface JwtPayload {
  */
 function extractToken(req: Request): string | null {
   // Try cookie first (secure, httpOnly)
-  const cookieToken = req.cookies?.auth_token;
+  const cookieToken = req.cookies?.['auth_token'];
   if (cookieToken) {
     return cookieToken;
   }

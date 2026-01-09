@@ -133,15 +133,6 @@ export function createEnhancedRateLimiter(options: EnhancedRateLimiterOptions) {
             options.message || 'Too many requests, please try again later'
           );
         },
-        // Add rate limit headers to all responses
-        onLimitReached: async (req) => {
-          const ip = ipReputationService.getClientIp(req);
-          logger.info('Rate limit reached', {
-            ip,
-            path: req.path,
-            method: req.method,
-          });
-        },
       });
 
       // Apply the rate limiter
