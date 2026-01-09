@@ -492,6 +492,89 @@ class NotificationService {
   }
 
   /**
+   * Send password changed confirmation email
+   * Notifies user of successful password change with timestamp and IP
+   */
+  async sendPasswordChangedConfirmation(data: {
+    email: string;
+    firstName: string | null;
+    timestamp: Date;
+    ipAddress?: string;
+  }): Promise<boolean> {
+    const { email, firstName, timestamp, ipAddress } = data;
+    const companyName = process.env.COMPANY_NAME || 'Lab404 Electronics';
+
+    // Format timestamp for display
+    const formattedTimestamp = timestamp.toLocaleString('en-US', {
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      timeZoneName: 'short'
+    });
+
+    const greeting = firstName ? `Hello ${firstName},` : 'Hello,';
+
+    const html = this.wrapCustomerTemplate(`
+      <div style="text-align: center; margin-bottom: 24px;">
+        <div style="display: inline-block; background: #16a34a; color: white; width: 48px; height: 48px; border-radius: 50%; line-height: 48px; font-size: 24px; margin-bottom: 16px;">
+          ✓
+        </div>
+      </div>
+
+      <h2 style="color: #1f2937; margin-bottom: 24px; text-align: center;">
+        Password Changed Successfully
+      </h2>
+
+      <p style="color: #4b5563; font-size: 16px; line-height: 24px; margin-bottom: 20px;">
+        ${greeting}
+      </p>
+
+      <p style="color: #4b5563; font-size: 16px; line-height: 24px; margin-bottom: 20px;">
+        Your password was successfully changed on <strong>${formattedTimestamp}</strong>.
+      </p>
+
+      ${ipAddress ? `
+        <div style="background: #f3f4f6; padding: 16px; border-radius: 8px; margin: 24px 0; border-left: 4px solid #2563eb;">
+          <p style="margin: 0; color: #6b7280; font-size: 14px;">
+            <strong>Security Details:</strong><br>
+            From IP address: <code style="background: #e5e7eb; padding: 2px 6px; border-radius: 4px; font-family: 'Courier New', monospace;">${ipAddress}</code>
+          </p>
+        </div>
+      ` : ''}
+
+      <div style="background: #fef2f2; border: 1px solid #fecaca; padding: 20px; border-radius: 8px; margin: 30px 0;">
+        <p style="color: #dc2626; font-weight: bold; font-size: 16px; margin: 0 0 12px 0;">
+          ⚠️ Did you make this change?
+        </p>
+        <p style="color: #991b1b; font-size: 14px; line-height: 20px; margin: 0;">
+          If you did not change your password, please contact our support team immediately to secure your account.
+        </p>
+      </div>
+
+      <div style="text-align: center; margin: 32px 0;">
+        <a href="mailto:contact@lab404electronics.com?subject=Unauthorized%20Password%20Change"
+           style="display: inline-block; background: #2563eb; color: white; text-decoration: none; padding: 12px 32px; border-radius: 6px; font-weight: 600; font-size: 16px;">
+          Contact Support
+        </a>
+      </div>
+
+      <p style="color: #6b7280; font-size: 14px; line-height: 20px; margin-top: 30px;">
+        For security reasons, we recommend using a strong, unique password and enabling two-factor authentication when available.
+      </p>
+    `, companyName);
+
+    logger.info('Sending password changed confirmation email', { email });
+
+    return mailerService.sendEmail({
+      to: email,
+      subject: `Your Password Was Changed - ${companyName}`,
+      html,
+    });
+  }
+
+  /**
    * Send quotation expiry reminder to customer
    */
   async sendQuotationExpiryReminder(
