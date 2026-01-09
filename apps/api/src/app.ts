@@ -38,10 +38,22 @@ export function createApp() {
   // Helmet - Security headers
   app.use(helmet());
 
-  // CORS
+  // CORS - Use function to dynamically return the correct origin
   app.use(
     cors({
-      origin: config.corsOrigins,
+      origin: (origin, callback) => {
+        // Allow requests with no origin (like mobile apps or curl)
+        if (!origin) {
+          return callback(null, true);
+        }
+
+        // Check if the origin is in the allowed list
+        if (config.corsOrigins.includes(origin)) {
+          callback(null, origin); // Return the specific origin
+        } else {
+          callback(new Error('Not allowed by CORS'));
+        }
+      },
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
       allowedHeaders: ['Content-Type', 'Authorization', 'X-Session-ID', 'X-CSRF-Token'],
