@@ -1,4 +1,4 @@
-import { db } from '@lab404/database';
+import { getDb } from '@lab404/database';
 import { securityAuditLogs, type SecurityAuditLog, type NewSecurityAuditLog } from '@lab404/database';
 import { eq, and, gte, lte, inArray, desc, sql } from 'drizzle-orm';
 import { Request } from 'express';
@@ -31,6 +31,7 @@ class AuditLogService {
    */
   async log(event: AuditLogEvent): Promise<void> {
     try {
+      const db = getDb();
       const logEntry: NewSecurityAuditLog = {
         timestamp: new Date(),
         eventType: event.eventType,
@@ -100,6 +101,7 @@ class AuditLogService {
     offset?: number;
   }): Promise<SecurityAuditLog[]> {
     try {
+      const db = getDb();
       const conditions = [];
 
       if (filters.actorId) {
@@ -160,6 +162,7 @@ class AuditLogService {
    */
   async getById(id: string): Promise<SecurityAuditLog | null> {
     try {
+      const db = getDb();
       const results = await db
         .select()
         .from(securityAuditLogs)
@@ -250,6 +253,7 @@ class AuditLogService {
    */
   async cleanup(): Promise<number> {
     try {
+      const db = getDb();
       const retentionDays = 90;
       const cutoffDate = new Date();
       cutoffDate.setDate(cutoffDate.getDate() - retentionDays);
@@ -291,6 +295,7 @@ class AuditLogService {
     eventTypeCounts: Record<string, number>;
   }> {
     try {
+      const db = getDb();
       const conditions = [];
 
       if (filters?.startDate) {
