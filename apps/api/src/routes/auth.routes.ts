@@ -9,6 +9,7 @@ import { sendSuccess, sendError } from '../utils/response';
 import { ConflictError, NotFoundError, UnauthorizedError, BadRequestError } from '../utils/errors';
 import { verificationCodeService } from '../services';
 import { notificationService } from '../services/notification.service';
+import { sessionService } from '../services/session.service';
 import { xssSanitize } from '../middleware/xss';
 import { logger } from '../utils/logger';
 
@@ -303,13 +304,24 @@ authRoutes.post(
         );
       }
 
-      // Generate JWT token
+      // Create session
+      const sessionId = await sessionService.createSession({
+        customerId: customer.id,
+        userAgent: req.headers['user-agent'] || '',
+        ipAddress: req.ip || req.socket.remoteAddress || '',
+      });
+
+      // Generate JWT token with sessionId
       const token = generateToken({
         userId: customer.authUserId!,
         email: customer.email,
         role: 'customer',
         customerId: customer.id,
+        sessionId,
       });
+
+      // Store token hash in session
+      await sessionService.setTokenHash(sessionId, token);
 
       // Set httpOnly cookie for secure token storage
       res.cookie('auth_token', token, {
