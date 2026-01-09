@@ -3,6 +3,8 @@ import jwt from 'jsonwebtoken';
 import { config } from '../config';
 import { UnauthorizedError, ForbiddenError } from '../utils/errors';
 import type { AuthUser, UserRole } from '@lab404/shared-types';
+import { sessionService } from '../services/session.service';
+import { logger } from '../utils/logger';
 
 // Extend Express Request type to include user
 declare global {
@@ -97,7 +99,7 @@ export function optionalAuth(req: Request, _res: Response, next: NextFunction): 
  * Required authentication middleware
  * Throws UnauthorizedError if no valid token is present
  */
-export function requireAuth(req: Request, _res: Response, next: NextFunction): void {
+export async function requireAuth(req: Request, _res: Response, next: NextFunction): Promise<void> {
   try {
     const token = extractToken(req);
 
@@ -106,6 +108,24 @@ export function requireAuth(req: Request, _res: Response, next: NextFunction): v
     }
 
     const payload = verifyToken(token);
+
+    // Validate session if sessionId present
+    if (payload.sessionId) {
+      const session = await sessionService.validateSession(payload.sessionId);
+
+      if (!session) {
+        throw new UnauthorizedError('Session not found or expired');
+      }
+
+      if (!session.isActive) {
+        throw new UnauthorizedError('Session has been revoked');
+      }
+
+      // Update activity (async, non-blocking)
+      sessionService.updateActivity(session.id).catch((err) =>
+        logger.error('Failed to update session activity', { sessionId: session.id, error: err })
+      );
+    }
 
     req.user = {
       id: payload.userId,
