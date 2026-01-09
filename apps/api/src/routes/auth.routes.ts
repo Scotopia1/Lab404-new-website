@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
-import { getDb, customers, eq } from '@lab404/database';
+import { getDb, customers, verificationCodes, eq, and, gte, desc } from '@lab404/database';
 import { validateBody } from '../middleware/validator';
 import { authLimiter, verificationLimiter } from '../middleware/rateLimiter';
 import { requireAuth, generateToken, getTokenExpiration } from '../middleware/auth';
@@ -497,6 +497,75 @@ authRoutes.post(
       // Always return success message (security: no user enumeration)
       sendSuccess(res, {
         message: 'If an account exists with this email, a verification code has been sent.',
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+/**
+ * POST /api/auth/verify-reset-code
+ * Validate password reset code
+ * Purpose: Frontend can validate code before showing password reset form
+ * Rate limited: 3 requests per hour per email
+ */
+authRoutes.post(
+  '/verify-reset-code',
+  verificationLimiter,
+  xssSanitize,
+  validateBody(verifyResetCodeSchema),
+  async (req, res, next) => {
+    try {
+      const { email, code } = req.body;
+      const db = getDb();
+      const now = new Date();
+
+      // Find the most recent active code for this email/type
+      const [record] = await db
+        .select()
+        .from(verificationCodes)
+        .where(
+          and(
+            eq(verificationCodes.email, email.toLowerCase()),
+            eq(verificationCodes.type, 'password_reset'),
+            eq(verificationCodes.isUsed, false),
+            gte(verificationCodes.expiresAt, now)
+          )
+        )
+        .orderBy(desc(verificationCodes.createdAt))
+        .limit(1);
+
+      if (!record) {
+        logger.warn('Verification code not found or expired', { email, type: 'password_reset' });
+        throw new BadRequestError('Invalid or expired verification code');
+      }
+
+      // Check if max attempts exceeded
+      if (record.attempts >= record.maxAttempts) {
+        logger.warn('Max verification attempts exceeded', { email, type: 'password_reset', attempts: record.attempts });
+        throw new BadRequestError('Maximum verification attempts exceeded. Please request a new code.');
+      }
+
+      // Increment attempts
+      await db
+        .update(verificationCodes)
+        .set({ attempts: record.attempts + 1 })
+        .where(eq(verificationCodes.id, record.id));
+
+      // Validate code
+      if (record.code !== code) {
+        logger.warn('Invalid verification code attempt', { email, type: 'password_reset', attempts: record.attempts + 1 });
+        throw new BadRequestError('Invalid verification code');
+      }
+
+      // Code is valid - DO NOT mark as used (preserves for actual reset)
+      logger.info('Password reset code verified', {
+        email: email.toLowerCase()
+      });
+
+      sendSuccess(res, {
+        valid: true,
       });
     } catch (error) {
       next(error);
