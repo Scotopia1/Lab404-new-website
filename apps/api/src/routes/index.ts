@@ -2,6 +2,7 @@ import { Router } from 'express';
 
 // Import route modules
 import { authRoutes } from './auth.routes';
+import { sessionsRoutes } from './sessions.routes';
 import { productsRoutes } from './products.routes';
 import { categoriesRoutes } from './categories.routes';
 import { cartRoutes } from './cart.routes';
@@ -35,6 +36,9 @@ router.use('/health', healthRoutes);
 
 // Authentication
 router.use('/auth', authRoutes);
+
+// Session Management (authenticated only)
+router.use('/auth/sessions', sessionsRoutes);
 
 // Products (public read, admin write)
 router.use('/products', productsRoutes);
