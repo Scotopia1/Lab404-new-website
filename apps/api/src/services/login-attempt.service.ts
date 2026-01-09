@@ -1,4 +1,6 @@
 import { getDb, loginAttempts, customers, eq, desc, and, gte, NewLoginAttempt } from '@repo/database';
+import { auditLogService } from './audit-log.service';
+import { SecurityEventType, ActorType, EventStatus } from '../types/audit-events';
 
 /**
  * Login Attempt Service
@@ -196,6 +198,13 @@ export class LoginAttemptService {
   private static async lockAccount(customerId: string): Promise<void> {
     const db = getDb();
 
+    // Get customer email for audit logging
+    const [customer] = await db
+      .select({ email: customers.email })
+      .from(customers)
+      .where(eq(customers.id, customerId))
+      .limit(1);
+
     await db
       .update(customers)
       .set({
@@ -205,6 +214,22 @@ export class LoginAttemptService {
         updatedAt: new Date(),
       })
       .where(eq(customers.id, customerId));
+
+    // Log account locked event
+    if (customer) {
+      await auditLogService.log({
+        eventType: SecurityEventType.ACCOUNT_LOCKED,
+        actorType: ActorType.SYSTEM,
+        actorId: customerId,
+        actorEmail: customer.email,
+        action: 'account_lockout',
+        status: EventStatus.SUCCESS,
+        metadata: {
+          reason: 'too_many_failed_attempts',
+          lockoutDuration: '15_minutes',
+        },
+      });
+    }
   }
 
   /**
@@ -236,6 +261,13 @@ export class LoginAttemptService {
   static async unlockAccount(customerId: string): Promise<void> {
     const db = getDb();
 
+    // Get customer email for audit logging
+    const [customer] = await db
+      .select({ email: customers.email })
+      .from(customers)
+      .where(eq(customers.id, customerId))
+      .limit(1);
+
     await db
       .update(customers)
       .set({
@@ -245,6 +277,21 @@ export class LoginAttemptService {
         updatedAt: new Date(),
       })
       .where(eq(customers.id, customerId));
+
+    // Log account unlocked event
+    if (customer) {
+      await auditLogService.log({
+        eventType: SecurityEventType.ACCOUNT_UNLOCKED,
+        actorType: ActorType.ADMIN,
+        targetType: 'customer',
+        targetId: customerId,
+        action: 'account_unlock',
+        status: EventStatus.SUCCESS,
+        metadata: {
+          method: 'admin_action',
+        },
+      });
+    }
   }
 
   /**
