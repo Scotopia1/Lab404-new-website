@@ -19,7 +19,7 @@ interface ValidateCodeOptions {
 
 class VerificationCodeService {
   private readonly DEFAULT_EXPIRY_MINUTES = 15;
-  private readonly MAX_ATTEMPTS = 3;
+  private readonly MAX_ATTEMPTS = 10;
 
   /**
    * Generate and store a new verification code
