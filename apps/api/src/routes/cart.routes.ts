@@ -6,6 +6,7 @@ import { optionalAuth } from '../middleware/auth';
 import { sendSuccess, sendNoContent } from '../utils/response';
 import { NotFoundError, BadRequestError } from '../utils/errors';
 import { pricingService } from '../services/pricing.service';
+import { logger } from '../utils/logger';
 import { v4 as uuidv4 } from 'uuid';
 
 export const cartRoutes = Router();
@@ -182,6 +183,7 @@ cartRoutes.get('/calculate', async (req, res, next) => {
 
     // Calculate totals using pricing service
     const cartInput = items.map(item => ({
+      id: item.id,  // Pass actual cart item ID to pricing service
       productId: item.productId,
       variantId: item.variantId || undefined,
       quantity: item.quantity,
@@ -304,6 +306,12 @@ cartRoutes.put('/items/:id', validateBody(updateCartItemSchema), async (req, res
       .where(eq(cartItems.id, id));
 
     if (!cartItem) {
+      logger.warn('Cart item not found for update', {
+        requestedId: id,
+        userId: req.user?.customerId,
+        sessionId: req.sessionId || req.headers['x-session-id'],
+        requestBody: req.body,
+      });
       throw new NotFoundError('Cart item not found');
     }
 
@@ -337,10 +345,22 @@ cartRoutes.delete('/items/:id', async (req, res, next) => {
       .where(eq(cartItems.id, id));
 
     if (!cartItem) {
+      logger.warn('Cart item not found for deletion', {
+        requestedId: id,
+        userId: req.user?.customerId,
+        sessionId: req.sessionId || req.headers['x-session-id'],
+      });
       throw new NotFoundError('Cart item not found');
     }
 
     await db.delete(cartItems).where(eq(cartItems.id, id));
+
+    logger.info('Cart item deleted', {
+      cartItemId: id,
+      productId: cartItem.productId,
+      quantity: cartItem.quantity,
+      userId: req.user?.customerId,
+    });
 
     sendNoContent(res);
   } catch (error) {

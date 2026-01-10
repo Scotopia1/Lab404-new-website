@@ -16,6 +16,7 @@ import { Loader2, Banknote, MapPin } from 'lucide-react';
 import { api } from '@/lib/api';
 import Link from 'next/link';
 import { useAddresses, Address } from '@/hooks/use-addresses';
+import { formatPrice } from '@/lib/format';
 
 export function CheckoutForm() {
     const { cart, clearCart } = useCart();
@@ -434,7 +435,7 @@ export function CheckoutForm() {
                                 <span>
                                     {item.quantity}x {item.product.name}
                                 </span>
-                                <span>${(Number(item.product.price) * item.quantity).toFixed(2)}</span>
+                                <span>{formatPrice(item.lineTotal)}</span>
                             </div>
                         ))}
                         <div className="border-t pt-4 space-y-4">

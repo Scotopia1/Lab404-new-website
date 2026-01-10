@@ -7,6 +7,7 @@ import { BadRequestError } from '../utils/errors';
  * Cart item input for calculation
  */
 interface CartItemInput {
+  id?: string;        // Cart item database ID (for frontend operations)
   productId: string;
   variantId?: string;
   quantity: number;
@@ -133,7 +134,7 @@ export class PricingService {
       const lineTotal = round(unitPrice * item.quantity, 2);
 
       return {
-        id: item.variantId || item.productId,
+        id: item.id || item.variantId || item.productId,
         productId: item.productId,
         variantId: item.variantId,
         product: {
@@ -141,7 +142,7 @@ export class PricingService {
           name: product.name,
           slug: product.slug,
           sku: product.sku,
-          thumbnailUrl: product.thumbnailUrl || undefined,
+          thumbnailUrl: this.getProductImage(product),
           basePrice: unitPrice,
           stockQuantity,
           inStock,
@@ -459,6 +460,27 @@ export class PricingService {
       total: 0,
       currency: 'USD',
     };
+  }
+
+  /**
+   * Get product image with fallback priority:
+   * 1. thumbnailUrl
+   * 2. First image from images array
+   * 3. undefined (no image)
+   */
+  private getProductImage(product: typeof products.$inferSelect): string | undefined {
+    if (product.thumbnailUrl) {
+      return product.thumbnailUrl;
+    }
+
+    if (product.images && Array.isArray(product.images) && product.images.length > 0) {
+      const firstImage = product.images[0];
+      if (firstImage && typeof firstImage === 'object' && 'url' in firstImage) {
+        return firstImage.url;
+      }
+    }
+
+    return undefined;
   }
 }
 

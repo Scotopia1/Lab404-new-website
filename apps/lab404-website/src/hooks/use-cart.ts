@@ -1,27 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
+import type { CartCalculation } from '@lab404/shared-types';
 
-export interface CartItem {
-    id: string;
-    productId: string;
-    quantity: number;
-    product: {
-        name: string;
-        price: string;
-        image: string;
-    };
-}
-
-export interface CartTotals {
-    items: CartItem[];
-    itemCount: number;
-    subtotal: number;
-    taxAmount: number;
-    shippingAmount: number;
-    discountAmount: number;
-    total: number;
-    currency: string;
-}
+// Re-export for convenience
+export type { CartItem, CartCalculation } from '@lab404/shared-types';
 
 export function useCart() {
     const queryClient = useQueryClient();
@@ -30,7 +12,7 @@ export function useCart() {
         queryKey: ['cart'],
         queryFn: async () => {
             // Use calculate endpoint for full details
-            const { data } = await api.get<{ success: boolean; data: CartTotals }>('/cart/calculate');
+            const { data } = await api.get<{ success: boolean; data: CartCalculation }>('/cart/calculate');
             return data.data;
         },
         staleTime: 30000, // Poll every 30s

@@ -15,6 +15,7 @@ import { CartItem } from './cart-item';
 import { ScrollArea } from '@/components/ui/scroll-area'; // Need to install scroll-area
 import Link from 'next/link';
 import { Separator } from '@/components/ui/separator'; // Need to install separator
+import { formatPrice } from '@/lib/format';
 
 export function CartSheet() {
     const { cart, isLoading } = useCart();
@@ -72,7 +73,7 @@ export function CartSheet() {
                             <div className="space-y-1.5">
                                 <div className="flex justify-between text-sm">
                                     <span className="text-muted-foreground">Subtotal</span>
-                                    <span className="font-medium">${cart.subtotal.toFixed(2)}</span>
+                                    <span className="font-medium">{formatPrice(cart.subtotal, cart.currency)}</span>
                                 </div>
                                 <div className="flex justify-between text-sm">
                                     <span className="text-muted-foreground">Shipping</span>
@@ -80,7 +81,7 @@ export function CartSheet() {
                                 </div>
                                 <div className="flex justify-between text-base font-semibold pt-2 border-t">
                                     <span>Total</span>
-                                    <span>${cart.total.toFixed(2)}</span>
+                                    <span>{formatPrice(cart.total, cart.currency)}</span>
                                 </div>
                             </div>
                             <SheetTrigger asChild>

@@ -1,11 +1,13 @@
 'use client';
 
-import { CartItem as ICartItem, useCart } from '@/hooks/use-cart';
+import type { CartItem as ICartItem } from '@lab404/shared-types';
+import { useCart } from '@/hooks/use-cart';
 import { Button } from '@/components/ui/button';
 import { Minus, Plus, Trash2, Loader2 } from 'lucide-react';
 import Image from 'next/image';
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { formatPrice } from '@/lib/format';
 
 interface CartItemProps {
     item: ICartItem;
@@ -42,9 +44,9 @@ export function CartItem({ item }: CartItemProps) {
     return (
         <div className="flex gap-4 py-4">
             <div className="relative h-24 w-24 sm:h-20 sm:w-20 shrink-0 overflow-hidden rounded-md border bg-muted">
-                {item.product.image ? (
+                {item.product.thumbnailUrl ? (
                     <Image
-                        src={item.product.image}
+                        src={item.product.thumbnailUrl}
                         alt={item.product.name}
                         fill
                         className="object-cover"
@@ -56,11 +58,18 @@ export function CartItem({ item }: CartItemProps) {
                 )}
             </div>
             <div className="flex flex-1 flex-col justify-between gap-3">
-                <div className="flex justify-between gap-2">
+                <div className="flex flex-col gap-1 sm:flex-row sm:justify-between sm:items-start sm:gap-2">
                     <h3 className="line-clamp-2 text-sm font-medium leading-snug">
                         {item.product.name}
                     </h3>
-                    <p className="text-sm font-bold shrink-0">${item.product.price}</p>
+                    <div className="flex flex-col items-start sm:items-end gap-0.5 shrink-0">
+                        <p className="text-xs text-muted-foreground">
+                            {formatPrice(item.unitPrice)} each
+                        </p>
+                        <p className="text-sm font-bold">
+                            {formatPrice(item.lineTotal)}
+                        </p>
+                    </div>
                 </div>
                 <div className="flex items-center justify-between gap-4">
                     <div className="flex items-center gap-2">
