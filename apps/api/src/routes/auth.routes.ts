@@ -896,8 +896,9 @@ authRoutes.post(
       const normalizedEmail = email.toLowerCase();
       const db = getDb();
 
-      // Validate code (throws if invalid/expired/max attempts)
-      const isValid = await verificationCodeService.validateCode({
+      // Validate code WITHOUT marking as used yet (throws if invalid/expired/max attempts)
+      // We'll mark it as used after password update succeeds
+      const isValid = await verificationCodeService.validateCodeWithoutMarking({
         email: normalizedEmail,
         code,
         type: 'password_reset',
@@ -972,6 +973,9 @@ authRoutes.post(
         ipAddress: req.ip || req.socket.remoteAddress,
         userAgent: req.headers['user-agent'],
       });
+
+      // Mark verification code as used (only after password update succeeded)
+      await verificationCodeService.markCodeAsUsed(normalizedEmail, 'password_reset');
 
       // Log password reset completed event
       await auditLogService.logFromRequest(req, {

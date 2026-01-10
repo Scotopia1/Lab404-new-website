@@ -114,6 +114,94 @@ class VerificationCodeService {
   }
 
   /**
+   * Validate a verification code without marking it as used
+   * Use this when you need to perform additional operations before marking as used
+   * Tracks attempts and enforces expiration
+   */
+  async validateCodeWithoutMarking(options: ValidateCodeOptions): Promise<boolean> {
+    const { email, code, type } = options;
+    const db = getDb();
+    const now = new Date();
+
+    // Find the most recent active code for this email/type
+    const [record] = await db
+      .select()
+      .from(verificationCodes)
+      .where(
+        and(
+          eq(verificationCodes.email, email.toLowerCase()),
+          eq(verificationCodes.type, type),
+          eq(verificationCodes.isUsed, false),
+          gte(verificationCodes.expiresAt, now)
+        )
+      )
+      .orderBy(desc(verificationCodes.createdAt))
+      .limit(1);
+
+    if (!record) {
+      logger.warn('Verification code not found or expired', { email, type });
+      throw new BadRequestError('Invalid or expired verification code');
+    }
+
+    // Check if max attempts exceeded
+    if (record.attempts >= record.maxAttempts) {
+      logger.warn('Max verification attempts exceeded', { email, type, attempts: record.attempts });
+      throw new TooManyRequestsError('Maximum verification attempts exceeded. Please request a new code.');
+    }
+
+    // Increment attempts
+    await db
+      .update(verificationCodes)
+      .set({ attempts: record.attempts + 1 })
+      .where(eq(verificationCodes.id, record.id));
+
+    // Validate code
+    if (record.code !== code) {
+      logger.warn('Invalid verification code attempt', { email, type, attempts: record.attempts + 1 });
+      throw new BadRequestError('Invalid verification code');
+    }
+
+    logger.info('Verification code validated (not marked as used yet)', { email, type });
+    return true;
+  }
+
+  /**
+   * Mark a validated verification code as used
+   * Call this after validateCodeWithoutMarking() once the operation succeeds
+   */
+  async markCodeAsUsed(email: string, type: VerificationCodeType): Promise<void> {
+    const db = getDb();
+    const now = new Date();
+
+    // Find the most recent active code for this email/type
+    const [record] = await db
+      .select()
+      .from(verificationCodes)
+      .where(
+        and(
+          eq(verificationCodes.email, email.toLowerCase()),
+          eq(verificationCodes.type, type),
+          eq(verificationCodes.isUsed, false),
+          gte(verificationCodes.expiresAt, now)
+        )
+      )
+      .orderBy(desc(verificationCodes.createdAt))
+      .limit(1);
+
+    if (record) {
+      await db
+        .update(verificationCodes)
+        .set({
+          isUsed: true,
+          usedAt: now,
+        })
+        .where(eq(verificationCodes.id, record.id));
+
+      logger.info('Verification code marked as used', { email, type });
+    }
+  }
+
+  /**
    * Invalidate all unused codes for a specific email/type
    */
   async invalidateCodes(email: string, type: VerificationCodeType): Promise<void> {
