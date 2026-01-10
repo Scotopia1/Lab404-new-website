@@ -28,8 +28,8 @@ export function useProfile(): UseQueryResult<Customer> {
   return useQuery({
     queryKey: ['profile'],
     queryFn: async () => {
-      const response = await api.get<Customer>('/customers/me');
-      return response.data;
+      const response = await api.get<{ success: boolean; data: Customer }>('/customers/me');
+      return response.data.data; // Extract customer from API response wrapper
     },
   });
 }
@@ -39,8 +39,8 @@ export function useUpdateProfile() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (data: UpdateProfileInput) => {
-      const response = await api.put<Customer>('/customers/me', data);
-      return response.data;
+      const response = await api.put<{ success: boolean; data: Customer }>('/customers/me', data);
+      return response.data.data; // Extract customer from API response wrapper
     },
     onSuccess: (data) => {
       queryClient.setQueryData(['profile'], data);
@@ -53,8 +53,8 @@ export function useUpdateProfile() {
 export function useChangePassword() {
   return useMutation({
     mutationFn: async (data: ChangePasswordInput) => {
-      const response = await api.put<{ message: string }>('/customers/me/password', data);
-      return response.data;
+      const response = await api.put<{ success: boolean; data: { message: string } }>('/customers/me/password', data);
+      return response.data.data; // Extract message from API response wrapper
     },
   });
 }
