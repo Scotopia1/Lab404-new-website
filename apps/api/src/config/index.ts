@@ -22,7 +22,10 @@ export const config = {
   jwtExpiresIn: process.env['JWT_EXPIRES_IN'] || '7d',
 
   // CORS
-  corsOrigins: (process.env['CORS_ORIGINS'] || 'http://localhost:3000,http://localhost:3001').split(','),
+  corsOrigins: (process.env['CORS_ORIGINS'] || 'http://localhost:3000,http://localhost:3001')
+    .split(',')
+    .map(origin => origin.trim())
+    .filter(origin => origin.length > 0),
 
   // ImageKit
   imagekit: {
