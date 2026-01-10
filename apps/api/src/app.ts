@@ -85,6 +85,7 @@ export function createApp() {
     // Skip CSRF for safe methods, health checks, and public auth endpoints
     const publicAuthPaths = [
       '/api/auth/login',
+      '/api/auth/admin/login',
       '/api/auth/register',
       '/api/auth/forgot-password',
       '/api/auth/verify-reset-code',

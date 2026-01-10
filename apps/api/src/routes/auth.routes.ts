@@ -7,7 +7,7 @@ import { authLimiter, verificationLimiter } from '../middleware/rateLimiter';
 import { requireAuth, generateToken, getTokenExpiration } from '../middleware/auth';
 import { sendSuccess, sendError } from '../utils/response';
 import { ConflictError, NotFoundError, UnauthorizedError, BadRequestError } from '../utils/errors';
-import { verificationCodeService } from '../services';
+import { verificationCodeService, cartService } from '../services';
 import { notificationService } from '../services/notification.service';
 import { sessionService } from '../services/session.service';
 import { PasswordSecurityService } from '../services/password-security.service';
@@ -491,6 +491,17 @@ authRoutes.post(
       // Clear any failed attempts and unlock account
       await LoginAttemptService.clearFailedAttempts(normalizedEmail);
 
+      // Merge session cart if exists
+      const guestSessionId = req.sessionId || req.headers['x-session-id'] as string;
+      if (guestSessionId) {
+        const mergedItems = await cartService.mergeSessionCart(guestSessionId, customer.id);
+        logger.info('Session cart merged on login', {
+          customerId: customer.id,
+          guestSessionId,
+          itemsMerged: mergedItems,
+        });
+      }
+
       // Create session
       const sessionId = await sessionService.createSession({
         customerId: customer.id,
@@ -679,9 +690,20 @@ authRoutes.post(
         throw new UnauthorizedError('Invalid email or password');
       }
 
-      // TODO: Implement proper admin role checking
-      // Currently, any customer can get an admin token through this endpoint
-      // Need to add isAdmin field to customers table or create separate admins table
+      // Check if customer has admin role
+      if (customer.role !== 'admin') {
+        throw new UnauthorizedError('Access denied. Admin privileges required.');
+      }
+
+      // Check if account is active
+      if (!customer.isActive) {
+        throw new UnauthorizedError('Account is disabled. Please contact support.');
+      }
+
+      // Check if email is verified
+      if (!customer.emailVerified) {
+        throw new UnauthorizedError('Email not verified. Please verify your email address.');
+      }
 
       // Generate JWT token with admin role
       const token = generateToken({
