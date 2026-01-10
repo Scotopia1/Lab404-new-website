@@ -950,7 +950,10 @@ authRoutes.post(
           customerId: customer.id,
           errors: validation.errors
         });
-        throw new BadRequestError(validation.errors.join('. '));
+
+        // Build helpful error message that guides user to try again
+        const errorMessage = validation.errors.join('. ') + ' You can try again with a different password using the same verification code.';
+        throw new BadRequestError(errorMessage);
       }
 
       // Hash new password

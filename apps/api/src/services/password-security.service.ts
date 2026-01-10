@@ -147,22 +147,23 @@ export class PasswordSecurityService {
 
     // Basic length check
     if (password.length < 8) {
-      errors.push('Password must be at least 8 characters long');
+      errors.push('❌ Password Length: Must be at least 8 characters long. Current length: ' + password.length);
     }
 
     if (password.length > 100) {
-      errors.push('Password must not exceed 100 characters');
+      errors.push('❌ Password Length: Must not exceed 100 characters. Current length: ' + password.length);
     }
 
     // Calculate strength
     const strength = await this.calculateStrength(password, userInputs);
 
     if (strength.score < this.MIN_STRENGTH_SCORE) {
+      const warningText = strength.feedback.warning || 'This password is too predictable.';
       errors.push(
-        `Password is too weak (score: ${strength.score}/4). ${strength.feedback.warning || 'Try a stronger password.'}`
+        `🔒 Password Strength: Your password is too weak (${strength.score}/4). ${warningText}`
       );
       if (strength.feedback.suggestions.length > 0) {
-        errors.push(...strength.feedback.suggestions);
+        errors.push(`💡 Suggestions: ${strength.feedback.suggestions.join(' ')}`);
       }
     }
 
@@ -170,8 +171,12 @@ export class PasswordSecurityService {
     const breachResult = await HIBPService.checkPassword(password, customerId);
 
     if (breachResult.isBreached) {
+      const breachText = breachResult.breachCount > 1000
+        ? `${(breachResult.breachCount / 1000).toFixed(1)}k+`
+        : breachResult.breachCount.toString();
+
       errors.push(
-        `This password has been found in ${breachResult.breachCount} data breach${breachResult.breachCount > 1 ? 'es' : ''}. Please choose a different password.`
+        `⚠️ Security Alert: This password has been exposed in ${breachText} data breaches and is not safe to use. Please choose a unique password that you haven't used elsewhere.`
       );
     }
 
@@ -179,7 +184,7 @@ export class PasswordSecurityService {
     const isReused = await this.checkPasswordHistory(customerId, password);
 
     if (isReused) {
-      errors.push('This password has been used before. Please choose a new password.');
+      errors.push('🔄 Password History: You\'ve used this password before. For security, please choose a new password you haven\'t used on this account.');
     }
 
     // Build complete strength result
@@ -212,22 +217,23 @@ export class PasswordSecurityService {
 
     // Basic length check
     if (password.length < 8) {
-      errors.push('Password must be at least 8 characters long');
+      errors.push('❌ Password Length: Must be at least 8 characters long. Current length: ' + password.length);
     }
 
     if (password.length > 100) {
-      errors.push('Password must not exceed 100 characters');
+      errors.push('❌ Password Length: Must not exceed 100 characters. Current length: ' + password.length);
     }
 
     // Calculate strength
     const strength = await this.calculateStrength(password, userInputs);
 
     if (strength.score < this.MIN_STRENGTH_SCORE) {
+      const warningText = strength.feedback.warning || 'This password is too predictable.';
       errors.push(
-        `Password is too weak (score: ${strength.score}/4). ${strength.feedback.warning || 'Try a stronger password.'}`
+        `🔒 Password Strength: Your password is too weak (${strength.score}/4). ${warningText}`
       );
       if (strength.feedback.suggestions.length > 0) {
-        errors.push(...strength.feedback.suggestions);
+        errors.push(`💡 Suggestions: ${strength.feedback.suggestions.join(' ')}`);
       }
     }
 
@@ -235,8 +241,12 @@ export class PasswordSecurityService {
     const breachResult = await HIBPService.checkPassword(password);
 
     if (breachResult.isBreached) {
+      const breachText = breachResult.breachCount > 1000
+        ? `${(breachResult.breachCount / 1000).toFixed(1)}k+`
+        : breachResult.breachCount.toString();
+
       errors.push(
-        `This password has been found in ${breachResult.breachCount} data breach${breachResult.breachCount > 1 ? 'es' : ''}. Please choose a different password.`
+        `⚠️ Security Alert: This password has been exposed in ${breachText} data breaches and is not safe to use. Please choose a unique password that you haven't used elsewhere.`
       );
     }
 
