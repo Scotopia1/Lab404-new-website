@@ -1,4 +1,5 @@
 import { RegisterForm } from '@/components/forms/register-form';
+import { AuthPageGuard } from '@/components/auth/auth-page-guard';
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
@@ -7,8 +8,10 @@ export const metadata: Metadata = {
 
 export default function RegisterPage() {
     return (
-        <div className="flex items-center justify-center min-h-[60vh]">
-            <RegisterForm />
-        </div>
+        <AuthPageGuard>
+            <div className="flex items-center justify-center min-h-[60vh]">
+                <RegisterForm />
+            </div>
+        </AuthPageGuard>
     );
 }

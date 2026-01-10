@@ -1,4 +1,5 @@
 import { LoginForm } from '@/components/forms/login-form';
+import { AuthPageGuard } from '@/components/auth/auth-page-guard';
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
@@ -7,8 +8,10 @@ export const metadata: Metadata = {
 
 export default function LoginPage() {
     return (
-        <div className="flex items-center justify-center min-h-[60vh]">
-            <LoginForm />
-        </div>
+        <AuthPageGuard>
+            <div className="flex items-center justify-center min-h-[60vh]">
+                <LoginForm />
+            </div>
+        </AuthPageGuard>
     );
 }
