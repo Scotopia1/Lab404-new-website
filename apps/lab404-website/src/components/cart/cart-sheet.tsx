@@ -33,7 +33,7 @@ export function CartSheet() {
                 </Button>
             </SheetTrigger>
             <SheetContent className="flex w-full flex-col pr-0 sm:max-w-lg h-full">
-                <SheetHeader className="px-1">
+                <SheetHeader className="px-6">
                     <SheetTitle>Cart ({cart?.itemCount || 0})</SheetTitle>
                 </SheetHeader>
                 {isLoading ? (
@@ -62,13 +62,13 @@ export function CartSheet() {
                 ) : (
                     <>
                         <ScrollArea className="flex-1 pr-6">
-                            <div className="flex flex-col divide-y">
+                            <div className="flex flex-col divide-y px-6">
                                 {cart.items.map((item) => (
                                     <CartItem key={item.id} item={item} />
                                 ))}
                             </div>
                         </ScrollArea>
-                        <div className="space-y-4 pr-6 pt-4 pb-6 border-t bg-background sticky bottom-0">
+                        <div className="space-y-4 px-6 pt-4 pb-6 border-t bg-background sticky bottom-0">
                             <div className="space-y-1.5">
                                 <div className="flex justify-between text-sm">
                                     <span className="text-muted-foreground">Subtotal</span>
