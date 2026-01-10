@@ -100,7 +100,7 @@ export default function ProfilePage() {
             </CardHeader>
             <CardContent>
               <div className="text-xl md:text-2xl font-bold">
-                {format(new Date(profile.createdAt), 'MMM yyyy')}
+                {profile.createdAt ? format(new Date(profile.createdAt), 'MMM yyyy') : 'N/A'}
               </div>
             </CardContent>
           </Card>
