@@ -29,6 +29,7 @@ async function start() {
         port: config.port,
         environment: config.env,
         url: config.apiUrl,
+        corsOrigins: config.corsOrigins,
       });
 
       // Start session cleanup cron job
