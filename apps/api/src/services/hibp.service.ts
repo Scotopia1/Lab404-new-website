@@ -102,31 +102,37 @@ export class HIBPService {
     customerId: string,
     hashPrefix: string
   ): Promise<BreachCheckResult | null> {
-    const db = getDb();
+    try {
+      const db = getDb();
 
-    const cached = await db
-      .select()
-      .from(breachChecks)
-      .where(eq(breachChecks.customerId, customerId))
-      .where(eq(breachChecks.passwordHashPrefix, hashPrefix))
-      .limit(1);
+      const cached = await db
+        .select()
+        .from(breachChecks)
+        .where(eq(breachChecks.customerId, customerId))
+        .where(eq(breachChecks.passwordHashPrefix, hashPrefix))
+        .limit(1);
 
-    if (cached.length === 0) {
+      if (cached.length === 0) {
+        return null;
+      }
+
+      const check = cached[0];
+
+      // Check if cache is still valid
+      if (new Date() > check.expiresAt) {
+        return null;
+      }
+
+      return {
+        isBreached: check.isBreached,
+        breachCount: check.breachCount,
+        cached: true,
+      };
+    } catch (error) {
+      // Table doesn't exist or query failed - skip cache
+      console.warn('Failed to get cached breach check result:', error);
       return null;
     }
-
-    const check = cached[0];
-
-    // Check if cache is still valid
-    if (new Date() > check.expiresAt) {
-      return null;
-    }
-
-    return {
-      isBreached: check.isBreached,
-      breachCount: check.breachCount,
-      cached: true,
-    };
   }
 
   /**
@@ -141,12 +147,12 @@ export class HIBPService {
     hashPrefix: string,
     result: BreachCheckResult
   ): Promise<void> {
-    const db = getDb();
-
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + this.CACHE_DURATION_DAYS);
-
     try {
+      const db = getDb();
+
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + this.CACHE_DURATION_DAYS);
+
       await db.insert(breachChecks).values({
         customerId,
         passwordHashPrefix: hashPrefix,
@@ -156,7 +162,7 @@ export class HIBPService {
         checkReason: 'password_change',
       });
     } catch (error) {
-      // Cache insertion failed - non-critical, just log
+      // Cache insertion failed or table doesn't exist - non-critical, just log
       console.warn('Failed to cache HIBP result:', error);
     }
   }
