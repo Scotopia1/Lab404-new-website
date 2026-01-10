@@ -97,7 +97,7 @@ export function PasswordResetForm() {
   const handlePasteCode = (e: React.ClipboardEvent<HTMLInputElement>) => {
     const pastedText = e.clipboardData.getData('text').trim();
     if (/^\d{6}$/.test(pastedText)) {
-      codeForm.setValue('code', pastedText);
+      codeForm.setValue('code', pastedText, { shouldValidate: true });
       e.preventDefault();
     }
   };

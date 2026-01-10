@@ -9,9 +9,42 @@
  *   pnpm tsx scripts/setup-admin-user.ts promote <email>    - Promote existing user to admin
  */
 
-import { getDb, customers, eq } from '@lab404/database';
+import { config } from 'dotenv';
+import { resolve } from 'path';
+
+// Load environment variables FIRST before any other imports
+config({ path: resolve(__dirname, '../.env') });
+
+import { neon } from '@neondatabase/serverless';
+import { drizzle } from 'drizzle-orm/neon-http';
+import { pgTable, uuid, varchar, text, boolean, integer, timestamp, jsonb } from 'drizzle-orm/pg-core';
+import { eq } from 'drizzle-orm';
 import bcrypt from 'bcryptjs';
 import * as readline from 'readline';
+
+// Define customers table schema (minimal version for this script)
+const customers = pgTable('customers', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  authUserId: varchar('auth_user_id', { length: 255 }).unique(),
+  email: varchar('email', { length: 255 }).notNull(),
+  firstName: varchar('first_name', { length: 100 }),
+  lastName: varchar('last_name', { length: 100 }),
+  phone: varchar('phone', { length: 50 }),
+  passwordHash: varchar('password_hash', { length: 255 }),
+  role: varchar('role', { length: 20 }).default('customer').notNull(),
+  emailVerified: boolean('email_verified').default(false).notNull(),
+  emailVerifiedAt: timestamp('email_verified_at'),
+  defaultShippingAddress: jsonb('default_shipping_address'),
+  defaultBillingAddress: jsonb('default_billing_address'),
+  isGuest: boolean('is_guest').default(false).notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  acceptsMarketing: boolean('accepts_marketing').default(false).notNull(),
+  notes: text('notes'),
+  tags: varchar('tags', { length: 255 }).array(),
+  orderCount: integer('order_count').default(0).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
 
 const rl = readline.createInterface({
   input: process.stdin,
@@ -22,10 +55,19 @@ function question(query: string): Promise<string> {
   return new Promise((resolve) => rl.question(query, resolve));
 }
 
+function getDbClient() {
+  const databaseUrl = process.env.DATABASE_URL;
+  if (!databaseUrl) {
+    throw new Error('DATABASE_URL not found in environment variables');
+  }
+  const sql = neon(databaseUrl);
+  return drizzle(sql, { schema: { customers } });
+}
+
 async function checkAdminUsers() {
   console.log('\n🔍 Checking for admin users...\n');
 
-  const db = getDb();
+  const db = getDbClient();
   const admins = await db
     .select({
       id: customers.id,
@@ -76,7 +118,7 @@ async function createAdminUser() {
     return;
   }
 
-  const db = getDb();
+  const db = getDbClient();
 
   // Check if email already exists
   const [existing] = await db
@@ -123,7 +165,7 @@ async function createAdminUser() {
 async function promoteUser(email: string) {
   console.log(`\n⬆️  Promoting user ${email} to admin...\n`);
 
-  const db = getDb();
+  const db = getDbClient();
 
   // Find user
   const [user] = await db
