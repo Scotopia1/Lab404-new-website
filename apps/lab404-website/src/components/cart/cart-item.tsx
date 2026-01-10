@@ -1,6 +1,6 @@
 'use client';
 
-import type { CartItem as ICartItem } from '@lab404/shared-types';
+import type { CartItem as ICartItem } from '@/types/cart';
 import { useCart } from '@/hooks/use-cart';
 import { Button } from '@/components/ui/button';
 import { Minus, Plus, Trash2, Loader2 } from 'lucide-react';

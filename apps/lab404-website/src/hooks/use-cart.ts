@@ -1,9 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
-import type { CartCalculation } from '@lab404/shared-types';
+import type { CartCalculation, CartItem } from '@/types/cart';
 
 // Re-export for convenience
-export type { CartItem, CartCalculation } from '@lab404/shared-types';
+export type { CartItem, CartCalculation };
 
 export function useCart() {
     const queryClient = useQueryClient();
