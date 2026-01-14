@@ -21,6 +21,7 @@ const productFiltersSchema = z.object({
   search: z.string().optional(),
   categoryId: z.string().uuid().optional(),
   categorySlug: z.string().optional(),
+  category: z.string().optional(), // Alias for categorySlug
   brand: z.string().optional(),
   status: z.enum(['draft', 'active', 'archived']).optional(),
   isFeatured: z.enum(['true', 'false']).optional(),
@@ -122,7 +123,8 @@ productsRoutes.get('/', validateQuery(productFiltersSchema), async (req, res, ne
 
     const search = filters['search'] as string | undefined;
     const categoryId = filters['categoryId'] as string | undefined;
-    const categorySlug = filters['categorySlug'] as string | undefined;
+    // Support both 'category' and 'categorySlug' for filtering by slug
+    const categorySlug = (filters['categorySlug'] || filters['category']) as string | undefined;
     const brand = filters['brand'] as string | undefined;
     const minPrice = filters['minPrice'] as string | undefined;
     const maxPrice = filters['maxPrice'] as string | undefined;

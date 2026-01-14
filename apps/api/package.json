@@ -13,7 +13,8 @@
     "test": "tsx tests/run-tests.ts",
     "test:security": "tsx tests/security-audit.ts",
     "test:all": "tsx tests/run-tests.ts && tsx tests/security-audit.ts",
-    "db:check": "tsx -e \"const { checkDbHealth } = require('./src/utils/db-health'); checkDbHealth().then(console.log).catch(console.error)\""
+    "db:check": "tsx -e \"const { checkDbHealth } = require('./src/utils/db-health'); checkDbHealth().then(console.log).catch(console.error)\"",
+    "sync:search": "tsx --env-file=../../.env scripts/sync-meilisearch.ts"
   },
   "dependencies": {
     "@neondatabase/serverless": "^0.9.0",
