@@ -4,8 +4,8 @@ import { api } from '@/lib/api';
 export interface Customer {
   id: string;
   email: string;
-  firstName: string;
-  lastName: string;
+  firstName: string | null;
+  lastName: string | null;
   phone?: string | null;
   orderCount: number;
   createdAt: string;

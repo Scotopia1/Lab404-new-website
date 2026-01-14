@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { Mail, Phone, MapPin, Facebook, Twitter, Instagram, Youtube, Send, Zap } from 'lucide-react';
+import { useSettings } from '@/hooks/use-settings';
 
 const shopLinks = [
     { href: '/products', label: 'All Products' },
@@ -45,6 +46,7 @@ const socialLinks = [
 
 export function Footer() {
     const [email, setEmail] = useState('');
+    const { data: settings } = useSettings();
 
     const handleNewsletterSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -104,18 +106,24 @@ export function Footer() {
                             Your trusted source for premium electronic components, sensors, and DIY kits.
                         </p>
                         <div className="space-y-2 text-sm text-muted-foreground">
-                            <a href="mailto:support@lab404electronics.com" className="flex items-center gap-2 hover:text-foreground transition-colors">
-                                <Mail className="h-4 w-4" />
-                                support@lab404electronics.com
-                            </a>
-                            <a href="tel:+1-555-404-1234" className="flex items-center gap-2 hover:text-foreground transition-colors">
-                                <Phone className="h-4 w-4" />
-                                +1 (555) 404-1234
-                            </a>
-                            <p className="flex items-start gap-2">
-                                <MapPin className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                                123 Electronics Ave, Tech City, TC 12345
-                            </p>
+                            {settings?.company_email && (
+                                <a href={`mailto:${settings.company_email}`} className="flex items-center gap-2 hover:text-foreground transition-colors">
+                                    <Mail className="h-4 w-4" />
+                                    {settings.company_email}
+                                </a>
+                            )}
+                            {settings?.company_phone && (
+                                <a href={`tel:${settings.company_phone.replace(/\s/g, '')}`} className="flex items-center gap-2 hover:text-foreground transition-colors">
+                                    <Phone className="h-4 w-4" />
+                                    {settings.company_phone}
+                                </a>
+                            )}
+                            {settings?.company_address && (
+                                <p className="flex items-start gap-2">
+                                    <MapPin className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                                    {settings.company_address}
+                                </p>
+                            )}
                         </div>
                     </div>
 
@@ -182,7 +190,7 @@ export function Footer() {
             <div className="container-main py-6">
                 <div className="flex flex-col md:flex-row items-center justify-between gap-4">
                     <p className="text-sm text-muted-foreground text-center md:text-left">
-                        &copy; {new Date().getFullYear()} Lab404 Electronics. All rights reserved.
+                        &copy; {new Date().getFullYear()} {settings?.company_name || 'Lab404 Electronics'}. All rights reserved.
                     </p>
                     <div className="flex items-center gap-4">
                         {socialLinks.map((social) => (

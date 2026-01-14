@@ -35,8 +35,8 @@ export default function ProfilePage() {
   } = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
     values: profile ? {
-      firstName: profile.firstName,
-      lastName: profile.lastName,
+      firstName: profile.firstName || '',
+      lastName: profile.lastName || '',
       phone: profile.phone || '',
     } : undefined,
   });
