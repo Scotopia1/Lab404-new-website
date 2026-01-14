@@ -4,7 +4,7 @@
   "crons": [
     {
       "path": "/api/cron/newsletter-send",
-      "schedule": "0 * * * *"
+      "schedule": "0 9 * * *"
     },
     {
       "path": "/api/cron/quotation-expiry-check",
