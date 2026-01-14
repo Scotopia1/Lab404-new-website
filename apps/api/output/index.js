@@ -22356,9 +22356,10 @@ newsletterRoutes.delete("/campaigns/:id", async (req, res, next) => {
     if (!existing) {
       throw new NotFoundError("Campaign not found");
     }
-    if (existing.status !== "draft") {
-      throw new BadRequestError("Can only delete draft campaigns");
+    if (existing.status !== "draft" && existing.status !== "cancelled") {
+      throw new BadRequestError("Can only delete draft or cancelled campaigns");
     }
+    await db2.delete(newsletterSends).where(eq(newsletterSends.campaignId, id));
     await db2.delete(newsletterCampaigns).where(eq(newsletterCampaigns.id, id));
     sendSuccess(res, { message: "Campaign deleted successfully" });
   } catch (error) {

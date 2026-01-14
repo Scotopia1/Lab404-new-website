@@ -569,7 +569,7 @@ newsletterRoutes.put(
 
 /**
  * DELETE /api/newsletter/campaigns/:id
- * Delete a campaign (only draft campaigns)
+ * Delete a campaign (only draft or cancelled campaigns)
  */
 newsletterRoutes.delete('/campaigns/:id', async (req, res, next) => {
   try {
@@ -585,10 +585,14 @@ newsletterRoutes.delete('/campaigns/:id', async (req, res, next) => {
       throw new NotFoundError('Campaign not found');
     }
 
-    if (existing.status !== 'draft') {
-      throw new BadRequestError('Can only delete draft campaigns');
+    if (existing.status !== 'draft' && existing.status !== 'cancelled') {
+      throw new BadRequestError('Can only delete draft or cancelled campaigns');
     }
 
+    // Delete associated sends first (if any)
+    await db.delete(newsletterSends).where(eq(newsletterSends.campaignId, id));
+
+    // Then delete the campaign
     await db.delete(newsletterCampaigns).where(eq(newsletterCampaigns.id, id));
 
     sendSuccess(res, { message: 'Campaign deleted successfully' });

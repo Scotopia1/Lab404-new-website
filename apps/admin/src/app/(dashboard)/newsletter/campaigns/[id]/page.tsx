@@ -17,6 +17,7 @@ import {
   AlertCircle,
   Mail,
   Calendar,
+  Trash2,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -50,6 +51,7 @@ import {
   useStartCampaign,
   usePauseCampaign,
   useCancelCampaign,
+  useDeleteCampaign,
   useSendTestEmail,
 } from "@/hooks/use-newsletter";
 import { formatDate } from "@/lib/utils";
@@ -73,6 +75,7 @@ export default function CampaignDetailPage() {
 
   const [actionType, setActionType] = useState<"start" | "pause" | "cancel" | null>(null);
   const [showTestDialog, setShowTestDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [testEmail, setTestEmail] = useState("");
   const [showPreview, setShowPreview] = useState(false);
 
@@ -80,6 +83,7 @@ export default function CampaignDetailPage() {
   const startCampaign = useStartCampaign();
   const pauseCampaign = usePauseCampaign();
   const cancelCampaign = useCancelCampaign();
+  const deleteCampaign = useDeleteCampaign();
   const sendTestEmailMutation = useSendTestEmail();
 
   const handleAction = async () => {
@@ -104,6 +108,12 @@ export default function CampaignDetailPage() {
     await sendTestEmailMutation.mutateAsync({ campaignId: id, email: testEmail });
     setShowTestDialog(false);
     setTestEmail("");
+  };
+
+  const handleDelete = async () => {
+    await deleteCampaign.mutateAsync(id);
+    setShowDeleteDialog(false);
+    router.push("/newsletter/campaigns");
   };
 
   if (isLoading) {
@@ -144,6 +154,7 @@ export default function CampaignDetailPage() {
   const canPause = campaign.status === "sending";
   const canCancel = ["scheduled", "sending", "paused"].includes(campaign.status);
   const canEdit = ["draft", "scheduled", "paused"].includes(campaign.status);
+  const canDelete = ["draft", "cancelled"].includes(campaign.status);
 
   return (
     <div className="space-y-6">
@@ -196,6 +207,12 @@ export default function CampaignDetailPage() {
             <Button variant="destructive" onClick={() => setActionType("cancel")}>
               <X className="mr-2 h-4 w-4" />
               Cancel
+            </Button>
+          )}
+          {canDelete && (
+            <Button variant="destructive" onClick={() => setShowDeleteDialog(true)}>
+              <Trash2 className="mr-2 h-4 w-4" />
+              Delete
             </Button>
           )}
         </div>
@@ -431,6 +448,29 @@ export default function CampaignDetailPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Campaign</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{campaign.name}"? This action cannot be undone.
+              All associated send records will also be deleted.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-destructive text-white hover:bg-destructive/90"
+              disabled={deleteCampaign.isPending}
+            >
+              {deleteCampaign.isPending ? "Deleting..." : "Delete Campaign"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
