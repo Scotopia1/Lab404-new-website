@@ -55,3 +55,6 @@ export * from './securityAuditLogs';
 
 // IP Reputation
 export * from './ipReputation';
+
+// Newsletter
+export * from './newsletter';

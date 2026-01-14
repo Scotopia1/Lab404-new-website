@@ -5,8 +5,10 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
-import { Mail, Phone, MapPin, Facebook, Twitter, Instagram, Youtube, Send, Zap } from 'lucide-react';
+import { Mail, Phone, MapPin, Facebook, Twitter, Instagram, Youtube, Send, Zap, Loader2 } from 'lucide-react';
 import { useSettings } from '@/hooks/use-settings';
+import { useNewsletterSubscribe } from '@/hooks/use-newsletter';
+import { toast } from 'sonner';
 
 const shopLinks = [
     { href: '/products', label: 'All Products' },
@@ -47,12 +49,19 @@ const socialLinks = [
 export function Footer() {
     const [email, setEmail] = useState('');
     const { data: settings } = useSettings();
+    const newsletterMutation = useNewsletterSubscribe();
 
-    const handleNewsletterSubmit = (e: React.FormEvent) => {
+    const handleNewsletterSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        // TODO: Implement newsletter subscription
-        console.log('Newsletter subscription:', email);
-        setEmail('');
+        if (!email.trim()) return;
+
+        try {
+            const result = await newsletterMutation.mutateAsync({ email, source: 'footer' });
+            toast.success(result.message);
+            setEmail('');
+        } catch (error: any) {
+            toast.error(error.response?.data?.error || 'Failed to subscribe. Please try again.');
+        }
     };
 
     return (
@@ -82,8 +91,12 @@ export function Footer() {
                                     required
                                 />
                             </div>
-                            <Button type="submit" variant="secondary" className="font-semibold">
-                                <Send className="h-4 w-4 mr-2" />
+                            <Button type="submit" variant="secondary" className="font-semibold" disabled={newsletterMutation.isPending}>
+                                {newsletterMutation.isPending ? (
+                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                ) : (
+                                    <Send className="h-4 w-4 mr-2" />
+                                )}
                                 Subscribe
                             </Button>
                         </form>

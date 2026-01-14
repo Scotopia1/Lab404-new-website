@@ -25,6 +25,7 @@ import { googleImagesRoutes } from './google-images.routes';
 import { pdfTemplatesRoutes } from './pdfTemplates.routes';
 import { cronRoutes } from './cron.routes';
 import { adminRoutes } from './admin.routes';
+import { newsletterRoutes } from './newsletter.routes';
 
 export const router = Router();
 
@@ -109,6 +110,9 @@ router.use('/pdf-templates', pdfTemplatesRoutes);
 // Admin (Admin only)
 router.use('/admin', adminRoutes);
 
+// Newsletter (Admin only)
+router.use('/newsletter', newsletterRoutes);
+
 // Cron Jobs (Protected by secret)
 router.use('/cron', cronRoutes);
 
@@ -144,6 +148,7 @@ router.get('/', (_req, res) => {
       upload: '/api/upload',
       notifications: '/api/notifications',
       googleImages: '/api/google-images',
+      newsletter: '/api/newsletter',
     },
   });
 });

@@ -16,6 +16,7 @@ import {
   Import,
   ChevronLeft,
   Quote,
+  Mail,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -31,6 +32,7 @@ const navigation = [
   { name: "Customers", href: "/customers", icon: Users },
   { type: "separator" as const },
   { name: "Blog Posts", href: "/blogs", icon: FileText },
+  { name: "Newsletter", href: "/newsletter", icon: Mail },
   { name: "Promo Codes", href: "/promo-codes", icon: Tag },
   { name: "Quotations", href: "/quotations", icon: Quote },
   { type: "separator" as const },
