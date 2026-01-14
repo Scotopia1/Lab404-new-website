@@ -654,6 +654,8 @@ authRoutes.post('/logout', requireAuth, async (req, res, next) => {
       httpOnly: true,
       secure: process.env['NODE_ENV'] === 'production',
       sameSite: process.env['NODE_ENV'] === 'production' ? 'none' : 'lax',
+      domain: process.env['NODE_ENV'] === 'production' ? '.lab404electronics.com' : undefined,
+      path: '/',
     });
 
     sendSuccess(res, { message: 'Logged out successfully' });
@@ -710,13 +712,24 @@ authRoutes.post(
         throw new UnauthorizedError('Email not verified. Please verify your email address.');
       }
 
-      // Generate JWT token with admin role
+      // Create session for admin
+      const sessionId = await sessionService.createSession({
+        customerId: customer.id,
+        userAgent: req.headers['user-agent'] || '',
+        ipAddress: req.ip || req.socket.remoteAddress || '',
+      });
+
+      // Generate JWT token with admin role and sessionId
       const token = generateToken({
         userId: customer.authUserId!,
         email: customer.email,
         role: 'admin',
         customerId: customer.id,
+        sessionId,
       });
+
+      // Store token hash in session
+      await sessionService.setTokenHash(sessionId, token);
 
       // Set httpOnly cookie for secure token storage
       res.cookie('auth_token', token, {

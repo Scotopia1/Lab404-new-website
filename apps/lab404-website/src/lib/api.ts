@@ -8,6 +8,7 @@ export const api = axios.create({
     'Content-Type': 'application/json',
   },
   withCredentials: true, // Send cookies with requests
+  timeout: 30000, // 30 second timeout
 });
 
 // CSRF token cache
@@ -65,7 +66,13 @@ api.interceptors.request.use(async (config) => {
 // Handle errors
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
+    // Handle rate limiting
+    if (error.response?.status === 429) {
+      const retryAfter = error.response.headers['retry-after'] || 60;
+      console.warn(`Rate limited. Retry after ${retryAfter} seconds.`);
+    }
+    // Handle unauthorized
     if (error.response?.status === 401) {
       // Redirect to login if not already there
       if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {

@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+import { validate as uuidValidate } from 'uuid';
 import { config } from '../config';
 import { UnauthorizedError, ForbiddenError } from '../utils/errors';
 import type { AuthUser, UserRole } from '@lab404/shared-types';
@@ -82,9 +83,9 @@ export function optionalAuth(req: Request, _res: Response, next: NextFunction): 
       };
     }
 
-    // Also check for session ID (for guest carts)
+    // Also check for session ID (for guest carts) - validate UUID format
     const sessionId = req.headers['x-session-id'] as string | undefined;
-    if (sessionId) {
+    if (sessionId && uuidValidate(sessionId)) {
       req.sessionId = sessionId;
     }
 
@@ -167,6 +168,7 @@ export function requireAdmin(req: Request, _res: Response, next: NextFunction): 
 export function generateToken(payload: JwtPayload): string {
   return jwt.sign(payload, config.jwtSecret, {
     expiresIn: config.jwtExpiresIn as jwt.SignOptions['expiresIn'],
+    algorithm: 'HS256',
   });
 }
 

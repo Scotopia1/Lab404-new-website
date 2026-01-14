@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { getDb, carts, cartItems, cartPromoCodes, products, productVariants, eq, and } from '@lab404/database';
+import { getDb, carts, cartItems, cartPromoCodes, products, productVariants, eq, and, isNull } from '@lab404/database';
 import { validateBody } from '../middleware/validator';
 import { optionalAuth } from '../middleware/auth';
 import { sendSuccess, sendNoContent } from '../utils/response';
@@ -148,7 +148,7 @@ cartRoutes.get('/calculate', async (req, res, next) => {
         items: [],
         itemCount: 0,
         subtotal: 0,
-        taxRate: 0.11,
+        taxRate: 0, // Tax rate will be applied when items are added
         taxAmount: 0,
         shippingAmount: 0,
         discountAmount: 0,
@@ -165,7 +165,7 @@ cartRoutes.get('/calculate', async (req, res, next) => {
         items: [],
         itemCount: 0,
         subtotal: 0,
-        taxRate: 0.11,
+        taxRate: 0, // Tax rate will be applied when items are added
         taxAmount: 0,
         shippingAmount: 0,
         discountAmount: 0,
@@ -243,7 +243,7 @@ cartRoutes.post('/items', validateBody(addToCartSchema), async (req, res, next) 
         and(
           eq(cartItems.cartId, cart.id),
           eq(cartItems.productId, productId),
-          variantId ? eq(cartItems.variantId, variantId) : eq(cartItems.variantId, cartItems.variantId)
+          variantId ? eq(cartItems.variantId, variantId) : isNull(cartItems.variantId)
         )
       );
 
@@ -300,14 +300,29 @@ cartRoutes.put('/items/:id', validateBody(updateCartItemSchema), async (req, res
     const id = req.params['id'] as string;
     const { quantity } = req.body;
 
+    // Get user's cart for ownership verification
+    const userId = req.user?.customerId;
+    const sessionId = req.sessionId || req.headers['x-session-id'] as string;
+
+    if (!userId && !sessionId) {
+      throw new NotFoundError('Cart item not found');
+    }
+
+    const cart = await getOrCreateCart(userId, sessionId);
+
+    // Verify cart item belongs to user's cart
     const [cartItem] = await db
       .select()
       .from(cartItems)
-      .where(eq(cartItems.id, id));
+      .where(and(
+        eq(cartItems.id, id),
+        eq(cartItems.cartId, cart.id)
+      ));
 
     if (!cartItem) {
       logger.warn('Cart item not found for update', {
         requestedId: id,
+        cartId: cart.id,
         userId: req.user?.customerId,
         sessionId: req.sessionId || req.headers['x-session-id'],
         requestBody: req.body,
@@ -339,14 +354,29 @@ cartRoutes.delete('/items/:id', async (req, res, next) => {
     const db = getDb();
     const id = req.params['id'] as string;
 
+    // Get user's cart for ownership verification
+    const userId = req.user?.customerId;
+    const sessionId = req.sessionId || req.headers['x-session-id'] as string;
+
+    if (!userId && !sessionId) {
+      throw new NotFoundError('Cart item not found');
+    }
+
+    const cart = await getOrCreateCart(userId, sessionId);
+
+    // Verify cart item belongs to user's cart
     const [cartItem] = await db
       .select()
       .from(cartItems)
-      .where(eq(cartItems.id, id));
+      .where(and(
+        eq(cartItems.id, id),
+        eq(cartItems.cartId, cart.id)
+      ));
 
     if (!cartItem) {
       logger.warn('Cart item not found for deletion', {
         requestedId: id,
+        cartId: cart.id,
         userId: req.user?.customerId,
         sessionId: req.sessionId || req.headers['x-session-id'],
       });
@@ -449,6 +479,40 @@ cartRoutes.delete('/promo', async (req, res, next) => {
     await db.delete(cartPromoCodes).where(eq(cartPromoCodes.cartId, cart.id));
 
     sendNoContent(res);
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * POST /api/cart/clear
+ * Clear all items from cart
+ */
+cartRoutes.post('/clear', async (req, res, next) => {
+  try {
+    const db = getDb();
+    const userId = req.user?.customerId;
+    const sessionId = req.sessionId || req.headers['x-session-id'] as string;
+
+    if (!userId && !sessionId) {
+      return sendSuccess(res, { success: true, itemsRemoved: 0 });
+    }
+
+    const cart = await getOrCreateCart(userId, sessionId);
+
+    // Delete all cart items
+    const deleted = await db.delete(cartItems).where(eq(cartItems.cartId, cart.id)).returning();
+
+    // Also remove any applied promo codes
+    await db.delete(cartPromoCodes).where(eq(cartPromoCodes.cartId, cart.id));
+
+    logger.info('Cart cleared', {
+      cartId: cart.id,
+      itemsRemoved: deleted.length,
+      userId: req.user?.customerId,
+    });
+
+    sendSuccess(res, { success: true, itemsRemoved: deleted.length });
   } catch (error) {
     next(error);
   }

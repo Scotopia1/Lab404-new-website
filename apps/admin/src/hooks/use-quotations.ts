@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { api, ApiResponse } from "@/lib/api-client";
+import { api, ApiResponse, getErrorMessage } from "@/lib/api-client";
 import { toast } from "sonner";
 
 export interface QuotationItem {
@@ -159,8 +159,8 @@ export function useCreateQuotation() {
       queryClient.invalidateQueries({ queryKey: ["quotations"] });
       toast.success("Quotation created successfully");
     },
-    onError: (error: Error) => {
-      toast.error(error.message || "Failed to create quotation");
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error));
     },
   });
 }
@@ -178,8 +178,8 @@ export function useUpdateQuotation() {
       queryClient.invalidateQueries({ queryKey: ["quotations", id] });
       toast.success("Quotation updated successfully");
     },
-    onError: (error: Error) => {
-      toast.error(error.message || "Failed to update quotation");
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error));
     },
   });
 }
@@ -195,8 +195,8 @@ export function useDeleteQuotation() {
       queryClient.invalidateQueries({ queryKey: ["quotations"] });
       toast.success("Quotation deleted successfully");
     },
-    onError: (error: Error) => {
-      toast.error(error.message || "Failed to delete quotation");
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error));
     },
   });
 }
@@ -214,8 +214,8 @@ export function useSendQuotation() {
       queryClient.invalidateQueries({ queryKey: ["quotations", id] });
       toast.success("Quotation sent to customer");
     },
-    onError: (error: Error) => {
-      toast.error(error.message || "Failed to send quotation");
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error));
     },
   });
 }
@@ -236,8 +236,8 @@ export function useConvertQuotation() {
       queryClient.invalidateQueries({ queryKey: ["orders"] });
       toast.success("Quotation converted to order");
     },
-    onError: (error: Error) => {
-      toast.error(error.message || "Failed to convert quotation");
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error));
     },
   });
 }
@@ -265,8 +265,8 @@ export function useDuplicateQuotation() {
       queryClient.invalidateQueries({ queryKey: ["quotations"] });
       toast.success("Quotation duplicated successfully");
     },
-    onError: (error: Error) => {
-      toast.error(error.message || "Failed to duplicate quotation");
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error));
     },
   });
 }
@@ -370,8 +370,8 @@ export function useBulkQuotationAction() {
         );
       }
     },
-    onError: (error: Error) => {
-      toast.error(error.message || "Bulk action failed");
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error));
     },
   });
 }
@@ -449,8 +449,8 @@ export function useRestoreQuotationRevision() {
       queryClient.invalidateQueries({ queryKey: ["quotation-revisions", quotationId] });
       toast.success("Quotation restored from revision");
     },
-    onError: (error: Error) => {
-      toast.error(error.message || "Failed to restore revision");
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error));
     },
   });
 }

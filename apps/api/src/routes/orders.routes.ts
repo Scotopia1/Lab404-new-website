@@ -221,6 +221,35 @@ ordersRoutes.post(
         });
       }
 
+      // Deduct stock for each item
+      for (const item of items) {
+        if (item.variantId) {
+          // Deduct from variant
+          await db
+            .update(productVariants)
+            .set({
+              stockQuantity: sql`${productVariants.stockQuantity} - ${item.quantity}`,
+              updatedAt: new Date(),
+            })
+            .where(eq(productVariants.id, item.variantId));
+        } else {
+          // Check if product tracks inventory
+          const [product] = await db.select({ trackInventory: products.trackInventory })
+            .from(products)
+            .where(eq(products.id, item.productId));
+
+          if (product?.trackInventory) {
+            await db
+              .update(products)
+              .set({
+                stockQuantity: sql`${products.stockQuantity} - ${item.quantity}`,
+                updatedAt: new Date(),
+              })
+              .where(eq(products.id, item.productId));
+          }
+        }
+      }
+
       // Update promo code usage
       if (totals.promoCodeId) {
         await db
@@ -386,6 +415,12 @@ ordersRoutes.get('/track/:orderNumber', async (req, res, next) => {
       throw new NotFoundError('Order not found');
     }
 
+    // Get order items
+    const items = await db
+      .select()
+      .from(orderItems)
+      .where(eq(orderItems.orderId, order.id));
+
     // Build timeline with accurate timestamps
     const timeline = [
       { status: 'pending', timestamp: order.createdAt.toISOString(), description: 'Order placed' },
@@ -407,12 +442,27 @@ ordersRoutes.get('/track/:orderNumber', async (req, res, next) => {
       timeline.push({ status: 'delivered', timestamp: order.deliveredAt.toISOString(), description: 'Order delivered' });
     }
 
+    // Extract shipping location (city/country only for privacy)
+    const shippingAddress = order.shippingAddress as { city?: string; country?: string } | null;
+
     sendSuccess(res, {
       orderNumber: order.orderNumber,
       status: order.status,
       paymentStatus: order.paymentStatus,
       shippingMethod: order.shippingMethod,
       trackingNumber: order.trackingNumber,
+      createdAt: order.createdAt.toISOString(),
+      total: Number(order.totalSnapshot),
+      itemCount: items.length,
+      items: items.map(item => ({
+        productName: item.productNameSnapshot,
+        quantity: item.quantity,
+        price: Number(item.unitPriceSnapshot),
+      })),
+      shippingLocation: shippingAddress ? {
+        city: shippingAddress.city,
+        country: shippingAddress.country,
+      } : null,
       timeline,
     });
   } catch (error) {
@@ -698,6 +748,49 @@ ordersRoutes.put(
 
       if (!existing) {
         throw new NotFoundError('Order not found');
+      }
+
+      // Validate status transitions
+      const validTransitions: Record<string, string[]> = {
+        pending: ['confirmed', 'cancelled'],
+        confirmed: ['processing', 'cancelled'],
+        processing: ['shipped', 'cancelled'],
+        shipped: ['delivered'],
+        delivered: [],
+        cancelled: [],
+      };
+
+      if (data.status && data.status !== existing.status) {
+        const allowedNextStates = validTransitions[existing.status] || [];
+        if (!allowedNextStates.includes(data.status)) {
+          throw new BadRequestError(
+            `Cannot transition from '${existing.status}' to '${data.status}'`
+          );
+        }
+      }
+
+      // Restore stock on cancellation
+      if (data.status === 'cancelled' && existing.status !== 'cancelled') {
+        // Get order items
+        const orderItemsList = await db.select().from(orderItems)
+          .where(eq(orderItems.orderId, id));
+
+        // Restore stock for each item
+        for (const item of orderItemsList) {
+          if (item.variantId) {
+            await db.update(productVariants)
+              .set({
+                stockQuantity: sql`${productVariants.stockQuantity} + ${item.quantity}`,
+              })
+              .where(eq(productVariants.id, item.variantId));
+          } else if (item.productId) {
+            await db.update(products)
+              .set({
+                stockQuantity: sql`${products.stockQuantity} + ${item.quantity}`,
+              })
+              .where(eq(products.id, item.productId));
+          }
+        }
       }
 
       const updateData: Record<string, unknown> = {

@@ -632,12 +632,20 @@ quotationsRoutes.post(
         }
       }
 
-      // Get tax rate from settings
+      // Get tax rate from settings (key is 'tax', not 'tax_rate')
       const [taxSetting] = await db
         .select()
         .from(settings)
-        .where(eq(settings.key, 'tax_rate'));
-      const taxRate = taxSetting ? Number(taxSetting.value) : 0.11;
+        .where(eq(settings.key, 'tax'));
+
+      // Extract tax rate from the JSON structure
+      let taxRate = 0;
+      if (taxSetting && taxSetting.value && typeof taxSetting.value === 'object') {
+        const taxValue = taxSetting.value as { tax_rate?: number; tax_enabled?: boolean };
+        if (taxValue.tax_enabled && typeof taxValue.tax_rate === 'number') {
+          taxRate = taxValue.tax_rate / 100; // Convert percentage to decimal
+        }
+      }
 
       // Calculate tax on discounted subtotal
       const taxableAmount = subtotal - discountAmount;
@@ -734,9 +742,12 @@ quotationsRoutes.put(
         throw new NotFoundError('Quotation not found');
       }
 
-      // Only allow editing draft quotations
-      if (existing.status !== 'draft') {
-        throw new BadRequestError('Only draft quotations can be edited');
+      // Check what's being updated
+      const isStatusOnlyUpdate = Object.keys(data).length === 1 && data.status !== undefined;
+
+      // Only allow editing draft quotations (except for status-only updates)
+      if (existing.status !== 'draft' && !isStatusOnlyUpdate) {
+        throw new BadRequestError('Only draft quotations can be edited. Non-draft quotations can only have their status changed.');
       }
 
       // Create revision before making changes
@@ -992,9 +1003,11 @@ quotationsRoutes.delete('/:id', requireAuth, requireAdmin, async (req, res, next
       throw new NotFoundError('Quotation not found');
     }
 
-    // Only allow deletion of draft quotations
-    if (existing.status !== 'draft') {
-      throw new BadRequestError('Only draft quotations can be deleted');
+    // Only allow deletion of draft, rejected, or expired quotations
+    // Sent and accepted quotations should be preserved for business records
+    const deletableStatuses = ['draft', 'rejected', 'expired'];
+    if (!deletableStatuses.includes(existing.status)) {
+      throw new BadRequestError('Only draft, rejected, or expired quotations can be deleted. Sent and accepted quotations must be preserved.');
     }
 
     // Delete items first

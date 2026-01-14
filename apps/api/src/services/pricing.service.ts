@@ -2,6 +2,7 @@ import { getDb, products, productVariants, promoCodes, settings, eq, inArray } f
 import type { CartCalculation, DiscountType } from '@lab404/shared-types';
 import { round } from '../utils/helpers';
 import { BadRequestError } from '../utils/errors';
+import { logger } from '../utils/logger';
 
 /**
  * Cart item input for calculation
@@ -453,7 +454,7 @@ export class PricingService {
       items: [],
       itemCount: 0,
       subtotal: 0,
-      taxRate: 0.11,
+      taxRate: 0, // Tax rate will be applied when items are added
       taxAmount: 0,
       shippingAmount: 0,
       discountAmount: 0,

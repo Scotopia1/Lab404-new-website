@@ -6,6 +6,8 @@ import { requireAuth, requireAdmin, optionalAuth } from '../middleware/auth';
 import { sendSuccess, sendCreated, sendNoContent, createPaginationMeta, parsePaginationParams } from '../utils/response';
 import { NotFoundError, ConflictError } from '../utils/errors';
 import { generateSlug, generateSku } from '../utils/helpers';
+import { searchService } from '../services';
+import { logger } from '../utils/logger';
 
 export const productsRoutes = Router();
 
@@ -19,6 +21,7 @@ const productFiltersSchema = z.object({
   search: z.string().optional(),
   categoryId: z.string().uuid().optional(),
   categorySlug: z.string().optional(),
+  brand: z.string().optional(),
   status: z.enum(['draft', 'active', 'archived']).optional(),
   isFeatured: z.enum(['true', 'false']).optional(),
   minPrice: z.string().optional(),
@@ -119,6 +122,8 @@ productsRoutes.get('/', validateQuery(productFiltersSchema), async (req, res, ne
 
     const search = filters['search'] as string | undefined;
     const categoryId = filters['categoryId'] as string | undefined;
+    const categorySlug = filters['categorySlug'] as string | undefined;
+    const brand = filters['brand'] as string | undefined;
     const minPrice = filters['minPrice'] as string | undefined;
     const maxPrice = filters['maxPrice'] as string | undefined;
     const inStock = filters['inStock'] as string | undefined;
@@ -137,6 +142,21 @@ productsRoutes.get('/', validateQuery(productFiltersSchema), async (req, res, ne
 
     if (categoryId) {
       conditions.push(eq(products.categoryId, categoryId));
+    }
+
+    // Handle categorySlug filter by looking up the category ID
+    if (categorySlug) {
+      const [cat] = await db.select({ id: categories.id })
+        .from(categories)
+        .where(eq(categories.slug, categorySlug));
+      if (cat) {
+        conditions.push(eq(products.categoryId, cat.id));
+      }
+    }
+
+    // Handle brand filter
+    if (brand) {
+      conditions.push(eq(products.brand, brand));
     }
 
     if (minPrice) {
@@ -167,6 +187,15 @@ productsRoutes.get('/', validateQuery(productFiltersSchema), async (req, res, ne
       .where(and(...conditions));
     const count = countResult[0]?.count ?? 0;
 
+    // Create a mapping of sort columns
+    const sortColumnMap: Record<string, typeof products.name | typeof products.basePrice | typeof products.createdAt | typeof products.stockQuantity> = {
+      name: products.name,
+      basePrice: products.basePrice,
+      createdAt: products.createdAt,
+      stockQuantity: products.stockQuantity,
+    };
+    const sortColumn = sortColumnMap[sortBy] || products.createdAt;
+
     const productList = await db
       .select({
         id: products.id,
@@ -188,7 +217,7 @@ productsRoutes.get('/', validateQuery(productFiltersSchema), async (req, res, ne
       .from(products)
       .leftJoin(categories, eq(products.categoryId, categories.id))
       .where(and(...conditions))
-      .orderBy(sortOrder === 'desc' ? desc(products.createdAt) : asc(products.createdAt))
+      .orderBy(sortOrder === 'desc' ? desc(sortColumn) : asc(sortColumn))
       .limit(limit)
       .offset(offset);
 
@@ -440,6 +469,49 @@ productsRoutes.post(
         throw new Error('Failed to create product');
       }
 
+      // Sync to search index
+      try {
+        if (await searchService.isAvailable()) {
+          // Fetch category info for the search document
+          let categoryName = '';
+          let categorySlugValue = '';
+          if (product.categoryId) {
+            const [cat] = await db.select({ name: categories.name, slug: categories.slug })
+              .from(categories)
+              .where(eq(categories.id, product.categoryId));
+            if (cat) {
+              categoryName = cat.name;
+              categorySlugValue = cat.slug;
+            }
+          }
+
+          await searchService.indexProduct({
+            id: product.id,
+            sku: product.sku,
+            name: product.name,
+            slug: product.slug,
+            description: product.description,
+            shortDescription: product.shortDescription,
+            brand: product.brand,
+            categoryId: product.categoryId,
+            categoryName,
+            categorySlug: categorySlugValue,
+            basePrice: Number(product.basePrice),
+            compareAtPrice: product.compareAtPrice ? Number(product.compareAtPrice) : null,
+            stockQuantity: product.stockQuantity,
+            inStock: product.stockQuantity > 0 || product.allowBackorder,
+            isFeatured: product.isFeatured,
+            tags: product.tags as string[] || [],
+            thumbnailUrl: product.thumbnailUrl,
+            images: product.images as Array<{ url: string; alt?: string }> || [],
+            createdAt: new Date(product.createdAt).getTime(),
+            updatedAt: new Date(product.updatedAt).getTime(),
+          });
+        }
+      } catch (e) {
+        logger.error('Failed to index product in search', { error: e, productId: product.id });
+      }
+
       sendCreated(res, {
         ...product,
         basePrice: Number(product.basePrice),
@@ -516,6 +588,49 @@ productsRoutes.put(
         throw new NotFoundError('Product not found');
       }
 
+      // Sync to search index
+      try {
+        if (await searchService.isAvailable()) {
+          // Fetch category info for the search document
+          let categoryName = '';
+          let categorySlugValue = '';
+          if (product.categoryId) {
+            const [cat] = await db.select({ name: categories.name, slug: categories.slug })
+              .from(categories)
+              .where(eq(categories.id, product.categoryId));
+            if (cat) {
+              categoryName = cat.name;
+              categorySlugValue = cat.slug;
+            }
+          }
+
+          await searchService.updateProduct({
+            id: product.id,
+            sku: product.sku,
+            name: product.name,
+            slug: product.slug,
+            description: product.description,
+            shortDescription: product.shortDescription,
+            brand: product.brand,
+            categoryId: product.categoryId,
+            categoryName,
+            categorySlug: categorySlugValue,
+            basePrice: Number(product.basePrice),
+            compareAtPrice: product.compareAtPrice ? Number(product.compareAtPrice) : null,
+            stockQuantity: product.stockQuantity,
+            inStock: product.stockQuantity > 0 || product.allowBackorder,
+            isFeatured: product.isFeatured,
+            tags: product.tags as string[] || [],
+            thumbnailUrl: product.thumbnailUrl,
+            images: product.images as Array<{ url: string; alt?: string }> || [],
+            createdAt: new Date(product.createdAt).getTime(),
+            updatedAt: new Date(product.updatedAt).getTime(),
+          });
+        }
+      } catch (e) {
+        logger.error('Failed to update product in search', { error: e, productId: product.id });
+      }
+
       sendSuccess(res, {
         ...product,
         basePrice: Number(product.basePrice),
@@ -548,6 +663,15 @@ productsRoutes.delete('/:id', requireAuth, requireAdmin, async (req, res, next) 
     }
 
     await db.delete(products).where(eq(products.id, id));
+
+    // Remove from search index
+    try {
+      if (await searchService.isAvailable()) {
+        await searchService.removeProduct(id);
+      }
+    } catch (e) {
+      logger.error('Failed to remove product from search', { error: e, productId: id });
+    }
 
     sendNoContent(res);
   } catch (error) {

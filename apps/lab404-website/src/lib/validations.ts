@@ -18,3 +18,10 @@ export const registerSchema = z.object({
 
 export type LoginFormData = z.infer<typeof loginSchema>;
 export type RegisterFormData = z.infer<typeof registerSchema>;
+
+export const trackOrderSchema = z.object({
+    orderNumber: z.string().min(1, { message: "Order ID is required" }),
+    email: z.string().email({ message: "Invalid email address" }).optional().or(z.literal('')),
+});
+
+export type TrackOrderFormData = z.infer<typeof trackOrderSchema>;

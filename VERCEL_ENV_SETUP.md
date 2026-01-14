@@ -60,8 +60,8 @@ STRIPE_SECRET_KEY=
 STRIPE_WEBHOOK_SECRET=
 STRIPE_PUBLISHABLE_KEY=
 
-# Meilisearch (Full-text Search - if using)
-MEILISEARCH_HOST=
+# Meilisearch (Full-text Search - Railway hosted)
+MEILISEARCH_HOST=https://meilisearch-production-c24a.up.railway.app
 MEILISEARCH_API_KEY=
 ```
 

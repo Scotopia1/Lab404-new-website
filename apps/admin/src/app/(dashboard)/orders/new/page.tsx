@@ -26,6 +26,7 @@ import { PromoCodeSelector } from "@/components/orders/PromoCodeSelector";
 import { useCreateOrder, OrderAddress } from "@/hooks/use-orders";
 import { useProducts } from "@/hooks/use-products";
 import { useCustomers } from "@/hooks/use-customers";
+import { useSettings } from "@/hooks/use-settings";
 import { formatCurrency } from "@/lib/utils";
 
 const orderFormSchema = z.object({
@@ -57,11 +58,13 @@ interface SelectedCustomer {
   email: string;
 }
 
-const TAX_RATE = 0.11; // 11% tax
-
 export default function NewOrderPage() {
   const router = useRouter();
   const createOrder = useCreateOrder();
+  const { data: settings } = useSettings();
+
+  // Get tax rate from settings (convert percentage to decimal)
+  const taxRate = settings?.tax_enabled ? (settings.tax_rate / 100) : 0;
 
   // Line items state
   const [lineItems, setLineItems] = useState<LineItem[]>([]);
@@ -159,7 +162,7 @@ export default function NewOrderPage() {
   );
   const effectiveDiscount = Math.min(manualDiscount, subtotal);
   const taxableAmount = subtotal - effectiveDiscount;
-  const tax = taxableAmount * TAX_RATE;
+  const tax = taxableAmount * taxRate;
   const total = taxableAmount + tax;
 
   // Product functions
@@ -673,10 +676,14 @@ export default function NewOrderPage() {
                     <span>-{formatCurrency(effectiveDiscount)}</span>
                   </div>
                 )}
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Tax (11%)</span>
-                  <span>{formatCurrency(tax)}</span>
-                </div>
+                {settings?.tax_enabled && taxRate > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">
+                      {settings.tax_label || 'Tax'} ({settings.tax_rate}%)
+                    </span>
+                    <span>{formatCurrency(tax)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between pt-3 border-t font-bold text-lg">
                   <span>Total</span>
                   <span>{formatCurrency(total)}</span>
