@@ -29,7 +29,7 @@ const campaignSchema = z.object({
   subject: z.string().min(1, "Subject is required").max(255),
   previewText: z.string().max(255).optional(),
   content: z.string().min(1, "Content is required"),
-  dailyLimit: z.coerce.number().int().min(1).max(10000).default(100),
+  dailyLimit: z.coerce.number().int().min(1).max(10000),
   sendTime: z.string().optional(),
 });
 
