@@ -1,6 +1,4 @@
-import { getDb } from '@lab404/database';
-import { securityAuditLogs, type SecurityAuditLog, type NewSecurityAuditLog } from '@lab404/database';
-import { eq, and, gte, lte, inArray, desc, sql } from 'drizzle-orm';
+import { getDb, securityAuditLogs, type SecurityAuditLog, type NewSecurityAuditLog, eq, and, gte, lte, inArray, desc, sql } from '@lab404/database';
 import { Request } from 'express';
 import type {
   SecurityEventType,
@@ -132,18 +130,21 @@ class AuditLogService {
         conditions.push(lte(securityAuditLogs.timestamp, filters.endDate));
       }
 
-      let query = db
+      const baseQuery = db
         .select()
-        .from(securityAuditLogs)
-        .orderBy(desc(securityAuditLogs.timestamp))
-        .limit(filters.limit || 50)
-        .offset(filters.offset || 0);
+        .from(securityAuditLogs);
 
-      if (conditions.length > 0) {
-        query = query.where(and(...conditions));
-      }
+      const results = conditions.length > 0
+        ? await baseQuery
+            .where(and(...conditions))
+            .orderBy(desc(securityAuditLogs.timestamp))
+            .limit(filters.limit || 50)
+            .offset(filters.offset || 0)
+        : await baseQuery
+            .orderBy(desc(securityAuditLogs.timestamp))
+            .limit(filters.limit || 50)
+            .offset(filters.offset || 0);
 
-      const results = await query;
       return results;
     } catch (error) {
       logger.error('Failed to query audit logs', {
@@ -310,13 +311,11 @@ class AuditLogService {
         conditions.push(eq(securityAuditLogs.actorId, filters.actorId));
       }
 
-      let logsQuery = db.select().from(securityAuditLogs);
+      const baseLogsQuery = db.select().from(securityAuditLogs);
 
-      if (conditions.length > 0) {
-        logsQuery = logsQuery.where(and(...conditions));
-      }
-
-      const logs = await logsQuery;
+      const logs = conditions.length > 0
+        ? await baseLogsQuery.where(and(...conditions))
+        : await baseLogsQuery;
 
       const stats = {
         totalLogs: logs.length,
@@ -352,7 +351,8 @@ class AuditLogService {
   private getClientIp(req: Request): string {
     const forwardedFor = req.get('x-forwarded-for');
     if (forwardedFor) {
-      return forwardedFor.split(',')[0].trim();
+      const firstIp = forwardedFor.split(',')[0];
+      return firstIp?.trim() || 'unknown';
     }
     return req.ip || req.socket.remoteAddress || 'unknown';
   }

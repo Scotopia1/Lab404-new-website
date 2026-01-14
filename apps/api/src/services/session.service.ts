@@ -1,6 +1,4 @@
-import { db } from '@lab404/database';
-import { sessions } from '@lab404/database/schema';
-import { eq, and, or, lt, desc, ne } from 'drizzle-orm';
+import { db, sessions, eq, and, or, lt, desc, ne } from '@lab404/database';
 import bcrypt from 'bcryptjs';
 import { UAParser } from 'ua-parser-js';
 import { logger } from '../utils/logger';
@@ -77,6 +75,10 @@ class SessionService {
         lastActivityAt: new Date(),
       })
       .returning();
+
+    if (!session) {
+      throw new Error('Failed to create session');
+    }
 
     logger.info('Session created', {
       sessionId: session.id,

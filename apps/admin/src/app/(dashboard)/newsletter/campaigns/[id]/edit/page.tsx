@@ -264,13 +264,18 @@ export default function EditCampaignPage() {
 
       {/* Preview Dialog */}
       <Dialog open={showPreview} onOpenChange={setShowPreview}>
-        <DialogContent className="max-w-3xl max-h-[80vh] overflow-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh]">
           <DialogHeader>
             <DialogTitle>Email Preview</DialogTitle>
             <DialogDescription>Subject: {subject || "(No subject)"}</DialogDescription>
           </DialogHeader>
-          <div className="border rounded-lg p-4 bg-white">
-            <div dangerouslySetInnerHTML={{ __html: content || "<p>No content yet</p>" }} />
+          <div className="border rounded-lg bg-white overflow-hidden">
+            <iframe
+              srcDoc={content || "<p>No content yet</p>"}
+              className="w-full h-[70vh] border-0"
+              title="Email preview"
+              sandbox="allow-same-origin"
+            />
           </div>
         </DialogContent>
       </Dialog>

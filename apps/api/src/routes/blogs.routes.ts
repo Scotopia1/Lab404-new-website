@@ -442,8 +442,8 @@ blogsRoutes.put(
         updatedAt: new Date(),
       };
 
-      if (data.content) {
-        updateData.content = sanitizeRichContent(data.content);
+      if (data['content']) {
+        updateData['content'] = sanitizeRichContent(data['content']);
       }
 
       // Handle slug update

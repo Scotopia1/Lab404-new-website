@@ -177,9 +177,12 @@ googleImagesRoutes.get(
 
       // Clean old cache entries
       if (searchCache.size > 100) {
-        const oldestKey = Array.from(searchCache.entries())
-          .sort((a, b) => a[1].timestamp - b[1].timestamp)[0][0];
-        searchCache.delete(oldestKey);
+        const entries = Array.from(searchCache.entries())
+          .sort((a, b) => a[1].timestamp - b[1].timestamp);
+        const oldestEntry = entries[0];
+        if (oldestEntry) {
+          searchCache.delete(oldestEntry[0]);
+        }
       }
 
       sendSuccess(res, result);

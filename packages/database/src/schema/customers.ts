@@ -44,6 +44,11 @@ export const customers = pgTable('customers', {
     phone?: string;
   }>(),
 
+  // Account security
+  accountLocked: boolean('account_locked').default(false).notNull(),
+  accountLockedAt: timestamp('account_locked_at'),
+  accountLockedReason: text('account_locked_reason'),
+
   // Customer data
   isGuest: boolean('is_guest').default(false).notNull(),
   isActive: boolean('is_active').default(true).notNull(),

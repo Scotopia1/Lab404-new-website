@@ -9,8 +9,8 @@ const { Pool } = pg;
 
 dotenv.config({ path: '../../.env' });
 
-const OLD_DATABASE_URL = process.env.OLD_DATABASE_URL;
-const NEW_DATABASE_URL = process.env.DATABASE_URL;
+const OLD_DATABASE_URL = process.env['OLD_DATABASE_URL'];
+const NEW_DATABASE_URL = process.env['DATABASE_URL'];
 
 async function fix() {
   const oldPool = new Pool({ connectionString: OLD_DATABASE_URL, ssl: { rejectUnauthorized: false } });

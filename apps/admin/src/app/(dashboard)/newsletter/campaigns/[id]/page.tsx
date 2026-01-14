@@ -251,10 +251,12 @@ export default function CampaignDetailPage() {
               </Button>
             </CardHeader>
             <CardContent>
-              <div className="border rounded-lg p-4 bg-muted/30 max-h-[300px] overflow-auto">
-                <div
-                  dangerouslySetInnerHTML={{ __html: campaign.content }}
-                  className="prose prose-sm max-w-none"
+              <div className="border rounded-lg bg-white overflow-hidden">
+                <iframe
+                  srcDoc={campaign.content}
+                  className="w-full h-[300px] border-0"
+                  title="Email preview"
+                  sandbox="allow-same-origin"
                 />
               </div>
             </CardContent>
@@ -414,13 +416,18 @@ export default function CampaignDetailPage() {
 
       {/* Full Preview Dialog */}
       <Dialog open={showPreview} onOpenChange={setShowPreview}>
-        <DialogContent className="max-w-3xl max-h-[80vh] overflow-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh]">
           <DialogHeader>
             <DialogTitle>Email Preview</DialogTitle>
             <DialogDescription>Subject: {campaign.subject}</DialogDescription>
           </DialogHeader>
-          <div className="border rounded-lg p-4 bg-white">
-            <div dangerouslySetInnerHTML={{ __html: campaign.content }} />
+          <div className="border rounded-lg bg-white overflow-hidden">
+            <iframe
+              srcDoc={campaign.content}
+              className="w-full h-[70vh] border-0"
+              title="Email preview"
+              sandbox="allow-same-origin"
+            />
           </div>
         </DialogContent>
       </Dialog>

@@ -55,15 +55,13 @@ const updateTemplateSchema = z.object({
 quotationTemplatesRoutes.get('/', requireAuth, requireAdmin, async (req, res, next) => {
   try {
     const db = getDb();
-    const activeOnly = req.query.activeOnly !== 'false';
+    const activeOnly = req.query['activeOnly'] !== 'false';
 
-    let query = db.select().from(quotationTemplates);
+    const baseQuery = db.select().from(quotationTemplates);
 
-    if (activeOnly) {
-      query = query.where(eq(quotationTemplates.isActive, 1));
-    }
-
-    const templates = await query.orderBy(desc(quotationTemplates.createdAt));
+    const templates = activeOnly
+      ? await baseQuery.where(eq(quotationTemplates.isActive, 1)).orderBy(desc(quotationTemplates.createdAt))
+      : await baseQuery.orderBy(desc(quotationTemplates.createdAt));
 
     sendSuccess(res, templates.map(t => ({
       ...t,
@@ -122,16 +120,20 @@ quotationTemplatesRoutes.post(
       const [template] = await db
         .insert(quotationTemplates)
         .values({
-          name: data.name,
-          description: data.description,
-          items: data.items,
-          defaultDiscount: data.defaultDiscount ? String(data.defaultDiscount) : null,
-          defaultDiscountType: data.defaultDiscountType,
-          defaultTaxRate: data.defaultTaxRate ? String(data.defaultTaxRate) : null,
-          defaultValidDays: data.defaultValidDays,
-          defaultTerms: data.defaultTerms,
+          name: data['name'],
+          description: data['description'],
+          items: data['items'],
+          defaultDiscount: data['defaultDiscount'] ? String(data['defaultDiscount']) : null,
+          defaultDiscountType: data['defaultDiscountType'],
+          defaultTaxRate: data['defaultTaxRate'] ? String(data['defaultTaxRate']) : null,
+          defaultValidDays: data['defaultValidDays'],
+          defaultTerms: data['defaultTerms'],
         })
         .returning();
+
+      if (!template) {
+        throw new NotFoundError('Failed to create template');
+      }
 
       sendCreated(res, {
         ...template,
@@ -173,25 +175,29 @@ quotationTemplatesRoutes.put(
         updatedAt: new Date(),
       };
 
-      if (data.name !== undefined) {updateData.name = data.name;}
-      if (data.description !== undefined) {updateData.description = data.description;}
-      if (data.items !== undefined) {updateData.items = data.items;}
-      if (data.defaultDiscount !== undefined) {
-        updateData.defaultDiscount = data.defaultDiscount !== null ? String(data.defaultDiscount) : null;
+      if (data['name'] !== undefined) {updateData['name'] = data['name'];}
+      if (data['description'] !== undefined) {updateData['description'] = data['description'];}
+      if (data['items'] !== undefined) {updateData['items'] = data['items'];}
+      if (data['defaultDiscount'] !== undefined) {
+        updateData['defaultDiscount'] = data['defaultDiscount'] !== null ? String(data['defaultDiscount']) : null;
       }
-      if (data.defaultDiscountType !== undefined) {updateData.defaultDiscountType = data.defaultDiscountType;}
-      if (data.defaultTaxRate !== undefined) {
-        updateData.defaultTaxRate = data.defaultTaxRate !== null ? String(data.defaultTaxRate) : null;
+      if (data['defaultDiscountType'] !== undefined) {updateData['defaultDiscountType'] = data['defaultDiscountType'];}
+      if (data['defaultTaxRate'] !== undefined) {
+        updateData['defaultTaxRate'] = data['defaultTaxRate'] !== null ? String(data['defaultTaxRate']) : null;
       }
-      if (data.defaultValidDays !== undefined) {updateData.defaultValidDays = data.defaultValidDays;}
-      if (data.defaultTerms !== undefined) {updateData.defaultTerms = data.defaultTerms;}
-      if (data.isActive !== undefined) {updateData.isActive = data.isActive ? 1 : 0;}
+      if (data['defaultValidDays'] !== undefined) {updateData['defaultValidDays'] = data['defaultValidDays'];}
+      if (data['defaultTerms'] !== undefined) {updateData['defaultTerms'] = data['defaultTerms'];}
+      if (data['isActive'] !== undefined) {updateData['isActive'] = data['isActive'] ? 1 : 0;}
 
       const [template] = await db
         .update(quotationTemplates)
         .set(updateData)
         .where(eq(quotationTemplates.id, id))
         .returning();
+
+      if (!template) {
+        throw new NotFoundError('Template not found');
+      }
 
       sendSuccess(res, {
         ...template,

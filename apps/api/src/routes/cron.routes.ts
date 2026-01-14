@@ -7,6 +7,7 @@ import { verificationCodeService } from '../services';
 import { mailerService } from '../services/mailer.service';
 import { logger } from '../utils/logger';
 import { cronLimiter } from '../middleware/rateLimiter';
+import juice from 'juice';
 
 export const cronRoutes = Router();
 
@@ -14,8 +15,8 @@ export const cronRoutes = Router();
 cronRoutes.use(cronLimiter);
 
 // Middleware to verify cron secret (for security)
+// Supports: x-cron-secret header, query param, and Vercel Cron Authorization header
 const verifyCronSecret = (req: Request, res: Response, next: NextFunction) => {
-  const cronSecret = req.headers['x-cron-secret'] || req.query.secret;
   const expectedSecret = process.env['CRON_SECRET'];
 
   // CRON_SECRET is required in all environments (no dev bypass for security)
@@ -24,7 +25,15 @@ const verifyCronSecret = (req: Request, res: Response, next: NextFunction) => {
     return sendError(res, 503, 'CRON_NOT_CONFIGURED', 'Cron jobs not configured');
   }
 
-  if (cronSecret !== expectedSecret) {
+  // Check various auth methods:
+  // 1. Custom x-cron-secret header
+  // 2. Query parameter ?secret=xxx
+  // 3. Vercel Cron sends Authorization: Bearer <CRON_SECRET>
+  const cronSecret = req.headers['x-cron-secret'] || req.query['secret'];
+  const authHeader = req.headers['authorization'];
+  const vercelCronSecret = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
+
+  if (cronSecret !== expectedSecret && vercelCronSecret !== expectedSecret) {
     logger.warn('Invalid cron secret attempt', { ip: req.ip });
     return sendError(res, 403, 'FORBIDDEN', 'Forbidden');
   }
@@ -309,11 +318,18 @@ cronRoutes.post('/newsletter-send', verifyCronSecret, async (req, res, next) => 
             </p>
           `;
 
+          // Inline CSS for email client compatibility
+          const inlinedHtml = juice(contentWithUnsubscribe, {
+            removeStyleTags: true,
+            preserveMediaQueries: true,
+            preserveFontFaces: true,
+          });
+
           // Send email
           const success = await mailerService.sendEmail({
             to: send.email,
             subject: campaign.subject,
-            html: contentWithUnsubscribe,
+            html: inlinedHtml,
           });
 
           if (success) {

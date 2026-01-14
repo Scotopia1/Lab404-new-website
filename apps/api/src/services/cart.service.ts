@@ -41,6 +41,10 @@ export class CartService {
           .insert(carts)
           .values({ customerId })
           .returning();
+
+        if (!customerCart) {
+          throw new Error('Failed to create customer cart');
+        }
       }
 
       // Get all session cart items

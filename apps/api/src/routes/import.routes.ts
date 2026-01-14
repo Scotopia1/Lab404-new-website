@@ -8,6 +8,20 @@ import { BadRequestError, NotFoundError } from '../utils/errors';
 import { importService } from '../services/import.service';
 import { generateSlug } from '../utils/helpers';
 
+// Address type for customer imports
+type CustomerAddress = {
+  firstName: string;
+  lastName: string;
+  company?: string;
+  addressLine1: string;
+  addressLine2?: string;
+  city: string;
+  state?: string;
+  postalCode?: string;
+  country: string;
+  phone?: string;
+} | null | undefined;
+
 export const importRoutes = Router();
 
 // Apply admin auth to all routes
@@ -271,8 +285,8 @@ importRoutes.post(
         if (existingCustomer) {
           if (updateExisting) {
             // Build address JSON from flat fields
-            const shippingAddress = importService.buildAddressFromFlatFields(data as Record<string, unknown>, 'shipping');
-            const billingAddress = importService.buildAddressFromFlatFields(data as Record<string, unknown>, 'billing');
+            const shippingAddress = importService.buildAddressFromFlatFields(data as Record<string, unknown>, 'shipping') as CustomerAddress;
+            const billingAddress = importService.buildAddressFromFlatFields(data as Record<string, unknown>, 'billing') as CustomerAddress;
 
             await db
               .update(customers)
@@ -297,8 +311,8 @@ importRoutes.post(
         }
 
         // Build address JSON from flat fields
-        const shippingAddress = importService.buildAddressFromFlatFields(data as Record<string, unknown>, 'shipping');
-        const billingAddress = importService.buildAddressFromFlatFields(data as Record<string, unknown>, 'billing');
+        const shippingAddress = importService.buildAddressFromFlatFields(data as Record<string, unknown>, 'shipping') as CustomerAddress;
+        const billingAddress = importService.buildAddressFromFlatFields(data as Record<string, unknown>, 'billing') as CustomerAddress;
 
         // Create customer with ALL fields
         await db.insert(customers).values({

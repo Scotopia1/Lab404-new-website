@@ -8,7 +8,7 @@ import { drizzle } from 'drizzle-orm/neon-http';
 import { settings } from '../schema/settings';
 
 async function dumpSettings() {
-  const sql = neon(process.env.DATABASE_URL!);
+  const sql = neon(process.env['DATABASE_URL']!);
   const db = drizzle(sql);
 
   console.log('Fetching all settings from database...\n');

@@ -19,7 +19,7 @@ sessionsRoutes.get(
       const currentSessionId = req.user?.sessionId;
 
       if (!customerId) {
-        return sendError(res, 'Customer ID not found', 400);
+        return sendError(res, 400, 'BAD_REQUEST', 'Customer ID not found');
       }
 
       // Get all active sessions
@@ -54,7 +54,7 @@ sessionsRoutes.delete(
       const customerId = req.user?.customerId;
 
       if (!customerId) {
-        return sendError(res, 'Customer ID not found', 400);
+        return sendError(res, 400, 'BAD_REQUEST', 'Customer ID not found');
       }
 
       // Verify session belongs to customer
@@ -62,11 +62,11 @@ sessionsRoutes.delete(
       const session = sessions.find((s) => s.id === sessionId);
 
       if (!session) {
-        return sendError(res, 'Session not found or already revoked', 404);
+        return sendError(res, 404, 'NOT_FOUND', 'Session not found or already revoked');
       }
 
       // Revoke session
-      await sessionService.revokeSession(sessionId, 'user_action');
+      await sessionService.revokeSession(sessionId as string, 'user_action');
 
       logger.info('Session revoked via API', {
         sessionId,
@@ -94,7 +94,7 @@ sessionsRoutes.post(
       const currentSessionId = req.user?.sessionId;
 
       if (!customerId || !currentSessionId) {
-        return sendError(res, 'Session information not found', 400);
+        return sendError(res, 400, 'BAD_REQUEST', 'Session information not found');
       }
 
       const count = await sessionService.revokeOtherSessions(customerId, currentSessionId);
@@ -123,7 +123,7 @@ sessionsRoutes.post(
       const customerId = req.user?.customerId;
 
       if (!customerId) {
-        return sendError(res, 'Customer ID not found', 400);
+        return sendError(res, 400, 'BAD_REQUEST', 'Customer ID not found');
       }
 
       const count = await sessionService.revokeAllSessions(customerId);

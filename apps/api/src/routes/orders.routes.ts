@@ -305,11 +305,12 @@ ordersRoutes.post(
         }) || {};
 
         // Prepare email data
+        const customerEmail = data['customerEmail'] as string;
         const emailData = {
           orderNumber: order.orderNumber,
           customerName: `${order.shippingAddress.firstName} ${order.shippingAddress.lastName}`,
-          customerEmail: order.shippingAddress.email || data.customerEmail,
-          shippingAddress: order.shippingAddress,
+          customerEmail,
+          shippingAddress: { ...order.shippingAddress, email: customerEmail, phone: order.shippingAddress.phone || '' },
           items: orderWithItems.items.map((item) => ({
             productName: item.productNameSnapshot,
             sku: item.skuSnapshot,

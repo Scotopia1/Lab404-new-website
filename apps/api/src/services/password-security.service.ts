@@ -51,7 +51,7 @@ export class PasswordSecurityService {
         warning: result.feedback.warning || '',
         suggestions: result.feedback.suggestions || [],
       },
-      crackTime: result.crack_times_display.offline_slow_hashing_1e4_per_second,
+      crackTime: String(result.crack_times_display.offline_slow_hashing_1e4_per_second),
     };
   }
 
@@ -116,7 +116,7 @@ export class PasswordSecurityService {
           .slice(this.HISTORY_LIMIT)
           .map((entry) => entry.id);
 
-        if (idsToDelete.length > 0) {
+        if (idsToDelete.length > 0 && idsToDelete[0]) {
           await db
             .delete(passwordHistory)
             .where(eq(passwordHistory.id, idsToDelete[0])); // Simplified for demo

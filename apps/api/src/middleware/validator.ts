@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { ZodSchema, ZodError } from 'zod';
+import { ZodType, ZodTypeDef, ZodError } from 'zod';
 import { ValidationError } from '../utils/errors';
 import { logger } from '../utils/logger';
 
@@ -7,7 +7,7 @@ import { logger } from '../utils/logger';
  * Request validation middleware factory
  * Validates request body, query, or params against a Zod schema
  */
-export function validate<T>(schema: ZodSchema<T>, source: 'body' | 'query' | 'params' = 'body') {
+export function validate<T>(schema: ZodType<T, ZodTypeDef, unknown>, source: 'body' | 'query' | 'params' = 'body') {
   return (req: Request, _res: Response, next: NextFunction): void => {
     try {
       const data = req[source];
@@ -44,20 +44,20 @@ export function validate<T>(schema: ZodSchema<T>, source: 'body' | 'query' | 'pa
 /**
  * Validate request body
  */
-export function validateBody<T>(schema: ZodSchema<T>) {
+export function validateBody<T>(schema: ZodType<T, ZodTypeDef, unknown>) {
   return validate(schema, 'body');
 }
 
 /**
  * Validate request query parameters
  */
-export function validateQuery<T>(schema: ZodSchema<T>) {
+export function validateQuery<T>(schema: ZodType<T, ZodTypeDef, unknown>) {
   return validate(schema, 'query');
 }
 
 /**
  * Validate request URL parameters
  */
-export function validateParams<T>(schema: ZodSchema<T>) {
+export function validateParams<T>(schema: ZodType<T, ZodTypeDef, unknown>) {
   return validate(schema, 'params');
 }

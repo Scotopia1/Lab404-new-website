@@ -8,19 +8,20 @@ import PDFDocument from 'pdfkit';
 
 interface QuotationItem {
   productName: string;
-  sku: string;
+  sku?: string;
   description?: string;
   quantity: number;
   unitPrice: number;
   lineTotal: number;
   variantOptions?: Record<string, string>;
   imageUrl?: string;
+  productUrl?: string; // URL to product page on website
 }
 
 interface QuotationData {
   quotationNumber: string;
   createdAt: Date;
-  validUntil: Date;
+  validUntil?: Date;
   status: string;
 
   // Customer info
@@ -28,6 +29,7 @@ interface QuotationData {
   customerEmail: string;
   customerPhone?: string;
   customerCompany?: string;
+  customerAddress?: Record<string, string>;
 
   // Items
   items: QuotationItem[];
@@ -310,7 +312,9 @@ export class PDFService {
     doc.fontSize(10).fillColor(this.textColor);
     doc.text(`#: ${data.quotationNumber}`, 400, 80, { align: 'right' });
     doc.text(`Date: ${data.createdAt.toLocaleDateString()}`, { align: 'right' });
-    doc.text(`Valid Until: ${data.validUntil.toLocaleDateString()}`, { align: 'right' });
+    if (data.validUntil) {
+      doc.text(`Valid Until: ${data.validUntil.toLocaleDateString()}`, { align: 'right' });
+    }
 
     // Company details (address, phone, email)
     doc.fontSize(9).fillColor('#666666');
@@ -402,7 +406,18 @@ export class PDFService {
         productName = productName.substring(0, maxNameLength - 3) + '...';
       }
 
-      doc.text(productName, tableLeft + 10, y, { width: showSku ? 190 : 270 });
+      // Product name - make it a clickable link if URL is provided
+      if (item.productUrl) {
+        doc.fillColor(this.accentColor);
+        doc.text(productName, tableLeft + 10, y, {
+          width: showSku ? 190 : 270,
+          link: item.productUrl,
+          underline: true,
+        });
+        doc.fillColor(this.textColor);
+      } else {
+        doc.text(productName, tableLeft + 10, y, { width: showSku ? 190 : 270 });
+      }
 
       if (showSku) {
         doc.text(item.sku || '-', tableLeft + 210, y, { width: 70 });

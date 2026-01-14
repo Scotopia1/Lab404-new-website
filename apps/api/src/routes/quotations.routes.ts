@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { getDb, quotations, quotationItems, customers, products, productVariants, settings, pdfTemplates, eq, sql, desc, and, or, like, gte, lte } from '@lab404/database';
+import { getDb, quotations, quotationItems, customers, products, productVariants, settings, pdfTemplates, eq, sql, desc, and, or, like, gte, lte, isNull } from '@lab404/database';
 import { validateBody, validateQuery } from '../middleware/validator';
 import { requireAuth, requireAdmin } from '../middleware/auth';
 import { sendSuccess, sendCreated, sendNoContent, createPaginationMeta, parsePaginationParams } from '../utils/response';
@@ -252,7 +252,7 @@ quotationsRoutes.get('/stats', requireAuth, requireAdmin, async (req, res, next)
     const conversionRate = totalDecided > 0 ? ((acceptedCount + convertedCount) / totalDecided) * 100 : 0;
 
     sendSuccess(res, {
-      total: Number(totalResult.count),
+      total: Number(totalResult?.count ?? 0),
       byStatus: {
         draft: statusMap['draft'] || 0,
         sent: statusMap['sent'] || 0,
@@ -261,11 +261,11 @@ quotationsRoutes.get('/stats', requireAuth, requireAdmin, async (req, res, next)
         expired: statusMap['expired'] || 0,
         converted: statusMap['converted'] || 0,
       },
-      totalValue: Number(totalValueResult.total),
-      acceptedValue: Number(acceptedValueResult.total),
+      totalValue: Number(totalValueResult?.total ?? 0),
+      acceptedValue: Number(acceptedValueResult?.total ?? 0),
       conversionRate: Math.round(conversionRate * 100) / 100,
-      expiringSoon: Number(expiringSoonResult.count),
-      thisMonth: Number(thisMonthResult.count),
+      expiringSoon: Number(expiringSoonResult?.count ?? 0),
+      thisMonth: Number(thisMonthResult?.count ?? 0),
     });
   } catch (error) {
     next(error);
@@ -743,7 +743,7 @@ quotationsRoutes.put(
       }
 
       // Check what's being updated
-      const isStatusOnlyUpdate = Object.keys(data).length === 1 && data.status !== undefined;
+      const isStatusOnlyUpdate = Object.keys(data).length === 1 && data['status'] !== undefined;
 
       // Only allow editing draft quotations (except for status-only updates)
       if (existing.status !== 'draft' && !isStatusOnlyUpdate) {
@@ -764,38 +764,39 @@ quotationsRoutes.put(
       };
 
       // Customer fields
-      if (data.customerName !== undefined) {updateData.customerName = data.customerName;}
-      if (data.customerEmail !== undefined) {updateData.customerEmail = data.customerEmail.toLowerCase();}
-      if (data.customerPhone !== undefined) {updateData.customerPhone = data.customerPhone || null;}
-      if (data.customerCompany !== undefined) {updateData.customerCompany = data.customerCompany || null;}
+      if (data['customerName'] !== undefined) {updateData['customerName'] = data['customerName'];}
+      if (data['customerEmail'] !== undefined) {updateData['customerEmail'] = (data['customerEmail'] as string).toLowerCase();}
+      if (data['customerPhone'] !== undefined) {updateData['customerPhone'] = data['customerPhone'] || null;}
+      if (data['customerCompany'] !== undefined) {updateData['customerCompany'] = data['customerCompany'] || null;}
 
       // Status
-      if (data.status !== undefined) {updateData.status = data.status;}
+      if (data['status'] !== undefined) {updateData['status'] = data['status'];}
 
       // Notes and terms (map 'terms' to 'termsAndConditions')
-      if (data.notes !== undefined) {updateData.notes = data.notes || null;}
-      if (data.terms !== undefined) {updateData.termsAndConditions = data.terms || null;}
+      if (data['notes'] !== undefined) {updateData['notes'] = data['notes'] || null;}
+      if (data['terms'] !== undefined) {updateData['termsAndConditions'] = data['terms'] || null;}
 
       // Discount and tax fields
-      if (data.discountType !== undefined) {updateData.discountType = data.discountType;}
-      if (data.discountValue !== undefined) {updateData.discountValue = String(data.discountValue);}
-      if (data.taxRate !== undefined) {updateData.taxRate = String(data.taxRate);}
+      if (data['discountType'] !== undefined) {updateData['discountType'] = data['discountType'];}
+      if (data['discountValue'] !== undefined) {updateData['discountValue'] = String(data['discountValue']);}
+      if (data['taxRate'] !== undefined) {updateData['taxRate'] = String(data['taxRate']);}
 
       // Update valid until if validDays provided
-      if (data.validDays !== undefined) {
+      if (data['validDays'] !== undefined) {
         const validUntil = new Date();
-        validUntil.setDate(validUntil.getDate() + data.validDays);
-        updateData.validUntil = validUntil;
+        validUntil.setDate(validUntil.getDate() + (data['validDays'] as number));
+        updateData['validUntil'] = validUntil;
       }
 
       // Recalculate totals if discount/tax changed or items updated
-      const shouldRecalculate = data.discountType !== undefined ||
-                                 data.discountValue !== undefined ||
-                                 data.taxRate !== undefined ||
-                                 (data.items && data.items.length > 0);
+      const dataItems = data['items'] as Array<{productId?: string; variantId?: string; name?: string; description?: string; sku?: string; quantity: number; unitPrice?: number; customPrice?: number}> | undefined;
+      const shouldRecalculate = data['discountType'] !== undefined ||
+                                 data['discountValue'] !== undefined ||
+                                 data['taxRate'] !== undefined ||
+                                 (dataItems && dataItems.length > 0);
 
       // Handle items update if provided
-      if (data.items && data.items.length > 0) {
+      if (dataItems && dataItems.length > 0) {
         // Delete existing items
         await db.delete(quotationItems).where(eq(quotationItems.quotationId, id));
 
@@ -811,7 +812,7 @@ quotationsRoutes.put(
           unitPrice: number;
         }> = [];
 
-        for (const item of data.items) {
+        for (const item of dataItems) {
           // Check if this is a product-based item or a custom item
           if (item.productId) {
             // Product-based item
@@ -895,10 +896,10 @@ quotationsRoutes.put(
         const total = taxableAmount + taxAmount;
 
         // Update pricing fields
-        updateData.subtotal = String(subtotal);
-        updateData.discountAmount = String(discountAmount);
-        updateData.taxAmount = String(taxAmount);
-        updateData.total = String(total);
+        updateData['subtotal'] = String(subtotal);
+        updateData['discountAmount'] = String(discountAmount);
+        updateData['taxAmount'] = String(taxAmount);
+        updateData['total'] = String(total);
 
         // Insert new items
         for (const item of processedItems) {
@@ -925,9 +926,9 @@ quotationsRoutes.put(
         }, 0);
 
         // Get discount and tax values
-        const discountType = data.discountType ?? existing.discountType ?? 'percentage';
-        const discountValue = data.discountValue ?? Number(existing.discountValue || 0);
-        const taxRate = data.taxRate ?? Number(existing.taxRate || 0);
+        const discountType = (data['discountType'] ?? existing.discountType ?? 'percentage') as string;
+        const discountValue = (data['discountValue'] ?? Number(existing.discountValue || 0)) as number;
+        const taxRate = (data['taxRate'] ?? Number(existing.taxRate || 0)) as number;
 
         // Calculate discount amount based on type
         let discountAmount = 0;
@@ -943,10 +944,10 @@ quotationsRoutes.put(
         const total = taxableAmount + taxAmount;
 
         // Update pricing fields
-        updateData.subtotal = String(subtotal);
-        updateData.discountAmount = String(discountAmount);
-        updateData.taxAmount = String(taxAmount);
-        updateData.total = String(total);
+        updateData['subtotal'] = String(subtotal);
+        updateData['discountAmount'] = String(discountAmount);
+        updateData['taxAmount'] = String(taxAmount);
+        updateData['total'] = String(total);
       }
 
       const quotationResult = await db
@@ -1109,7 +1110,7 @@ quotationsRoutes.get('/:id/revisions/:revisionId/compare', requireAuth, requireA
   try {
     const id = req.params['id'] as string;
     const revisionId = req.params['revisionId'] as string;
-    const compareWith = req.query.compareWith as string | undefined;
+    const compareWith = req.query['compareWith'] as string | undefined;
 
     const comparison = await quotationRevisionService.compareRevisions(id, revisionId, compareWith);
 
@@ -1132,7 +1133,7 @@ quotationsRoutes.get('/:id/pdf', requireAuth, requireAdmin, async (req, res, nex
   try {
     const db = getDb();
     const id = req.params['id'] as string;
-    const templateId = req.query.templateId as string | undefined;
+    const templateId = req.query['templateId'] as string | undefined;
 
     const [quotation] = await db
       .select()
@@ -1143,11 +1144,27 @@ quotationsRoutes.get('/:id/pdf', requireAuth, requireAdmin, async (req, res, nex
       throw new NotFoundError('Quotation not found');
     }
 
-    // Get items
+    // Get items with product slug for linking
     const items = await db
-      .select()
+      .select({
+        id: quotationItems.id,
+        quotationId: quotationItems.quotationId,
+        productId: quotationItems.productId,
+        variantId: quotationItems.variantId,
+        name: quotationItems.name,
+        description: quotationItems.description,
+        sku: quotationItems.sku,
+        quantity: quotationItems.quantity,
+        unitPrice: quotationItems.unitPrice,
+        createdAt: quotationItems.createdAt,
+        productSlug: products.slug,
+      })
       .from(quotationItems)
+      .leftJoin(products, eq(quotationItems.productId, products.id))
       .where(eq(quotationItems.quotationId, id));
+
+    // Build website URL for product links
+    const websiteUrl = process.env['WEB_URL'] || 'https://lab404electronics.com';
 
     // Get company settings
     const companySettings = await db
@@ -1222,6 +1239,7 @@ quotationsRoutes.get('/:id/pdf', requireAuth, requireAdmin, async (req, res, nex
         unitPrice: Number(item.unitPrice),
         lineTotal: Number(item.unitPrice) * item.quantity,
         variantOptions: undefined,
+        productUrl: item.productSlug ? `${websiteUrl}/products/${item.productSlug}` : undefined,
       })),
 
       subtotal: Number(quotation.subtotal),
@@ -1278,11 +1296,27 @@ quotationsRoutes.post('/:id/send', requireAuth, requireAdmin, async (req, res, n
       throw new BadRequestError('Only draft quotations can be sent');
     }
 
-    // Get quotation items
+    // Get quotation items with product slug for linking
     const items = await db
-      .select()
+      .select({
+        id: quotationItems.id,
+        quotationId: quotationItems.quotationId,
+        productId: quotationItems.productId,
+        variantId: quotationItems.variantId,
+        name: quotationItems.name,
+        description: quotationItems.description,
+        sku: quotationItems.sku,
+        quantity: quotationItems.quantity,
+        unitPrice: quotationItems.unitPrice,
+        createdAt: quotationItems.createdAt,
+        productSlug: products.slug,
+      })
       .from(quotationItems)
+      .leftJoin(products, eq(quotationItems.productId, products.id))
       .where(eq(quotationItems.quotationId, id));
+
+    // Build website URL for product links
+    const websiteUrl = process.env['WEB_URL'] || 'https://lab404electronics.com';
 
     // Get company settings
     const settingsRows = await db
@@ -1321,9 +1355,9 @@ quotationsRoutes.post('/:id/send', requireAuth, requireAdmin, async (req, res, n
       }
     }
 
-    const companyName = settingsMap.get('company_name') || 'Lab404 Electronics';
-    const companyEmail = settingsMap.get('company_email') || undefined;
-    const companyPhone = settingsMap.get('company_phone') || undefined;
+    const companyName = (settingsMap.get('company_name') as string) || 'Lab404 Electronics';
+    const companyEmail = (settingsMap.get('company_email') as string) || undefined;
+    const companyPhone = (settingsMap.get('company_phone') as string) || undefined;
 
     // Generate PDF
     const pdfBuffer = await pdfService.generateQuotationPDF({
@@ -1345,6 +1379,7 @@ quotationsRoutes.post('/:id/send', requireAuth, requireAdmin, async (req, res, n
         quantity: item.quantity,
         unitPrice: Number(item.unitPrice),
         lineTotal: Number(item.unitPrice) * item.quantity,
+        productUrl: item.productSlug ? `${websiteUrl}/products/${item.productSlug}` : undefined,
       })),
 
       subtotal: Number(quotation.subtotal),
@@ -1356,13 +1391,13 @@ quotationsRoutes.post('/:id/send', requireAuth, requireAdmin, async (req, res, n
       currency: quotation.currency,
 
       notes: quotation.notes || undefined,
-      terms: quotation.termsAndConditions || settingsMap.get('quotation_terms') || undefined,
+      terms: quotation.termsAndConditions || (settingsMap.get('quotation_terms') as string) || undefined,
 
       companyName,
-      companyAddress: settingsMap.get('company_address') || '',
+      companyAddress: (settingsMap.get('company_address') as string) || '',
       companyPhone: companyPhone || '',
       companyEmail: companyEmail || '',
-      companyWebsite: settingsMap.get('company_website') || undefined,
+      companyWebsite: (settingsMap.get('company_website') as string) || undefined,
     }, templateConfig);
 
     // Send email with PDF attachment
@@ -1372,12 +1407,12 @@ quotationsRoutes.post('/:id/send', requireAuth, requireAdmin, async (req, res, n
         customerName: quotation.customerName,
         customerEmail: quotation.customerEmail,
         total: Number(quotation.total),
-        validUntil: quotation.validUntil,
+        validUntil: quotation.validUntil || null,
         currency: quotation.currency,
         itemCount: items.length,
-        companyName,
-        companyEmail,
-        companyPhone,
+        companyName: companyName as string,
+        companyEmail: companyEmail as string | undefined,
+        companyPhone: companyPhone as string | undefined,
       },
       pdfBuffer
     );
@@ -1816,11 +1851,27 @@ quotationsRoutes.get('/public/:token/pdf', async (req, res, next) => {
       throw new BadRequestError('This quotation link has expired');
     }
 
-    // Get items
+    // Get items with product slug for linking
     const items = await db
-      .select()
+      .select({
+        id: quotationItems.id,
+        quotationId: quotationItems.quotationId,
+        productId: quotationItems.productId,
+        variantId: quotationItems.variantId,
+        name: quotationItems.name,
+        description: quotationItems.description,
+        sku: quotationItems.sku,
+        quantity: quotationItems.quantity,
+        unitPrice: quotationItems.unitPrice,
+        createdAt: quotationItems.createdAt,
+        productSlug: products.slug,
+      })
       .from(quotationItems)
+      .leftJoin(products, eq(quotationItems.productId, products.id))
       .where(eq(quotationItems.quotationId, quotation.id));
+
+    // Build website URL for product links
+    const websiteUrl = process.env['WEB_URL'] || 'https://lab404electronics.com';
 
     // Get company settings
     const settingsRows = await db
@@ -1859,6 +1910,7 @@ quotationsRoutes.get('/public/:token/pdf', async (req, res, next) => {
         quantity: item.quantity,
         unitPrice: Number(item.unitPrice),
         lineTotal: Number(item.unitPrice) * item.quantity,
+        productUrl: item.productSlug ? `${websiteUrl}/products/${item.productSlug}` : undefined,
       })),
 
       subtotal: Number(quotation.subtotal),
@@ -1870,13 +1922,13 @@ quotationsRoutes.get('/public/:token/pdf', async (req, res, next) => {
       currency: quotation.currency,
 
       notes: quotation.notes || undefined,
-      terms: quotation.termsAndConditions || settingsMap.get('quotation_terms') || undefined,
+      terms: quotation.termsAndConditions || (settingsMap.get('quotation_terms') as string) || undefined,
 
-      companyName: settingsMap.get('company_name') || 'Lab404 Electronics',
-      companyAddress: settingsMap.get('company_address') || '',
-      companyPhone: settingsMap.get('company_phone') || '',
-      companyEmail: settingsMap.get('company_email') || '',
-      companyWebsite: settingsMap.get('company_website') || undefined,
+      companyName: (settingsMap.get('company_name') as string) || 'Lab404 Electronics',
+      companyAddress: (settingsMap.get('company_address') as string) || '',
+      companyPhone: (settingsMap.get('company_phone') as string) || '',
+      companyEmail: (settingsMap.get('company_email') as string) || '',
+      companyWebsite: (settingsMap.get('company_website') as string) || undefined,
     });
 
     res.setHeader('Content-Type', 'application/pdf');

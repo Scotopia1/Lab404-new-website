@@ -92,19 +92,23 @@ export class LoginAttemptService {
     const recentAttempts = await db
       .select()
       .from(loginAttempts)
-      .where(eq(loginAttempts.email, email))
-      .where(eq(loginAttempts.triggeredLockout, true))
+      .where(
+        and(
+          eq(loginAttempts.email, email),
+          eq(loginAttempts.triggeredLockout, true)
+        )
+      )
       .orderBy(desc(loginAttempts.attemptedAt))
       .limit(1);
 
-    if (recentAttempts.length === 0) {
+    const lastLockout = recentAttempts[0];
+    if (!lastLockout) {
       return {
         isLocked: false,
         consecutiveFailures: await this.getRecentFailures(email),
       };
     }
 
-    const lastLockout = recentAttempts[0];
     const lockoutEndTime = new Date(
       lastLockout.attemptedAt.getTime() + this.LOCKOUT_DURATION_MS
     );
@@ -177,7 +181,8 @@ export class LoginAttemptService {
       .where(eq(customers.email, email))
       .limit(1);
 
-    if (customer.length > 0 && customer[0].accountLocked) {
+    const foundCustomer = customer[0];
+    if (foundCustomer && foundCustomer.accountLocked) {
       await db
         .update(customers)
         .set({
@@ -186,7 +191,7 @@ export class LoginAttemptService {
           accountLockedReason: null,
           updatedAt: new Date(),
         })
-        .where(eq(customers.id, customer[0].id));
+        .where(eq(customers.id, foundCustomer.id));
     }
   }
 

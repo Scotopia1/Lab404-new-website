@@ -251,8 +251,8 @@ class QuotationRevisionService {
     ];
 
     for (const field of fieldsToCompare) {
-      const oldValue = (revisionA.snapshot as Record<string, unknown>)[field];
-      const newValue = (snapshotB as Record<string, unknown>)[field];
+      const oldValue = (revisionA.snapshot as unknown as Record<string, unknown>)[field];
+      const newValue = (snapshotB as unknown as Record<string, unknown>)[field];
       if (JSON.stringify(oldValue) !== JSON.stringify(newValue)) {
         changes.push({ field, oldValue, newValue });
       }

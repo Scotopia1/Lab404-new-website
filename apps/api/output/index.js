@@ -9,11 +9,11 @@ var __export = (target, all) => {
   for (var name in all)
     __defProp(target, name, { get: all[name], enumerable: true });
 };
-var __copyProps = (to, from, except, desc5) => {
+var __copyProps = (to, from, except2, desc2) => {
   if (from && typeof from === "object" || typeof from === "function") {
     for (let key of __getOwnPropNames(from))
-      if (!__hasOwnProp.call(to, key) && key !== except)
-        __defProp(to, key, { get: () => from[key], enumerable: !(desc5 = __getOwnPropDesc(from, key)) || desc5.enumerable });
+      if (!__hasOwnProp.call(to, key) && key !== except2)
+        __defProp(to, key, { get: () => from[key], enumerable: !(desc2 = __getOwnPropDesc(from, key)) || desc2.enumerable });
   }
   return to;
 };
@@ -212,9 +212,9 @@ function parsePaginationParams(query) {
 // src/utils/logger.ts
 var Logger = class {
   formatMessage(level, message, context) {
-    const timestamp20 = (/* @__PURE__ */ new Date()).toISOString();
+    const timestamp2 = (/* @__PURE__ */ new Date()).toISOString();
     const contextStr = context ? ` ${JSON.stringify(context)}` : "";
-    return `[${timestamp20}] [${level.toUpperCase()}] ${message}${contextStr}`;
+    return `[${timestamp2}] [${level.toUpperCase()}] ${message}${contextStr}`;
   }
   debug(message, context) {
     if (config.isDev) {
@@ -275,11 +275,6659 @@ function notFoundHandler(req, res) {
 
 // src/middleware/auth.ts
 var import_jsonwebtoken = __toESM(require("jsonwebtoken"));
-var import_uuid = require("uuid");
+var import_uuid2 = require("uuid");
 
 // ../../packages/database/src/client.ts
+var import_serverless2 = require("@neondatabase/serverless");
+
+// ../../node_modules/.pnpm/drizzle-orm@0.36.4_@neondatabase+serverless@0.9.5_@types+pg@8.11.6_@types+react@19.2.7_react@19.2.3/node_modules/drizzle-orm/neon-http/driver.js
 var import_serverless = require("@neondatabase/serverless");
-var import_neon_http = require("drizzle-orm/neon-http");
+
+// ../../node_modules/.pnpm/drizzle-orm@0.36.4_@neondatabase+serverless@0.9.5_@types+pg@8.11.6_@types+react@19.2.7_react@19.2.3/node_modules/drizzle-orm/entity.js
+var entityKind = /* @__PURE__ */ Symbol.for("drizzle:entityKind");
+function is(value, type) {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+  if (value instanceof type) {
+    return true;
+  }
+  if (!Object.prototype.hasOwnProperty.call(type, entityKind)) {
+    throw new Error(
+      `Class "${type.name ?? "<unknown>"}" doesn't look like a Drizzle entity. If this is incorrect and the class is provided by Drizzle, please report this as a bug.`
+    );
+  }
+  let cls = Object.getPrototypeOf(value).constructor;
+  if (cls) {
+    while (cls) {
+      if (entityKind in cls && cls[entityKind] === type[entityKind]) {
+        return true;
+      }
+      cls = Object.getPrototypeOf(cls);
+    }
+  }
+  return false;
+}
+
+// ../../node_modules/.pnpm/drizzle-orm@0.36.4_@neondatabase+serverless@0.9.5_@types+pg@8.11.6_@types+react@19.2.7_react@19.2.3/node_modules/drizzle-orm/logger.js
+var ConsoleLogWriter = class {
+  static [entityKind] = "ConsoleLogWriter";
+  write(message) {
+    console.log(message);
+  }
+};
+var DefaultLogger = class {
+  static [entityKind] = "DefaultLogger";
+  writer;
+  constructor(config2) {
+    this.writer = config2?.writer ?? new ConsoleLogWriter();
+  }
+  logQuery(query, params) {
+    const stringifiedParams = params.map((p) => {
+      try {
+        return JSON.stringify(p);
+      } catch {
+        return String(p);
+      }
+    });
+    const paramsStr = stringifiedParams.length ? ` -- params: [${stringifiedParams.join(", ")}]` : "";
+    this.writer.write(`Query: ${query}${paramsStr}`);
+  }
+};
+var NoopLogger = class {
+  static [entityKind] = "NoopLogger";
+  logQuery() {
+  }
+};
+
+// ../../node_modules/.pnpm/drizzle-orm@0.36.4_@neondatabase+serverless@0.9.5_@types+pg@8.11.6_@types+react@19.2.7_react@19.2.3/node_modules/drizzle-orm/query-promise.js
+var QueryPromise = class {
+  static [entityKind] = "QueryPromise";
+  [Symbol.toStringTag] = "QueryPromise";
+  catch(onRejected) {
+    return this.then(void 0, onRejected);
+  }
+  finally(onFinally) {
+    return this.then(
+      (value) => {
+        onFinally?.();
+        return value;
+      },
+      (reason) => {
+        onFinally?.();
+        throw reason;
+      }
+    );
+  }
+  then(onFulfilled, onRejected) {
+    return this.execute().then(onFulfilled, onRejected);
+  }
+};
+
+// ../../node_modules/.pnpm/drizzle-orm@0.36.4_@neondatabase+serverless@0.9.5_@types+pg@8.11.6_@types+react@19.2.7_react@19.2.3/node_modules/drizzle-orm/table.utils.js
+var TableName = /* @__PURE__ */ Symbol.for("drizzle:Name");
+
+// ../../node_modules/.pnpm/drizzle-orm@0.36.4_@neondatabase+serverless@0.9.5_@types+pg@8.11.6_@types+react@19.2.7_react@19.2.3/node_modules/drizzle-orm/table.js
+var Schema = /* @__PURE__ */ Symbol.for("drizzle:Schema");
+var Columns = /* @__PURE__ */ Symbol.for("drizzle:Columns");
+var ExtraConfigColumns = /* @__PURE__ */ Symbol.for("drizzle:ExtraConfigColumns");
+var OriginalName = /* @__PURE__ */ Symbol.for("drizzle:OriginalName");
+var BaseName = /* @__PURE__ */ Symbol.for("drizzle:BaseName");
+var IsAlias = /* @__PURE__ */ Symbol.for("drizzle:IsAlias");
+var ExtraConfigBuilder = /* @__PURE__ */ Symbol.for("drizzle:ExtraConfigBuilder");
+var IsDrizzleTable = /* @__PURE__ */ Symbol.for("drizzle:IsDrizzleTable");
+var Table = class {
+  static [entityKind] = "Table";
+  /** @internal */
+  static Symbol = {
+    Name: TableName,
+    Schema,
+    OriginalName,
+    Columns,
+    ExtraConfigColumns,
+    BaseName,
+    IsAlias,
+    ExtraConfigBuilder
+  };
+  /**
+   * @internal
+   * Can be changed if the table is aliased.
+   */
+  [TableName];
+  /**
+   * @internal
+   * Used to store the original name of the table, before any aliasing.
+   */
+  [OriginalName];
+  /** @internal */
+  [Schema];
+  /** @internal */
+  [Columns];
+  /** @internal */
+  [ExtraConfigColumns];
+  /**
+   *  @internal
+   * Used to store the table name before the transformation via the `tableCreator` functions.
+   */
+  [BaseName];
+  /** @internal */
+  [IsAlias] = false;
+  /** @internal */
+  [IsDrizzleTable] = true;
+  /** @internal */
+  [ExtraConfigBuilder] = void 0;
+  constructor(name, schema, baseName) {
+    this[TableName] = this[OriginalName] = name;
+    this[Schema] = schema;
+    this[BaseName] = baseName;
+  }
+};
+function getTableName(table) {
+  return table[TableName];
+}
+function getTableUniqueName(table) {
+  return `${table[Schema] ?? "public"}.${table[TableName]}`;
+}
+
+// ../../node_modules/.pnpm/drizzle-orm@0.36.4_@neondatabase+serverless@0.9.5_@types+pg@8.11.6_@types+react@19.2.7_react@19.2.3/node_modules/drizzle-orm/tracing-utils.js
+function iife(fn, ...args) {
+  return fn(...args);
+}
+
+// ../../node_modules/.pnpm/drizzle-orm@0.36.4_@neondatabase+serverless@0.9.5_@types+pg@8.11.6_@types+react@19.2.7_react@19.2.3/node_modules/drizzle-orm/version.js
+var version = "0.36.4";
+
+// ../../node_modules/.pnpm/drizzle-orm@0.36.4_@neondatabase+serverless@0.9.5_@types+pg@8.11.6_@types+react@19.2.7_react@19.2.3/node_modules/drizzle-orm/tracing.js
+var otel;
+var rawTracer;
+var tracer = {
+  startActiveSpan(name, fn) {
+    if (!otel) {
+      return fn();
+    }
+    if (!rawTracer) {
+      rawTracer = otel.trace.getTracer("drizzle-orm", version);
+    }
+    return iife(
+      (otel2, rawTracer2) => rawTracer2.startActiveSpan(
+        name,
+        (span) => {
+          try {
+            return fn(span);
+          } catch (e) {
+            span.setStatus({
+              code: otel2.SpanStatusCode.ERROR,
+              message: e instanceof Error ? e.message : "Unknown error"
+              // eslint-disable-line no-instanceof/no-instanceof
+            });
+            throw e;
+          } finally {
+            span.end();
+          }
+        }
+      ),
+      otel,
+      rawTracer
+    );
+  }
+};
+
+// ../../node_modules/.pnpm/drizzle-orm@0.36.4_@neondatabase+serverless@0.9.5_@types+pg@8.11.6_@types+react@19.2.7_react@19.2.3/node_modules/drizzle-orm/column.js
+var Column = class {
+  constructor(table, config2) {
+    this.table = table;
+    this.config = config2;
+    this.name = config2.name;
+    this.keyAsName = config2.keyAsName;
+    this.notNull = config2.notNull;
+    this.default = config2.default;
+    this.defaultFn = config2.defaultFn;
+    this.onUpdateFn = config2.onUpdateFn;
+    this.hasDefault = config2.hasDefault;
+    this.primary = config2.primaryKey;
+    this.isUnique = config2.isUnique;
+    this.uniqueName = config2.uniqueName;
+    this.uniqueType = config2.uniqueType;
+    this.dataType = config2.dataType;
+    this.columnType = config2.columnType;
+    this.generated = config2.generated;
+    this.generatedIdentity = config2.generatedIdentity;
+  }
+  static [entityKind] = "Column";
+  name;
+  keyAsName;
+  primary;
+  notNull;
+  default;
+  defaultFn;
+  onUpdateFn;
+  hasDefault;
+  isUnique;
+  uniqueName;
+  uniqueType;
+  dataType;
+  columnType;
+  enumValues = void 0;
+  generated = void 0;
+  generatedIdentity = void 0;
+  config;
+  mapFromDriverValue(value) {
+    return value;
+  }
+  mapToDriverValue(value) {
+    return value;
+  }
+  // ** @internal */
+  shouldDisableInsert() {
+    return this.config.generated !== void 0 && this.config.generated.type !== "byDefault";
+  }
+};
+
+// ../../node_modules/.pnpm/drizzle-orm@0.36.4_@neondatabase+serverless@0.9.5_@types+pg@8.11.6_@types+react@19.2.7_react@19.2.3/node_modules/drizzle-orm/column-builder.js
+var ColumnBuilder = class {
+  static [entityKind] = "ColumnBuilder";
+  config;
+  constructor(name, dataType, columnType) {
+    this.config = {
+      name,
+      keyAsName: name === "",
+      notNull: false,
+      default: void 0,
+      hasDefault: false,
+      primaryKey: false,
+      isUnique: false,
+      uniqueName: void 0,
+      uniqueType: void 0,
+      dataType,
+      columnType,
+      generated: void 0
+    };
+  }
+  /**
+   * Changes the data type of the column. Commonly used with `json` columns. Also, useful for branded types.
+   *
+   * @example
+   * ```ts
+   * const users = pgTable('users', {
+   * 	id: integer('id').$type<UserId>().primaryKey(),
+   * 	details: json('details').$type<UserDetails>().notNull(),
+   * });
+   * ```
+   */
+  $type() {
+    return this;
+  }
+  /**
+   * Adds a `not null` clause to the column definition.
+   *
+   * Affects the `select` model of the table - columns *without* `not null` will be nullable on select.
+   */
+  notNull() {
+    this.config.notNull = true;
+    return this;
+  }
+  /**
+   * Adds a `default <value>` clause to the column definition.
+   *
+   * Affects the `insert` model of the table - columns *with* `default` are optional on insert.
+   *
+   * If you need to set a dynamic default value, use {@link $defaultFn} instead.
+   */
+  default(value) {
+    this.config.default = value;
+    this.config.hasDefault = true;
+    return this;
+  }
+  /**
+   * Adds a dynamic default value to the column.
+   * The function will be called when the row is inserted, and the returned value will be used as the column value.
+   *
+   * **Note:** This value does not affect the `drizzle-kit` behavior, it is only used at runtime in `drizzle-orm`.
+   */
+  $defaultFn(fn) {
+    this.config.defaultFn = fn;
+    this.config.hasDefault = true;
+    return this;
+  }
+  /**
+   * Alias for {@link $defaultFn}.
+   */
+  $default = this.$defaultFn;
+  /**
+   * Adds a dynamic update value to the column.
+   * The function will be called when the row is updated, and the returned value will be used as the column value if none is provided.
+   * If no `default` (or `$defaultFn`) value is provided, the function will be called when the row is inserted as well, and the returned value will be used as the column value.
+   *
+   * **Note:** This value does not affect the `drizzle-kit` behavior, it is only used at runtime in `drizzle-orm`.
+   */
+  $onUpdateFn(fn) {
+    this.config.onUpdateFn = fn;
+    this.config.hasDefault = true;
+    return this;
+  }
+  /**
+   * Alias for {@link $onUpdateFn}.
+   */
+  $onUpdate = this.$onUpdateFn;
+  /**
+   * Adds a `primary key` clause to the column definition. This implicitly makes the column `not null`.
+   *
+   * In SQLite, `integer primary key` implicitly makes the column auto-incrementing.
+   */
+  primaryKey() {
+    this.config.primaryKey = true;
+    this.config.notNull = true;
+    return this;
+  }
+  /** @internal Sets the name of the column to the key within the table definition if a name was not given. */
+  setName(name) {
+    if (this.config.name !== "")
+      return;
+    this.config.name = name;
+  }
+};
+
+// ../../node_modules/.pnpm/drizzle-orm@0.36.4_@neondatabase+serverless@0.9.5_@types+pg@8.11.6_@types+react@19.2.7_react@19.2.3/node_modules/drizzle-orm/pg-core/foreign-keys.js
+var ForeignKeyBuilder = class {
+  static [entityKind] = "PgForeignKeyBuilder";
+  /** @internal */
+  reference;
+  /** @internal */
+  _onUpdate = "no action";
+  /** @internal */
+  _onDelete = "no action";
+  constructor(config2, actions) {
+    this.reference = () => {
+      const { name, columns, foreignColumns } = config2();
+      return { name, columns, foreignTable: foreignColumns[0].table, foreignColumns };
+    };
+    if (actions) {
+      this._onUpdate = actions.onUpdate;
+      this._onDelete = actions.onDelete;
+    }
+  }
+  onUpdate(action) {
+    this._onUpdate = action === void 0 ? "no action" : action;
+    return this;
+  }
+  onDelete(action) {
+    this._onDelete = action === void 0 ? "no action" : action;
+    return this;
+  }
+  /** @internal */
+  build(table) {
+    return new ForeignKey(table, this);
+  }
+};
+var ForeignKey = class {
+  constructor(table, builder) {
+    this.table = table;
+    this.reference = builder.reference;
+    this.onUpdate = builder._onUpdate;
+    this.onDelete = builder._onDelete;
+  }
+  static [entityKind] = "PgForeignKey";
+  reference;
+  onUpdate;
+  onDelete;
+  getName() {
+    const { name, columns, foreignColumns } = this.reference();
+    const columnNames = columns.map((column) => column.name);
+    const foreignColumnNames = foreignColumns.map((column) => column.name);
+    const chunks = [
+      this.table[TableName],
+      ...columnNames,
+      foreignColumns[0].table[TableName],
+      ...foreignColumnNames
+    ];
+    return name ?? `${chunks.join("_")}_fk`;
+  }
+};
+
+// ../../node_modules/.pnpm/drizzle-orm@0.36.4_@neondatabase+serverless@0.9.5_@types+pg@8.11.6_@types+react@19.2.7_react@19.2.3/node_modules/drizzle-orm/pg-core/unique-constraint.js
+function uniqueKeyName(table, columns) {
+  return `${table[TableName]}_${columns.join("_")}_unique`;
+}
+var UniqueConstraintBuilder = class {
+  constructor(columns, name) {
+    this.name = name;
+    this.columns = columns;
+  }
+  static [entityKind] = "PgUniqueConstraintBuilder";
+  /** @internal */
+  columns;
+  /** @internal */
+  nullsNotDistinctConfig = false;
+  nullsNotDistinct() {
+    this.nullsNotDistinctConfig = true;
+    return this;
+  }
+  /** @internal */
+  build(table) {
+    return new UniqueConstraint(table, this.columns, this.nullsNotDistinctConfig, this.name);
+  }
+};
+var UniqueOnConstraintBuilder = class {
+  static [entityKind] = "PgUniqueOnConstraintBuilder";
+  /** @internal */
+  name;
+  constructor(name) {
+    this.name = name;
+  }
+  on(...columns) {
+    return new UniqueConstraintBuilder(columns, this.name);
+  }
+};
+var UniqueConstraint = class {
+  constructor(table, columns, nullsNotDistinct, name) {
+    this.table = table;
+    this.columns = columns;
+    this.name = name ?? uniqueKeyName(this.table, this.columns.map((column) => column.name));
+    this.nullsNotDistinct = nullsNotDistinct;
+  }
+  static [entityKind] = "PgUniqueConstraint";
+  columns;
+  name;
+  nullsNotDistinct = false;
+  getName() {
+    return this.name;
+  }
+};
+
+// ../../node_modules/.pnpm/drizzle-orm@0.36.4_@neondatabase+serverless@0.9.5_@types+pg@8.11.6_@types+react@19.2.7_react@19.2.3/node_modules/drizzle-orm/pg-core/utils/array.js
+function parsePgArrayValue(arrayString, startFrom, inQuotes) {
+  for (let i = startFrom; i < arrayString.length; i++) {
+    const char2 = arrayString[i];
+    if (char2 === "\\") {
+      i++;
+      continue;
+    }
+    if (char2 === '"') {
+      return [arrayString.slice(startFrom, i).replace(/\\/g, ""), i + 1];
+    }
+    if (inQuotes) {
+      continue;
+    }
+    if (char2 === "," || char2 === "}") {
+      return [arrayString.slice(startFrom, i).replace(/\\/g, ""), i];
+    }
+  }
+  return [arrayString.slice(startFrom).replace(/\\/g, ""), arrayString.length];
+}
+function parsePgNestedArray(arrayString, startFrom = 0) {
+  const result = [];
+  let i = startFrom;
+  let lastCharIsComma = false;
+  while (i < arrayString.length) {
+    const char2 = arrayString[i];
+    if (char2 === ",") {
+      if (lastCharIsComma || i === startFrom) {
+        result.push("");
+      }
+      lastCharIsComma = true;
+      i++;
+      continue;
+    }
+    lastCharIsComma = false;
+    if (char2 === "\\") {
+      i += 2;
+      continue;
+    }
+    if (char2 === '"') {
+      const [value2, startFrom2] = parsePgArrayValue(arrayString, i + 1, true);
+      result.push(value2);
+      i = startFrom2;
+      continue;
+    }
+    if (char2 === "}") {
+      return [result, i + 1];
+    }
+    if (char2 === "{") {
+      const [value2, startFrom2] = parsePgNestedArray(arrayString, i + 1);
+      result.push(value2);
+      i = startFrom2;
+      continue;
+    }
+    const [value, newStartFrom] = parsePgArrayValue(arrayString, i, false);
+    result.push(value);
+    i = newStartFrom;
+  }
+  return [result, i];
+}
+function parsePgArray(arrayString) {
+  const [result] = parsePgNestedArray(arrayString, 1);
+  return result;
+}
+function makePgArray(array) {
+  return `{${array.map((item) => {
+    if (Array.isArray(item)) {
+      return makePgArray(item);
+    }
+    if (typeof item === "string") {
+      return `"${item.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
+    }
+    return `${item}`;
+  }).join(",")}}`;
+}
+
+// ../../node_modules/.pnpm/drizzle-orm@0.36.4_@neondatabase+serverless@0.9.5_@types+pg@8.11.6_@types+react@19.2.7_react@19.2.3/node_modules/drizzle-orm/pg-core/columns/common.js
+var PgColumnBuilder = class extends ColumnBuilder {
+  foreignKeyConfigs = [];
+  static [entityKind] = "PgColumnBuilder";
+  array(size) {
+    return new PgArrayBuilder(this.config.name, this, size);
+  }
+  references(ref, actions = {}) {
+    this.foreignKeyConfigs.push({ ref, actions });
+    return this;
+  }
+  unique(name, config2) {
+    this.config.isUnique = true;
+    this.config.uniqueName = name;
+    this.config.uniqueType = config2?.nulls;
+    return this;
+  }
+  generatedAlwaysAs(as) {
+    this.config.generated = {
+      as,
+      type: "always",
+      mode: "stored"
+    };
+    return this;
+  }
+  /** @internal */
+  buildForeignKeys(column, table) {
+    return this.foreignKeyConfigs.map(({ ref, actions }) => {
+      return iife(
+        (ref2, actions2) => {
+          const builder = new ForeignKeyBuilder(() => {
+            const foreignColumn = ref2();
+            return { columns: [column], foreignColumns: [foreignColumn] };
+          });
+          if (actions2.onUpdate) {
+            builder.onUpdate(actions2.onUpdate);
+          }
+          if (actions2.onDelete) {
+            builder.onDelete(actions2.onDelete);
+          }
+          return builder.build(table);
+        },
+        ref,
+        actions
+      );
+    });
+  }
+  /** @internal */
+  buildExtraConfigColumn(table) {
+    return new ExtraConfigColumn(table, this.config);
+  }
+};
+var PgColumn = class extends Column {
+  constructor(table, config2) {
+    if (!config2.uniqueName) {
+      config2.uniqueName = uniqueKeyName(table, [config2.name]);
+    }
+    super(table, config2);
+    this.table = table;
+  }
+  static [entityKind] = "PgColumn";
+};
+var ExtraConfigColumn = class extends PgColumn {
+  static [entityKind] = "ExtraConfigColumn";
+  getSQLType() {
+    return this.getSQLType();
+  }
+  indexConfig = {
+    order: this.config.order ?? "asc",
+    nulls: this.config.nulls ?? "last",
+    opClass: this.config.opClass
+  };
+  defaultConfig = {
+    order: "asc",
+    nulls: "last",
+    opClass: void 0
+  };
+  asc() {
+    this.indexConfig.order = "asc";
+    return this;
+  }
+  desc() {
+    this.indexConfig.order = "desc";
+    return this;
+  }
+  nullsFirst() {
+    this.indexConfig.nulls = "first";
+    return this;
+  }
+  nullsLast() {
+    this.indexConfig.nulls = "last";
+    return this;
+  }
+  /**
+   * ### PostgreSQL documentation quote
+   *
+   * > An operator class with optional parameters can be specified for each column of an index.
+   * The operator class identifies the operators to be used by the index for that column.
+   * For example, a B-tree index on four-byte integers would use the int4_ops class;
+   * this operator class includes comparison functions for four-byte integers.
+   * In practice the default operator class for the column's data type is usually sufficient.
+   * The main point of having operator classes is that for some data types, there could be more than one meaningful ordering.
+   * For example, we might want to sort a complex-number data type either by absolute value or by real part.
+   * We could do this by defining two operator classes for the data type and then selecting the proper class when creating an index.
+   * More information about operator classes check:
+   *
+   * ### Useful links
+   * https://www.postgresql.org/docs/current/sql-createindex.html
+   *
+   * https://www.postgresql.org/docs/current/indexes-opclass.html
+   *
+   * https://www.postgresql.org/docs/current/xindex.html
+   *
+   * ### Additional types
+   * If you have the `pg_vector` extension installed in your database, you can use the
+   * `vector_l2_ops`, `vector_ip_ops`, `vector_cosine_ops`, `vector_l1_ops`, `bit_hamming_ops`, `bit_jaccard_ops`, `halfvec_l2_ops`, `sparsevec_l2_ops` options, which are predefined types.
+   *
+   * **You can always specify any string you want in the operator class, in case Drizzle doesn't have it natively in its types**
+   *
+   * @param opClass
+   * @returns
+   */
+  op(opClass) {
+    this.indexConfig.opClass = opClass;
+    return this;
+  }
+};
+var IndexedColumn = class {
+  static [entityKind] = "IndexedColumn";
+  constructor(name, keyAsName, type, indexConfig) {
+    this.name = name;
+    this.keyAsName = keyAsName;
+    this.type = type;
+    this.indexConfig = indexConfig;
+  }
+  name;
+  keyAsName;
+  type;
+  indexConfig;
+};
+var PgArrayBuilder = class extends PgColumnBuilder {
+  static [entityKind] = "PgArrayBuilder";
+  constructor(name, baseBuilder, size) {
+    super(name, "array", "PgArray");
+    this.config.baseBuilder = baseBuilder;
+    this.config.size = size;
+  }
+  /** @internal */
+  build(table) {
+    const baseColumn = this.config.baseBuilder.build(table);
+    return new PgArray(
+      table,
+      this.config,
+      baseColumn
+    );
+  }
+};
+var PgArray = class _PgArray extends PgColumn {
+  constructor(table, config2, baseColumn, range) {
+    super(table, config2);
+    this.baseColumn = baseColumn;
+    this.range = range;
+    this.size = config2.size;
+  }
+  size;
+  static [entityKind] = "PgArray";
+  getSQLType() {
+    return `${this.baseColumn.getSQLType()}[${typeof this.size === "number" ? this.size : ""}]`;
+  }
+  mapFromDriverValue(value) {
+    if (typeof value === "string") {
+      value = parsePgArray(value);
+    }
+    return value.map((v) => this.baseColumn.mapFromDriverValue(v));
+  }
+  mapToDriverValue(value, isNestedArray = false) {
+    const a = value.map(
+      (v) => v === null ? null : is(this.baseColumn, _PgArray) ? this.baseColumn.mapToDriverValue(v, true) : this.baseColumn.mapToDriverValue(v)
+    );
+    if (isNestedArray)
+      return a;
+    return makePgArray(a);
+  }
+};
+
+// ../../node_modules/.pnpm/drizzle-orm@0.36.4_@neondatabase+serverless@0.9.5_@types+pg@8.11.6_@types+react@19.2.7_react@19.2.3/node_modules/drizzle-orm/pg-core/columns/enum.js
+var isPgEnumSym = /* @__PURE__ */ Symbol.for("drizzle:isPgEnum");
+function isPgEnum(obj) {
+  return !!obj && typeof obj === "function" && isPgEnumSym in obj && obj[isPgEnumSym] === true;
+}
+var PgEnumColumnBuilder = class extends PgColumnBuilder {
+  static [entityKind] = "PgEnumColumnBuilder";
+  constructor(name, enumInstance) {
+    super(name, "string", "PgEnumColumn");
+    this.config.enum = enumInstance;
+  }
+  /** @internal */
+  build(table) {
+    return new PgEnumColumn(
+      table,
+      this.config
+    );
+  }
+};
+var PgEnumColumn = class extends PgColumn {
+  static [entityKind] = "PgEnumColumn";
+  enum = this.config.enum;
+  enumValues = this.config.enum.enumValues;
+  constructor(table, config2) {
+    super(table, config2);
+    this.enum = config2.enum;
+  }
+  getSQLType() {
+    return this.enum.enumName;
+  }
+};
+function pgEnum(enumName, values) {
+  return pgEnumWithSchema(enumName, values, void 0);
+}
+function pgEnumWithSchema(enumName, values, schema) {
+  const enumInstance = Object.assign(
+    (name) => new PgEnumColumnBuilder(name ?? "", enumInstance),
+    {
+      enumName,
+      enumValues: values,
+      schema,
+      [isPgEnumSym]: true
+    }
+  );
+  return enumInstance;
+}
+
+// ../../node_modules/.pnpm/drizzle-orm@0.36.4_@neondatabase+serverless@0.9.5_@types+pg@8.11.6_@types+react@19.2.7_react@19.2.3/node_modules/drizzle-orm/subquery.js
+var Subquery = class {
+  static [entityKind] = "Subquery";
+  constructor(sql3, selection, alias, isWith = false) {
+    this._ = {
+      brand: "Subquery",
+      sql: sql3,
+      selectedFields: selection,
+      alias,
+      isWith
+    };
+  }
+  // getSQL(): SQL<unknown> {
+  // 	return new SQL([this]);
+  // }
+};
+var WithSubquery = class extends Subquery {
+  static [entityKind] = "WithSubquery";
+};
+
+// ../../node_modules/.pnpm/drizzle-orm@0.36.4_@neondatabase+serverless@0.9.5_@types+pg@8.11.6_@types+react@19.2.7_react@19.2.3/node_modules/drizzle-orm/view-common.js
+var ViewBaseConfig = /* @__PURE__ */ Symbol.for("drizzle:ViewBaseConfig");
+
+// ../../node_modules/.pnpm/drizzle-orm@0.36.4_@neondatabase+serverless@0.9.5_@types+pg@8.11.6_@types+react@19.2.7_react@19.2.3/node_modules/drizzle-orm/sql/sql.js
+var FakePrimitiveParam = class {
+  static [entityKind] = "FakePrimitiveParam";
+};
+function isSQLWrapper(value) {
+  return value !== null && value !== void 0 && typeof value.getSQL === "function";
+}
+function mergeQueries(queries) {
+  const result = { sql: "", params: [] };
+  for (const query of queries) {
+    result.sql += query.sql;
+    result.params.push(...query.params);
+    if (query.typings?.length) {
+      if (!result.typings) {
+        result.typings = [];
+      }
+      result.typings.push(...query.typings);
+    }
+  }
+  return result;
+}
+var StringChunk = class {
+  static [entityKind] = "StringChunk";
+  value;
+  constructor(value) {
+    this.value = Array.isArray(value) ? value : [value];
+  }
+  getSQL() {
+    return new SQL([this]);
+  }
+};
+var SQL = class _SQL {
+  constructor(queryChunks) {
+    this.queryChunks = queryChunks;
+  }
+  static [entityKind] = "SQL";
+  /** @internal */
+  decoder = noopDecoder;
+  shouldInlineParams = false;
+  append(query) {
+    this.queryChunks.push(...query.queryChunks);
+    return this;
+  }
+  toQuery(config2) {
+    return tracer.startActiveSpan("drizzle.buildSQL", (span) => {
+      const query = this.buildQueryFromSourceParams(this.queryChunks, config2);
+      span?.setAttributes({
+        "drizzle.query.text": query.sql,
+        "drizzle.query.params": JSON.stringify(query.params)
+      });
+      return query;
+    });
+  }
+  buildQueryFromSourceParams(chunks, _config) {
+    const config2 = Object.assign({}, _config, {
+      inlineParams: _config.inlineParams || this.shouldInlineParams,
+      paramStartIndex: _config.paramStartIndex || { value: 0 }
+    });
+    const {
+      casing,
+      escapeName,
+      escapeParam,
+      prepareTyping,
+      inlineParams,
+      paramStartIndex
+    } = config2;
+    return mergeQueries(chunks.map((chunk) => {
+      if (is(chunk, StringChunk)) {
+        return { sql: chunk.value.join(""), params: [] };
+      }
+      if (is(chunk, Name)) {
+        return { sql: escapeName(chunk.value), params: [] };
+      }
+      if (chunk === void 0) {
+        return { sql: "", params: [] };
+      }
+      if (Array.isArray(chunk)) {
+        const result = [new StringChunk("(")];
+        for (const [i, p] of chunk.entries()) {
+          result.push(p);
+          if (i < chunk.length - 1) {
+            result.push(new StringChunk(", "));
+          }
+        }
+        result.push(new StringChunk(")"));
+        return this.buildQueryFromSourceParams(result, config2);
+      }
+      if (is(chunk, _SQL)) {
+        return this.buildQueryFromSourceParams(chunk.queryChunks, {
+          ...config2,
+          inlineParams: inlineParams || chunk.shouldInlineParams
+        });
+      }
+      if (is(chunk, Table)) {
+        const schemaName = chunk[Table.Symbol.Schema];
+        const tableName = chunk[Table.Symbol.Name];
+        return {
+          sql: schemaName === void 0 ? escapeName(tableName) : escapeName(schemaName) + "." + escapeName(tableName),
+          params: []
+        };
+      }
+      if (is(chunk, Column)) {
+        const columnName = casing.getColumnCasing(chunk);
+        if (_config.invokeSource === "indexes") {
+          return { sql: escapeName(columnName), params: [] };
+        }
+        const schemaName = chunk.table[Table.Symbol.Schema];
+        return {
+          sql: chunk.table[IsAlias] || schemaName === void 0 ? escapeName(chunk.table[Table.Symbol.Name]) + "." + escapeName(columnName) : escapeName(schemaName) + "." + escapeName(chunk.table[Table.Symbol.Name]) + "." + escapeName(columnName),
+          params: []
+        };
+      }
+      if (is(chunk, View)) {
+        const schemaName = chunk[ViewBaseConfig].schema;
+        const viewName = chunk[ViewBaseConfig].name;
+        return {
+          sql: schemaName === void 0 ? escapeName(viewName) : escapeName(schemaName) + "." + escapeName(viewName),
+          params: []
+        };
+      }
+      if (is(chunk, Param)) {
+        if (is(chunk.value, Placeholder)) {
+          return { sql: escapeParam(paramStartIndex.value++, chunk), params: [chunk], typings: ["none"] };
+        }
+        const mappedValue = chunk.value === null ? null : chunk.encoder.mapToDriverValue(chunk.value);
+        if (is(mappedValue, _SQL)) {
+          return this.buildQueryFromSourceParams([mappedValue], config2);
+        }
+        if (inlineParams) {
+          return { sql: this.mapInlineParam(mappedValue, config2), params: [] };
+        }
+        let typings = ["none"];
+        if (prepareTyping) {
+          typings = [prepareTyping(chunk.encoder)];
+        }
+        return { sql: escapeParam(paramStartIndex.value++, mappedValue), params: [mappedValue], typings };
+      }
+      if (is(chunk, Placeholder)) {
+        return { sql: escapeParam(paramStartIndex.value++, chunk), params: [chunk], typings: ["none"] };
+      }
+      if (is(chunk, _SQL.Aliased) && chunk.fieldAlias !== void 0) {
+        return { sql: escapeName(chunk.fieldAlias), params: [] };
+      }
+      if (is(chunk, Subquery)) {
+        if (chunk._.isWith) {
+          return { sql: escapeName(chunk._.alias), params: [] };
+        }
+        return this.buildQueryFromSourceParams([
+          new StringChunk("("),
+          chunk._.sql,
+          new StringChunk(") "),
+          new Name(chunk._.alias)
+        ], config2);
+      }
+      if (isPgEnum(chunk)) {
+        if (chunk.schema) {
+          return { sql: escapeName(chunk.schema) + "." + escapeName(chunk.enumName), params: [] };
+        }
+        return { sql: escapeName(chunk.enumName), params: [] };
+      }
+      if (isSQLWrapper(chunk)) {
+        if (chunk.shouldOmitSQLParens?.()) {
+          return this.buildQueryFromSourceParams([chunk.getSQL()], config2);
+        }
+        return this.buildQueryFromSourceParams([
+          new StringChunk("("),
+          chunk.getSQL(),
+          new StringChunk(")")
+        ], config2);
+      }
+      if (inlineParams) {
+        return { sql: this.mapInlineParam(chunk, config2), params: [] };
+      }
+      return { sql: escapeParam(paramStartIndex.value++, chunk), params: [chunk], typings: ["none"] };
+    }));
+  }
+  mapInlineParam(chunk, { escapeString }) {
+    if (chunk === null) {
+      return "null";
+    }
+    if (typeof chunk === "number" || typeof chunk === "boolean") {
+      return chunk.toString();
+    }
+    if (typeof chunk === "string") {
+      return escapeString(chunk);
+    }
+    if (typeof chunk === "object") {
+      const mappedValueAsString = chunk.toString();
+      if (mappedValueAsString === "[object Object]") {
+        return escapeString(JSON.stringify(chunk));
+      }
+      return escapeString(mappedValueAsString);
+    }
+    throw new Error("Unexpected param value: " + chunk);
+  }
+  getSQL() {
+    return this;
+  }
+  as(alias) {
+    if (alias === void 0) {
+      return this;
+    }
+    return new _SQL.Aliased(this, alias);
+  }
+  mapWith(decoder) {
+    this.decoder = typeof decoder === "function" ? { mapFromDriverValue: decoder } : decoder;
+    return this;
+  }
+  inlineParams() {
+    this.shouldInlineParams = true;
+    return this;
+  }
+  /**
+   * This method is used to conditionally include a part of the query.
+   *
+   * @param condition - Condition to check
+   * @returns itself if the condition is `true`, otherwise `undefined`
+   */
+  if(condition) {
+    return condition ? this : void 0;
+  }
+};
+var Name = class {
+  constructor(value) {
+    this.value = value;
+  }
+  static [entityKind] = "Name";
+  brand;
+  getSQL() {
+    return new SQL([this]);
+  }
+};
+function isDriverValueEncoder(value) {
+  return typeof value === "object" && value !== null && "mapToDriverValue" in value && typeof value.mapToDriverValue === "function";
+}
+var noopDecoder = {
+  mapFromDriverValue: (value) => value
+};
+var noopEncoder = {
+  mapToDriverValue: (value) => value
+};
+var noopMapper = {
+  ...noopDecoder,
+  ...noopEncoder
+};
+var Param = class {
+  /**
+   * @param value - Parameter value
+   * @param encoder - Encoder to convert the value to a driver parameter
+   */
+  constructor(value, encoder = noopEncoder) {
+    this.value = value;
+    this.encoder = encoder;
+  }
+  static [entityKind] = "Param";
+  brand;
+  getSQL() {
+    return new SQL([this]);
+  }
+};
+function sql(strings, ...params) {
+  const queryChunks = [];
+  if (params.length > 0 || strings.length > 0 && strings[0] !== "") {
+    queryChunks.push(new StringChunk(strings[0]));
+  }
+  for (const [paramIndex, param2] of params.entries()) {
+    queryChunks.push(param2, new StringChunk(strings[paramIndex + 1]));
+  }
+  return new SQL(queryChunks);
+}
+((sql22) => {
+  function empty() {
+    return new SQL([]);
+  }
+  sql22.empty = empty;
+  function fromList(list) {
+    return new SQL(list);
+  }
+  sql22.fromList = fromList;
+  function raw(str) {
+    return new SQL([new StringChunk(str)]);
+  }
+  sql22.raw = raw;
+  function join(chunks, separator) {
+    const result = [];
+    for (const [i, chunk] of chunks.entries()) {
+      if (i > 0 && separator !== void 0) {
+        result.push(separator);
+      }
+      result.push(chunk);
+    }
+    return new SQL(result);
+  }
+  sql22.join = join;
+  function identifier(value) {
+    return new Name(value);
+  }
+  sql22.identifier = identifier;
+  function placeholder2(name2) {
+    return new Placeholder(name2);
+  }
+  sql22.placeholder = placeholder2;
+  function param2(value, encoder) {
+    return new Param(value, encoder);
+  }
+  sql22.param = param2;
+})(sql || (sql = {}));
+((SQL2) => {
+  class Aliased {
+    constructor(sql22, fieldAlias) {
+      this.sql = sql22;
+      this.fieldAlias = fieldAlias;
+    }
+    static [entityKind] = "SQL.Aliased";
+    /** @internal */
+    isSelectionField = false;
+    getSQL() {
+      return this.sql;
+    }
+    /** @internal */
+    clone() {
+      return new Aliased(this.sql, this.fieldAlias);
+    }
+  }
+  SQL2.Aliased = Aliased;
+})(SQL || (SQL = {}));
+var Placeholder = class {
+  constructor(name2) {
+    this.name = name2;
+  }
+  static [entityKind] = "Placeholder";
+  getSQL() {
+    return new SQL([this]);
+  }
+};
+function fillPlaceholders(params, values) {
+  return params.map((p) => {
+    if (is(p, Placeholder)) {
+      if (!(p.name in values)) {
+        throw new Error(`No value for placeholder "${p.name}" was provided`);
+      }
+      return values[p.name];
+    }
+    if (is(p, Param) && is(p.value, Placeholder)) {
+      if (!(p.value.name in values)) {
+        throw new Error(`No value for placeholder "${p.value.name}" was provided`);
+      }
+      return p.encoder.mapToDriverValue(values[p.value.name]);
+    }
+    return p;
+  });
+}
+var View = class {
+  static [entityKind] = "View";
+  /** @internal */
+  [ViewBaseConfig];
+  constructor({ name: name2, schema, selectedFields, query }) {
+    this[ViewBaseConfig] = {
+      name: name2,
+      originalName: name2,
+      schema,
+      selectedFields,
+      query,
+      isExisting: !query,
+      isAlias: false
+    };
+  }
+  getSQL() {
+    return new SQL([this]);
+  }
+};
+Column.prototype.getSQL = function() {
+  return new SQL([this]);
+};
+Table.prototype.getSQL = function() {
+  return new SQL([this]);
+};
+Subquery.prototype.getSQL = function() {
+  return new SQL([this]);
+};
+
+// ../../node_modules/.pnpm/drizzle-orm@0.36.4_@neondatabase+serverless@0.9.5_@types+pg@8.11.6_@types+react@19.2.7_react@19.2.3/node_modules/drizzle-orm/utils.js
+function mapResultRow(columns, row, joinsNotNullableMap) {
+  const nullifyMap = {};
+  const result = columns.reduce(
+    (result2, { path: path2, field }, columnIndex) => {
+      let decoder;
+      if (is(field, Column)) {
+        decoder = field;
+      } else if (is(field, SQL)) {
+        decoder = field.decoder;
+      } else {
+        decoder = field.sql.decoder;
+      }
+      let node = result2;
+      for (const [pathChunkIndex, pathChunk] of path2.entries()) {
+        if (pathChunkIndex < path2.length - 1) {
+          if (!(pathChunk in node)) {
+            node[pathChunk] = {};
+          }
+          node = node[pathChunk];
+        } else {
+          const rawValue = row[columnIndex];
+          const value = node[pathChunk] = rawValue === null ? null : decoder.mapFromDriverValue(rawValue);
+          if (joinsNotNullableMap && is(field, Column) && path2.length === 2) {
+            const objectName = path2[0];
+            if (!(objectName in nullifyMap)) {
+              nullifyMap[objectName] = value === null ? getTableName(field.table) : false;
+            } else if (typeof nullifyMap[objectName] === "string" && nullifyMap[objectName] !== getTableName(field.table)) {
+              nullifyMap[objectName] = false;
+            }
+          }
+        }
+      }
+      return result2;
+    },
+    {}
+  );
+  if (joinsNotNullableMap && Object.keys(nullifyMap).length > 0) {
+    for (const [objectName, tableName] of Object.entries(nullifyMap)) {
+      if (typeof tableName === "string" && !joinsNotNullableMap[tableName]) {
+        result[objectName] = null;
+      }
+    }
+  }
+  return result;
+}
+function orderSelectedFields(fields, pathPrefix) {
+  return Object.entries(fields).reduce((result, [name, field]) => {
+    if (typeof name !== "string") {
+      return result;
+    }
+    const newPath = pathPrefix ? [...pathPrefix, name] : [name];
+    if (is(field, Column) || is(field, SQL) || is(field, SQL.Aliased)) {
+      result.push({ path: newPath, field });
+    } else if (is(field, Table)) {
+      result.push(...orderSelectedFields(field[Table.Symbol.Columns], newPath));
+    } else {
+      result.push(...orderSelectedFields(field, newPath));
+    }
+    return result;
+  }, []);
+}
+function haveSameKeys(left, right) {
+  const leftKeys = Object.keys(left);
+  const rightKeys = Object.keys(right);
+  if (leftKeys.length !== rightKeys.length) {
+    return false;
+  }
+  for (const [index2, key] of leftKeys.entries()) {
+    if (key !== rightKeys[index2]) {
+      return false;
+    }
+  }
+  return true;
+}
+function mapUpdateSet(table, values) {
+  const entries = Object.entries(values).filter(([, value]) => value !== void 0).map(([key, value]) => {
+    if (is(value, SQL) || is(value, Column)) {
+      return [key, value];
+    } else {
+      return [key, new Param(value, table[Table.Symbol.Columns][key])];
+    }
+  });
+  if (entries.length === 0) {
+    throw new Error("No values to set");
+  }
+  return Object.fromEntries(entries);
+}
+function applyMixins(baseClass, extendedClasses) {
+  for (const extendedClass of extendedClasses) {
+    for (const name of Object.getOwnPropertyNames(extendedClass.prototype)) {
+      if (name === "constructor")
+        continue;
+      Object.defineProperty(
+        baseClass.prototype,
+        name,
+        Object.getOwnPropertyDescriptor(extendedClass.prototype, name) || /* @__PURE__ */ Object.create(null)
+      );
+    }
+  }
+}
+function getTableColumns(table) {
+  return table[Table.Symbol.Columns];
+}
+function getTableLikeName(table) {
+  return is(table, Subquery) ? table._.alias : is(table, View) ? table[ViewBaseConfig].name : is(table, SQL) ? void 0 : table[Table.Symbol.IsAlias] ? table[Table.Symbol.Name] : table[Table.Symbol.BaseName];
+}
+function getColumnNameAndConfig(a, b) {
+  return {
+    name: typeof a === "string" && a.length > 0 ? a : "",
+    config: typeof a === "object" ? a : b
+  };
+}
+function isConfig(data) {
+  if (typeof data !== "object" || data === null)
+    return false;
+  if (data.constructor.name !== "Object")
+    return false;
+  if ("logger" in data) {
+    const type = typeof data["logger"];
+    if (type !== "boolean" && (type !== "object" || typeof data["logger"]["logQuery"] !== "function") && type !== "undefined")
+      return false;
+    return true;
+  }
+  if ("schema" in data) {
+    const type = typeof data["logger"];
+    if (type !== "object" && type !== "undefined")
+      return false;
+    return true;
+  }
+  if ("casing" in data) {
+    const type = typeof data["logger"];
+    if (type !== "string" && type !== "undefined")
+      return false;
+    return true;
+  }
+  if ("mode" in data) {
+    if (data["mode"] !== "default" || data["mode"] !== "planetscale" || data["mode"] !== void 0)
+      return false;
+    return true;
+  }
+  if ("connection" in data) {
+    const type = typeof data["connection"];
+    if (type !== "string" && type !== "object" && type !== "undefined")
+      return false;
+    return true;
+  }
+  if ("client" in data) {
+    const type = typeof data["client"];
+    if (type !== "object" && type !== "function" && type !== "undefined")
+      return false;
+    return true;
+  }
+  if (Object.keys(data).length === 0)
+    return true;
+  return false;
+}
+
+// ../../node_modules/.pnpm/drizzle-orm@0.36.4_@neondatabase+serverless@0.9.5_@types+pg@8.11.6_@types+react@19.2.7_react@19.2.3/node_modules/drizzle-orm/pg-core/query-builders/delete.js
+var PgDeleteBase = class extends QueryPromise {
+  constructor(table, session, dialect, withList) {
+    super();
+    this.session = session;
+    this.dialect = dialect;
+    this.config = { table, withList };
+  }
+  static [entityKind] = "PgDelete";
+  config;
+  /**
+   * Adds a `where` clause to the query.
+   *
+   * Calling this method will delete only those rows that fulfill a specified condition.
+   *
+   * See docs: {@link https://orm.drizzle.team/docs/delete}
+   *
+   * @param where the `where` clause.
+   *
+   * @example
+   * You can use conditional operators and `sql function` to filter the rows to be deleted.
+   *
+   * ```ts
+   * // Delete all cars with green color
+   * await db.delete(cars).where(eq(cars.color, 'green'));
+   * // or
+   * await db.delete(cars).where(sql`${cars.color} = 'green'`)
+   * ```
+   *
+   * You can logically combine conditional operators with `and()` and `or()` operators:
+   *
+   * ```ts
+   * // Delete all BMW cars with a green color
+   * await db.delete(cars).where(and(eq(cars.color, 'green'), eq(cars.brand, 'BMW')));
+   *
+   * // Delete all cars with the green or blue color
+   * await db.delete(cars).where(or(eq(cars.color, 'green'), eq(cars.color, 'blue')));
+   * ```
+   */
+  where(where) {
+    this.config.where = where;
+    return this;
+  }
+  returning(fields = this.config.table[Table.Symbol.Columns]) {
+    this.config.returning = orderSelectedFields(fields);
+    return this;
+  }
+  /** @internal */
+  getSQL() {
+    return this.dialect.buildDeleteQuery(this.config);
+  }
+  toSQL() {
+    const { typings: _typings, ...rest } = this.dialect.sqlToQuery(this.getSQL());
+    return rest;
+  }
+  /** @internal */
+  _prepare(name) {
+    return tracer.startActiveSpan("drizzle.prepareQuery", () => {
+      return this.session.prepareQuery(this.dialect.sqlToQuery(this.getSQL()), this.config.returning, name, true);
+    });
+  }
+  prepare(name) {
+    return this._prepare(name);
+  }
+  authToken;
+  /** @internal */
+  setToken(token) {
+    this.authToken = token;
+    return this;
+  }
+  execute = (placeholderValues) => {
+    return tracer.startActiveSpan("drizzle.operation", () => {
+      return this._prepare().execute(placeholderValues, this.authToken);
+    });
+  };
+  $dynamic() {
+    return this;
+  }
+};
+
+// ../../node_modules/.pnpm/drizzle-orm@0.36.4_@neondatabase+serverless@0.9.5_@types+pg@8.11.6_@types+react@19.2.7_react@19.2.3/node_modules/drizzle-orm/alias.js
+var ColumnAliasProxyHandler = class {
+  constructor(table) {
+    this.table = table;
+  }
+  static [entityKind] = "ColumnAliasProxyHandler";
+  get(columnObj, prop) {
+    if (prop === "table") {
+      return this.table;
+    }
+    return columnObj[prop];
+  }
+};
+var TableAliasProxyHandler = class {
+  constructor(alias, replaceOriginalName) {
+    this.alias = alias;
+    this.replaceOriginalName = replaceOriginalName;
+  }
+  static [entityKind] = "TableAliasProxyHandler";
+  get(target, prop) {
+    if (prop === Table.Symbol.IsAlias) {
+      return true;
+    }
+    if (prop === Table.Symbol.Name) {
+      return this.alias;
+    }
+    if (this.replaceOriginalName && prop === Table.Symbol.OriginalName) {
+      return this.alias;
+    }
+    if (prop === ViewBaseConfig) {
+      return {
+        ...target[ViewBaseConfig],
+        name: this.alias,
+        isAlias: true
+      };
+    }
+    if (prop === Table.Symbol.Columns) {
+      const columns = target[Table.Symbol.Columns];
+      if (!columns) {
+        return columns;
+      }
+      const proxiedColumns = {};
+      Object.keys(columns).map((key) => {
+        proxiedColumns[key] = new Proxy(
+          columns[key],
+          new ColumnAliasProxyHandler(new Proxy(target, this))
+        );
+      });
+      return proxiedColumns;
+    }
+    const value = target[prop];
+    if (is(value, Column)) {
+      return new Proxy(value, new ColumnAliasProxyHandler(new Proxy(target, this)));
+    }
+    return value;
+  }
+};
+var RelationTableAliasProxyHandler = class {
+  constructor(alias) {
+    this.alias = alias;
+  }
+  static [entityKind] = "RelationTableAliasProxyHandler";
+  get(target, prop) {
+    if (prop === "sourceTable") {
+      return aliasedTable(target.sourceTable, this.alias);
+    }
+    return target[prop];
+  }
+};
+function aliasedTable(table, tableAlias) {
+  return new Proxy(table, new TableAliasProxyHandler(tableAlias, false));
+}
+function aliasedTableColumn(column, tableAlias) {
+  return new Proxy(
+    column,
+    new ColumnAliasProxyHandler(new Proxy(column.table, new TableAliasProxyHandler(tableAlias, false)))
+  );
+}
+function mapColumnsInAliasedSQLToAlias(query, alias) {
+  return new SQL.Aliased(mapColumnsInSQLToAlias(query.sql, alias), query.fieldAlias);
+}
+function mapColumnsInSQLToAlias(query, alias) {
+  return sql.join(query.queryChunks.map((c) => {
+    if (is(c, Column)) {
+      return aliasedTableColumn(c, alias);
+    }
+    if (is(c, SQL)) {
+      return mapColumnsInSQLToAlias(c, alias);
+    }
+    if (is(c, SQL.Aliased)) {
+      return mapColumnsInAliasedSQLToAlias(c, alias);
+    }
+    return c;
+  }));
+}
+
+// ../../node_modules/.pnpm/drizzle-orm@0.36.4_@neondatabase+serverless@0.9.5_@types+pg@8.11.6_@types+react@19.2.7_react@19.2.3/node_modules/drizzle-orm/casing.js
+function toSnakeCase(input) {
+  const words = input.replace(/['\u2019]/g, "").match(/[\da-z]+|[A-Z]+(?![a-z])|[A-Z][\da-z]+/g) ?? [];
+  return words.map((word) => word.toLowerCase()).join("_");
+}
+function toCamelCase(input) {
+  const words = input.replace(/['\u2019]/g, "").match(/[\da-z]+|[A-Z]+(?![a-z])|[A-Z][\da-z]+/g) ?? [];
+  return words.reduce((acc, word, i) => {
+    const formattedWord = i === 0 ? word.toLowerCase() : `${word[0].toUpperCase()}${word.slice(1)}`;
+    return acc + formattedWord;
+  }, "");
+}
+function noopCase(input) {
+  return input;
+}
+var CasingCache = class {
+  static [entityKind] = "CasingCache";
+  /** @internal */
+  cache = {};
+  cachedTables = {};
+  convert;
+  constructor(casing) {
+    this.convert = casing === "snake_case" ? toSnakeCase : casing === "camelCase" ? toCamelCase : noopCase;
+  }
+  getColumnCasing(column) {
+    if (!column.keyAsName)
+      return column.name;
+    const schema = column.table[Table.Symbol.Schema] ?? "public";
+    const tableName = column.table[Table.Symbol.OriginalName];
+    const key = `${schema}.${tableName}.${column.name}`;
+    if (!this.cache[key]) {
+      this.cacheTable(column.table);
+    }
+    return this.cache[key];
+  }
+  cacheTable(table) {
+    const schema = table[Table.Symbol.Schema] ?? "public";
+    const tableName = table[Table.Symbol.OriginalName];
+    const tableKey = `${schema}.${tableName}`;
+    if (!this.cachedTables[tableKey]) {
+      for (const column of Object.values(table[Table.Symbol.Columns])) {
+        const columnKey = `${tableKey}.${column.name}`;
+        this.cache[columnKey] = this.convert(column.name);
+      }
+      this.cachedTables[tableKey] = true;
+    }
+  }
+  clearCache() {
+    this.cache = {};
+    this.cachedTables = {};
+  }
+};
+
+// ../../node_modules/.pnpm/drizzle-orm@0.36.4_@neondatabase+serverless@0.9.5_@types+pg@8.11.6_@types+react@19.2.7_react@19.2.3/node_modules/drizzle-orm/errors.js
+var DrizzleError = class extends Error {
+  static [entityKind] = "DrizzleError";
+  constructor({ message, cause }) {
+    super(message);
+    this.name = "DrizzleError";
+    this.cause = cause;
+  }
+};
+var TransactionRollbackError = class extends DrizzleError {
+  static [entityKind] = "TransactionRollbackError";
+  constructor() {
+    super({ message: "Rollback" });
+  }
+};
+
+// ../../node_modules/.pnpm/drizzle-orm@0.36.4_@neondatabase+serverless@0.9.5_@types+pg@8.11.6_@types+react@19.2.7_react@19.2.3/node_modules/drizzle-orm/pg-core/columns/int.common.js
+var PgIntColumnBaseBuilder = class extends PgColumnBuilder {
+  static [entityKind] = "PgIntColumnBaseBuilder";
+  generatedAlwaysAsIdentity(sequence) {
+    if (sequence) {
+      const { name, ...options } = sequence;
+      this.config.generatedIdentity = {
+        type: "always",
+        sequenceName: name,
+        sequenceOptions: options
+      };
+    } else {
+      this.config.generatedIdentity = {
+        type: "always"
+      };
+    }
+    this.config.hasDefault = true;
+    this.config.notNull = true;
+    return this;
+  }
+  generatedByDefaultAsIdentity(sequence) {
+    if (sequence) {
+      const { name, ...options } = sequence;
+      this.config.generatedIdentity = {
+        type: "byDefault",
+        sequenceName: name,
+        sequenceOptions: options
+      };
+    } else {
+      this.config.generatedIdentity = {
+        type: "byDefault"
+      };
+    }
+    this.config.hasDefault = true;
+    this.config.notNull = true;
+    return this;
+  }
+};
+
+// ../../node_modules/.pnpm/drizzle-orm@0.36.4_@neondatabase+serverless@0.9.5_@types+pg@8.11.6_@types+react@19.2.7_react@19.2.3/node_modules/drizzle-orm/pg-core/columns/bigint.js
+var PgBigInt53Builder = class extends PgIntColumnBaseBuilder {
+  static [entityKind] = "PgBigInt53Builder";
+  constructor(name) {
+    super(name, "number", "PgBigInt53");
+  }
+  /** @internal */
+  build(table) {
+    return new PgBigInt53(table, this.config);
+  }
+};
+var PgBigInt53 = class extends PgColumn {
+  static [entityKind] = "PgBigInt53";
+  getSQLType() {
+    return "bigint";
+  }
+  mapFromDriverValue(value) {
+    if (typeof value === "number") {
+      return value;
+    }
+    return Number(value);
+  }
+};
+var PgBigInt64Builder = class extends PgIntColumnBaseBuilder {
+  static [entityKind] = "PgBigInt64Builder";
+  constructor(name) {
+    super(name, "bigint", "PgBigInt64");
+  }
+  /** @internal */
+  build(table) {
+    return new PgBigInt64(
+      table,
+      this.config
+    );
+  }
+};
+var PgBigInt64 = class extends PgColumn {
+  static [entityKind] = "PgBigInt64";
+  getSQLType() {
+    return "bigint";
+  }
+  // eslint-disable-next-line unicorn/prefer-native-coercion-functions
+  mapFromDriverValue(value) {
+    return BigInt(value);
+  }
+};
+function bigint(a, b) {
+  const { name, config: config2 } = getColumnNameAndConfig(a, b);
+  if (config2.mode === "number") {
+    return new PgBigInt53Builder(name);
+  }
+  return new PgBigInt64Builder(name);
+}
+
+// ../../node_modules/.pnpm/drizzle-orm@0.36.4_@neondatabase+serverless@0.9.5_@types+pg@8.11.6_@types+react@19.2.7_react@19.2.3/node_modules/drizzle-orm/pg-core/columns/bigserial.js
+var PgBigSerial53Builder = class extends PgColumnBuilder {
+  static [entityKind] = "PgBigSerial53Builder";
+  constructor(name) {
+    super(name, "number", "PgBigSerial53");
+    this.config.hasDefault = true;
+    this.config.notNull = true;
+  }
+  /** @internal */
+  build(table) {
+    return new PgBigSerial53(
+      table,
+      this.config
+    );
+  }
+};
+var PgBigSerial53 = class extends PgColumn {
+  static [entityKind] = "PgBigSerial53";
+  getSQLType() {
+    return "bigserial";
+  }
+  mapFromDriverValue(value) {
+    if (typeof value === "number") {
+      return value;
+    }
+    return Number(value);
+  }
+};
+var PgBigSerial64Builder = class extends PgColumnBuilder {
+  static [entityKind] = "PgBigSerial64Builder";
+  constructor(name) {
+    super(name, "bigint", "PgBigSerial64");
+    this.config.hasDefault = true;
+  }
+  /** @internal */
+  build(table) {
+    return new PgBigSerial64(
+      table,
+      this.config
+    );
+  }
+};
+var PgBigSerial64 = class extends PgColumn {
+  static [entityKind] = "PgBigSerial64";
+  getSQLType() {
+    return "bigserial";
+  }
+  // eslint-disable-next-line unicorn/prefer-native-coercion-functions
+  mapFromDriverValue(value) {
+    return BigInt(value);
+  }
+};
+function bigserial(a, b) {
+  const { name, config: config2 } = getColumnNameAndConfig(a, b);
+  if (config2.mode === "number") {
+    return new PgBigSerial53Builder(name);
+  }
+  return new PgBigSerial64Builder(name);
+}
+
+// ../../node_modules/.pnpm/drizzle-orm@0.36.4_@neondatabase+serverless@0.9.5_@types+pg@8.11.6_@types+react@19.2.7_react@19.2.3/node_modules/drizzle-orm/pg-core/columns/boolean.js
+var PgBooleanBuilder = class extends PgColumnBuilder {
+  static [entityKind] = "PgBooleanBuilder";
+  constructor(name) {
+    super(name, "boolean", "PgBoolean");
+  }
+  /** @internal */
+  build(table) {
+    return new PgBoolean(table, this.config);
+  }
+};
+var PgBoolean = class extends PgColumn {
+  static [entityKind] = "PgBoolean";
+  getSQLType() {
+    return "boolean";
+  }
+};
+function boolean(name) {
+  return new PgBooleanBuilder(name ?? "");
+}
+
+// ../../node_modules/.pnpm/drizzle-orm@0.36.4_@neondatabase+serverless@0.9.5_@types+pg@8.11.6_@types+react@19.2.7_react@19.2.3/node_modules/drizzle-orm/pg-core/columns/char.js
+var PgCharBuilder = class extends PgColumnBuilder {
+  static [entityKind] = "PgCharBuilder";
+  constructor(name, config2) {
+    super(name, "string", "PgChar");
+    this.config.length = config2.length;
+    this.config.enumValues = config2.enum;
+  }
+  /** @internal */
+  build(table) {
+    return new PgChar(table, this.config);
+  }
+};
+var PgChar = class extends PgColumn {
+  static [entityKind] = "PgChar";
+  length = this.config.length;
+  enumValues = this.config.enumValues;
+  getSQLType() {
+    return this.length === void 0 ? `char` : `char(${this.length})`;
+  }
+};
+function char(a, b = {}) {
+  const { name, config: config2 } = getColumnNameAndConfig(a, b);
+  return new PgCharBuilder(name, config2);
+}
+
+// ../../node_modules/.pnpm/drizzle-orm@0.36.4_@neondatabase+serverless@0.9.5_@types+pg@8.11.6_@types+react@19.2.7_react@19.2.3/node_modules/drizzle-orm/pg-core/columns/cidr.js
+var PgCidrBuilder = class extends PgColumnBuilder {
+  static [entityKind] = "PgCidrBuilder";
+  constructor(name) {
+    super(name, "string", "PgCidr");
+  }
+  /** @internal */
+  build(table) {
+    return new PgCidr(table, this.config);
+  }
+};
+var PgCidr = class extends PgColumn {
+  static [entityKind] = "PgCidr";
+  getSQLType() {
+    return "cidr";
+  }
+};
+function cidr(name) {
+  return new PgCidrBuilder(name ?? "");
+}
+
+// ../../node_modules/.pnpm/drizzle-orm@0.36.4_@neondatabase+serverless@0.9.5_@types+pg@8.11.6_@types+react@19.2.7_react@19.2.3/node_modules/drizzle-orm/pg-core/columns/custom.js
+var PgCustomColumnBuilder = class extends PgColumnBuilder {
+  static [entityKind] = "PgCustomColumnBuilder";
+  constructor(name, fieldConfig, customTypeParams) {
+    super(name, "custom", "PgCustomColumn");
+    this.config.fieldConfig = fieldConfig;
+    this.config.customTypeParams = customTypeParams;
+  }
+  /** @internal */
+  build(table) {
+    return new PgCustomColumn(
+      table,
+      this.config
+    );
+  }
+};
+var PgCustomColumn = class extends PgColumn {
+  static [entityKind] = "PgCustomColumn";
+  sqlName;
+  mapTo;
+  mapFrom;
+  constructor(table, config2) {
+    super(table, config2);
+    this.sqlName = config2.customTypeParams.dataType(config2.fieldConfig);
+    this.mapTo = config2.customTypeParams.toDriver;
+    this.mapFrom = config2.customTypeParams.fromDriver;
+  }
+  getSQLType() {
+    return this.sqlName;
+  }
+  mapFromDriverValue(value) {
+    return typeof this.mapFrom === "function" ? this.mapFrom(value) : value;
+  }
+  mapToDriverValue(value) {
+    return typeof this.mapTo === "function" ? this.mapTo(value) : value;
+  }
+};
+function customType(customTypeParams) {
+  return (a, b) => {
+    const { name, config: config2 } = getColumnNameAndConfig(a, b);
+    return new PgCustomColumnBuilder(name, config2, customTypeParams);
+  };
+}
+
+// ../../node_modules/.pnpm/drizzle-orm@0.36.4_@neondatabase+serverless@0.9.5_@types+pg@8.11.6_@types+react@19.2.7_react@19.2.3/node_modules/drizzle-orm/pg-core/columns/date.common.js
+var PgDateColumnBaseBuilder = class extends PgColumnBuilder {
+  static [entityKind] = "PgDateColumnBaseBuilder";
+  defaultNow() {
+    return this.default(sql`now()`);
+  }
+};
+
+// ../../node_modules/.pnpm/drizzle-orm@0.36.4_@neondatabase+serverless@0.9.5_@types+pg@8.11.6_@types+react@19.2.7_react@19.2.3/node_modules/drizzle-orm/pg-core/columns/date.js
+var PgDateBuilder = class extends PgDateColumnBaseBuilder {
+  static [entityKind] = "PgDateBuilder";
+  constructor(name) {
+    super(name, "date", "PgDate");
+  }
+  /** @internal */
+  build(table) {
+    return new PgDate(table, this.config);
+  }
+};
+var PgDate = class extends PgColumn {
+  static [entityKind] = "PgDate";
+  getSQLType() {
+    return "date";
+  }
+  mapFromDriverValue(value) {
+    return new Date(value);
+  }
+  mapToDriverValue(value) {
+    return value.toISOString();
+  }
+};
+var PgDateStringBuilder = class extends PgDateColumnBaseBuilder {
+  static [entityKind] = "PgDateStringBuilder";
+  constructor(name) {
+    super(name, "string", "PgDateString");
+  }
+  /** @internal */
+  build(table) {
+    return new PgDateString(
+      table,
+      this.config
+    );
+  }
+};
+var PgDateString = class extends PgColumn {
+  static [entityKind] = "PgDateString";
+  getSQLType() {
+    return "date";
+  }
+};
+function date(a, b) {
+  const { name, config: config2 } = getColumnNameAndConfig(a, b);
+  if (config2?.mode === "date") {
+    return new PgDateBuilder(name);
+  }
+  return new PgDateStringBuilder(name);
+}
+
+// ../../node_modules/.pnpm/drizzle-orm@0.36.4_@neondatabase+serverless@0.9.5_@types+pg@8.11.6_@types+react@19.2.7_react@19.2.3/node_modules/drizzle-orm/pg-core/columns/double-precision.js
+var PgDoublePrecisionBuilder = class extends PgColumnBuilder {
+  static [entityKind] = "PgDoublePrecisionBuilder";
+  constructor(name) {
+    super(name, "number", "PgDoublePrecision");
+  }
+  /** @internal */
+  build(table) {
+    return new PgDoublePrecision(
+      table,
+      this.config
+    );
+  }
+};
+var PgDoublePrecision = class extends PgColumn {
+  static [entityKind] = "PgDoublePrecision";
+  getSQLType() {
+    return "double precision";
+  }
+  mapFromDriverValue(value) {
+    if (typeof value === "string") {
+      return Number.parseFloat(value);
+    }
+    return value;
+  }
+};
+function doublePrecision(name) {
+  return new PgDoublePrecisionBuilder(name ?? "");
+}
+
+// ../../node_modules/.pnpm/drizzle-orm@0.36.4_@neondatabase+serverless@0.9.5_@types+pg@8.11.6_@types+react@19.2.7_react@19.2.3/node_modules/drizzle-orm/pg-core/columns/inet.js
+var PgInetBuilder = class extends PgColumnBuilder {
+  static [entityKind] = "PgInetBuilder";
+  constructor(name) {
+    super(name, "string", "PgInet");
+  }
+  /** @internal */
+  build(table) {
+    return new PgInet(table, this.config);
+  }
+};
+var PgInet = class extends PgColumn {
+  static [entityKind] = "PgInet";
+  getSQLType() {
+    return "inet";
+  }
+};
+function inet(name) {
+  return new PgInetBuilder(name ?? "");
+}
+
+// ../../node_modules/.pnpm/drizzle-orm@0.36.4_@neondatabase+serverless@0.9.5_@types+pg@8.11.6_@types+react@19.2.7_react@19.2.3/node_modules/drizzle-orm/pg-core/columns/integer.js
+var PgIntegerBuilder = class extends PgIntColumnBaseBuilder {
+  static [entityKind] = "PgIntegerBuilder";
+  constructor(name) {
+    super(name, "number", "PgInteger");
+  }
+  /** @internal */
+  build(table) {
+    return new PgInteger(table, this.config);
+  }
+};
+var PgInteger = class extends PgColumn {
+  static [entityKind] = "PgInteger";
+  getSQLType() {
+    return "integer";
+  }
+  mapFromDriverValue(value) {
+    if (typeof value === "string") {
+      return Number.parseInt(value);
+    }
+    return value;
+  }
+};
+function integer(name) {
+  return new PgIntegerBuilder(name ?? "");
+}
+
+// ../../node_modules/.pnpm/drizzle-orm@0.36.4_@neondatabase+serverless@0.9.5_@types+pg@8.11.6_@types+react@19.2.7_react@19.2.3/node_modules/drizzle-orm/pg-core/columns/interval.js
+var PgIntervalBuilder = class extends PgColumnBuilder {
+  static [entityKind] = "PgIntervalBuilder";
+  constructor(name, intervalConfig) {
+    super(name, "string", "PgInterval");
+    this.config.intervalConfig = intervalConfig;
+  }
+  /** @internal */
+  build(table) {
+    return new PgInterval(table, this.config);
+  }
+};
+var PgInterval = class extends PgColumn {
+  static [entityKind] = "PgInterval";
+  fields = this.config.intervalConfig.fields;
+  precision = this.config.intervalConfig.precision;
+  getSQLType() {
+    const fields = this.fields ? ` ${this.fields}` : "";
+    const precision = this.precision ? `(${this.precision})` : "";
+    return `interval${fields}${precision}`;
+  }
+};
+function interval(a, b = {}) {
+  const { name, config: config2 } = getColumnNameAndConfig(a, b);
+  return new PgIntervalBuilder(name, config2);
+}
+
+// ../../node_modules/.pnpm/drizzle-orm@0.36.4_@neondatabase+serverless@0.9.5_@types+pg@8.11.6_@types+react@19.2.7_react@19.2.3/node_modules/drizzle-orm/pg-core/columns/json.js
+var PgJsonBuilder = class extends PgColumnBuilder {
+  static [entityKind] = "PgJsonBuilder";
+  constructor(name) {
+    super(name, "json", "PgJson");
+  }
+  /** @internal */
+  build(table) {
+    return new PgJson(table, this.config);
+  }
+};
+var PgJson = class extends PgColumn {
+  static [entityKind] = "PgJson";
+  constructor(table, config2) {
+    super(table, config2);
+  }
+  getSQLType() {
+    return "json";
+  }
+  mapToDriverValue(value) {
+    return JSON.stringify(value);
+  }
+  mapFromDriverValue(value) {
+    if (typeof value === "string") {
+      try {
+        return JSON.parse(value);
+      } catch {
+        return value;
+      }
+    }
+    return value;
+  }
+};
+function json(name) {
+  return new PgJsonBuilder(name ?? "");
+}
+
+// ../../node_modules/.pnpm/drizzle-orm@0.36.4_@neondatabase+serverless@0.9.5_@types+pg@8.11.6_@types+react@19.2.7_react@19.2.3/node_modules/drizzle-orm/pg-core/columns/jsonb.js
+var PgJsonbBuilder = class extends PgColumnBuilder {
+  static [entityKind] = "PgJsonbBuilder";
+  constructor(name) {
+    super(name, "json", "PgJsonb");
+  }
+  /** @internal */
+  build(table) {
+    return new PgJsonb(table, this.config);
+  }
+};
+var PgJsonb = class extends PgColumn {
+  static [entityKind] = "PgJsonb";
+  constructor(table, config2) {
+    super(table, config2);
+  }
+  getSQLType() {
+    return "jsonb";
+  }
+  mapToDriverValue(value) {
+    return JSON.stringify(value);
+  }
+  mapFromDriverValue(value) {
+    if (typeof value === "string") {
+      try {
+        return JSON.parse(value);
+      } catch {
+        return value;
+      }
+    }
+    return value;
+  }
+};
+function jsonb(name) {
+  return new PgJsonbBuilder(name ?? "");
+}
+
+// ../../node_modules/.pnpm/drizzle-orm@0.36.4_@neondatabase+serverless@0.9.5_@types+pg@8.11.6_@types+react@19.2.7_react@19.2.3/node_modules/drizzle-orm/pg-core/columns/line.js
+var PgLineBuilder = class extends PgColumnBuilder {
+  static [entityKind] = "PgLineBuilder";
+  constructor(name) {
+    super(name, "array", "PgLine");
+  }
+  /** @internal */
+  build(table) {
+    return new PgLineTuple(
+      table,
+      this.config
+    );
+  }
+};
+var PgLineTuple = class extends PgColumn {
+  static [entityKind] = "PgLine";
+  getSQLType() {
+    return "line";
+  }
+  mapFromDriverValue(value) {
+    const [a, b, c] = value.slice(1, -1).split(",");
+    return [Number.parseFloat(a), Number.parseFloat(b), Number.parseFloat(c)];
+  }
+  mapToDriverValue(value) {
+    return `{${value[0]},${value[1]},${value[2]}}`;
+  }
+};
+var PgLineABCBuilder = class extends PgColumnBuilder {
+  static [entityKind] = "PgLineABCBuilder";
+  constructor(name) {
+    super(name, "json", "PgLineABC");
+  }
+  /** @internal */
+  build(table) {
+    return new PgLineABC(
+      table,
+      this.config
+    );
+  }
+};
+var PgLineABC = class extends PgColumn {
+  static [entityKind] = "PgLineABC";
+  getSQLType() {
+    return "line";
+  }
+  mapFromDriverValue(value) {
+    const [a, b, c] = value.slice(1, -1).split(",");
+    return { a: Number.parseFloat(a), b: Number.parseFloat(b), c: Number.parseFloat(c) };
+  }
+  mapToDriverValue(value) {
+    return `{${value.a},${value.b},${value.c}}`;
+  }
+};
+function line(a, b) {
+  const { name, config: config2 } = getColumnNameAndConfig(a, b);
+  if (!config2?.mode || config2.mode === "tuple") {
+    return new PgLineBuilder(name);
+  }
+  return new PgLineABCBuilder(name);
+}
+
+// ../../node_modules/.pnpm/drizzle-orm@0.36.4_@neondatabase+serverless@0.9.5_@types+pg@8.11.6_@types+react@19.2.7_react@19.2.3/node_modules/drizzle-orm/pg-core/columns/macaddr.js
+var PgMacaddrBuilder = class extends PgColumnBuilder {
+  static [entityKind] = "PgMacaddrBuilder";
+  constructor(name) {
+    super(name, "string", "PgMacaddr");
+  }
+  /** @internal */
+  build(table) {
+    return new PgMacaddr(table, this.config);
+  }
+};
+var PgMacaddr = class extends PgColumn {
+  static [entityKind] = "PgMacaddr";
+  getSQLType() {
+    return "macaddr";
+  }
+};
+function macaddr(name) {
+  return new PgMacaddrBuilder(name ?? "");
+}
+
+// ../../node_modules/.pnpm/drizzle-orm@0.36.4_@neondatabase+serverless@0.9.5_@types+pg@8.11.6_@types+react@19.2.7_react@19.2.3/node_modules/drizzle-orm/pg-core/columns/macaddr8.js
+var PgMacaddr8Builder = class extends PgColumnBuilder {
+  static [entityKind] = "PgMacaddr8Builder";
+  constructor(name) {
+    super(name, "string", "PgMacaddr8");
+  }
+  /** @internal */
+  build(table) {
+    return new PgMacaddr8(table, this.config);
+  }
+};
+var PgMacaddr8 = class extends PgColumn {
+  static [entityKind] = "PgMacaddr8";
+  getSQLType() {
+    return "macaddr8";
+  }
+};
+function macaddr8(name) {
+  return new PgMacaddr8Builder(name ?? "");
+}
+
+// ../../node_modules/.pnpm/drizzle-orm@0.36.4_@neondatabase+serverless@0.9.5_@types+pg@8.11.6_@types+react@19.2.7_react@19.2.3/node_modules/drizzle-orm/pg-core/columns/numeric.js
+var PgNumericBuilder = class extends PgColumnBuilder {
+  static [entityKind] = "PgNumericBuilder";
+  constructor(name, precision, scale) {
+    super(name, "string", "PgNumeric");
+    this.config.precision = precision;
+    this.config.scale = scale;
+  }
+  /** @internal */
+  build(table) {
+    return new PgNumeric(table, this.config);
+  }
+};
+var PgNumeric = class extends PgColumn {
+  static [entityKind] = "PgNumeric";
+  precision;
+  scale;
+  constructor(table, config2) {
+    super(table, config2);
+    this.precision = config2.precision;
+    this.scale = config2.scale;
+  }
+  getSQLType() {
+    if (this.precision !== void 0 && this.scale !== void 0) {
+      return `numeric(${this.precision}, ${this.scale})`;
+    } else if (this.precision === void 0) {
+      return "numeric";
+    } else {
+      return `numeric(${this.precision})`;
+    }
+  }
+};
+function numeric(a, b) {
+  const { name, config: config2 } = getColumnNameAndConfig(a, b);
+  return new PgNumericBuilder(name, config2?.precision, config2?.scale);
+}
+var decimal = numeric;
+
+// ../../node_modules/.pnpm/drizzle-orm@0.36.4_@neondatabase+serverless@0.9.5_@types+pg@8.11.6_@types+react@19.2.7_react@19.2.3/node_modules/drizzle-orm/pg-core/columns/point.js
+var PgPointTupleBuilder = class extends PgColumnBuilder {
+  static [entityKind] = "PgPointTupleBuilder";
+  constructor(name) {
+    super(name, "array", "PgPointTuple");
+  }
+  /** @internal */
+  build(table) {
+    return new PgPointTuple(
+      table,
+      this.config
+    );
+  }
+};
+var PgPointTuple = class extends PgColumn {
+  static [entityKind] = "PgPointTuple";
+  getSQLType() {
+    return "point";
+  }
+  mapFromDriverValue(value) {
+    if (typeof value === "string") {
+      const [x, y] = value.slice(1, -1).split(",");
+      return [Number.parseFloat(x), Number.parseFloat(y)];
+    }
+    return [value.x, value.y];
+  }
+  mapToDriverValue(value) {
+    return `(${value[0]},${value[1]})`;
+  }
+};
+var PgPointObjectBuilder = class extends PgColumnBuilder {
+  static [entityKind] = "PgPointObjectBuilder";
+  constructor(name) {
+    super(name, "json", "PgPointObject");
+  }
+  /** @internal */
+  build(table) {
+    return new PgPointObject(
+      table,
+      this.config
+    );
+  }
+};
+var PgPointObject = class extends PgColumn {
+  static [entityKind] = "PgPointObject";
+  getSQLType() {
+    return "point";
+  }
+  mapFromDriverValue(value) {
+    if (typeof value === "string") {
+      const [x, y] = value.slice(1, -1).split(",");
+      return { x: Number.parseFloat(x), y: Number.parseFloat(y) };
+    }
+    return value;
+  }
+  mapToDriverValue(value) {
+    return `(${value.x},${value.y})`;
+  }
+};
+function point(a, b) {
+  const { name, config: config2 } = getColumnNameAndConfig(a, b);
+  if (!config2?.mode || config2.mode === "tuple") {
+    return new PgPointTupleBuilder(name);
+  }
+  return new PgPointObjectBuilder(name);
+}
+
+// ../../node_modules/.pnpm/drizzle-orm@0.36.4_@neondatabase+serverless@0.9.5_@types+pg@8.11.6_@types+react@19.2.7_react@19.2.3/node_modules/drizzle-orm/pg-core/columns/postgis_extension/utils.js
+function hexToBytes(hex) {
+  const bytes = [];
+  for (let c = 0; c < hex.length; c += 2) {
+    bytes.push(Number.parseInt(hex.slice(c, c + 2), 16));
+  }
+  return new Uint8Array(bytes);
+}
+function bytesToFloat64(bytes, offset) {
+  const buffer = new ArrayBuffer(8);
+  const view = new DataView(buffer);
+  for (let i = 0; i < 8; i++) {
+    view.setUint8(i, bytes[offset + i]);
+  }
+  return view.getFloat64(0, true);
+}
+function parseEWKB(hex) {
+  const bytes = hexToBytes(hex);
+  let offset = 0;
+  const byteOrder = bytes[offset];
+  offset += 1;
+  const view = new DataView(bytes.buffer);
+  const geomType = view.getUint32(offset, byteOrder === 1);
+  offset += 4;
+  let _srid;
+  if (geomType & 536870912) {
+    _srid = view.getUint32(offset, byteOrder === 1);
+    offset += 4;
+  }
+  if ((geomType & 65535) === 1) {
+    const x = bytesToFloat64(bytes, offset);
+    offset += 8;
+    const y = bytesToFloat64(bytes, offset);
+    offset += 8;
+    return [x, y];
+  }
+  throw new Error("Unsupported geometry type");
+}
+
+// ../../node_modules/.pnpm/drizzle-orm@0.36.4_@neondatabase+serverless@0.9.5_@types+pg@8.11.6_@types+react@19.2.7_react@19.2.3/node_modules/drizzle-orm/pg-core/columns/postgis_extension/geometry.js
+var PgGeometryBuilder = class extends PgColumnBuilder {
+  static [entityKind] = "PgGeometryBuilder";
+  constructor(name) {
+    super(name, "array", "PgGeometry");
+  }
+  /** @internal */
+  build(table) {
+    return new PgGeometry(
+      table,
+      this.config
+    );
+  }
+};
+var PgGeometry = class extends PgColumn {
+  static [entityKind] = "PgGeometry";
+  getSQLType() {
+    return "geometry(point)";
+  }
+  mapFromDriverValue(value) {
+    return parseEWKB(value);
+  }
+  mapToDriverValue(value) {
+    return `point(${value[0]} ${value[1]})`;
+  }
+};
+var PgGeometryObjectBuilder = class extends PgColumnBuilder {
+  static [entityKind] = "PgGeometryObjectBuilder";
+  constructor(name) {
+    super(name, "json", "PgGeometryObject");
+  }
+  /** @internal */
+  build(table) {
+    return new PgGeometryObject(
+      table,
+      this.config
+    );
+  }
+};
+var PgGeometryObject = class extends PgColumn {
+  static [entityKind] = "PgGeometryObject";
+  getSQLType() {
+    return "geometry(point)";
+  }
+  mapFromDriverValue(value) {
+    const parsed = parseEWKB(value);
+    return { x: parsed[0], y: parsed[1] };
+  }
+  mapToDriverValue(value) {
+    return `point(${value.x} ${value.y})`;
+  }
+};
+function geometry(a, b) {
+  const { name, config: config2 } = getColumnNameAndConfig(a, b);
+  if (!config2?.mode || config2.mode === "tuple") {
+    return new PgGeometryBuilder(name);
+  }
+  return new PgGeometryObjectBuilder(name);
+}
+
+// ../../node_modules/.pnpm/drizzle-orm@0.36.4_@neondatabase+serverless@0.9.5_@types+pg@8.11.6_@types+react@19.2.7_react@19.2.3/node_modules/drizzle-orm/pg-core/columns/real.js
+var PgRealBuilder = class extends PgColumnBuilder {
+  static [entityKind] = "PgRealBuilder";
+  constructor(name, length) {
+    super(name, "number", "PgReal");
+    this.config.length = length;
+  }
+  /** @internal */
+  build(table) {
+    return new PgReal(table, this.config);
+  }
+};
+var PgReal = class extends PgColumn {
+  static [entityKind] = "PgReal";
+  constructor(table, config2) {
+    super(table, config2);
+  }
+  getSQLType() {
+    return "real";
+  }
+  mapFromDriverValue = (value) => {
+    if (typeof value === "string") {
+      return Number.parseFloat(value);
+    }
+    return value;
+  };
+};
+function real(name) {
+  return new PgRealBuilder(name ?? "");
+}
+
+// ../../node_modules/.pnpm/drizzle-orm@0.36.4_@neondatabase+serverless@0.9.5_@types+pg@8.11.6_@types+react@19.2.7_react@19.2.3/node_modules/drizzle-orm/pg-core/columns/serial.js
+var PgSerialBuilder = class extends PgColumnBuilder {
+  static [entityKind] = "PgSerialBuilder";
+  constructor(name) {
+    super(name, "number", "PgSerial");
+    this.config.hasDefault = true;
+    this.config.notNull = true;
+  }
+  /** @internal */
+  build(table) {
+    return new PgSerial(table, this.config);
+  }
+};
+var PgSerial = class extends PgColumn {
+  static [entityKind] = "PgSerial";
+  getSQLType() {
+    return "serial";
+  }
+};
+function serial(name) {
+  return new PgSerialBuilder(name ?? "");
+}
+
+// ../../node_modules/.pnpm/drizzle-orm@0.36.4_@neondatabase+serverless@0.9.5_@types+pg@8.11.6_@types+react@19.2.7_react@19.2.3/node_modules/drizzle-orm/pg-core/columns/smallint.js
+var PgSmallIntBuilder = class extends PgIntColumnBaseBuilder {
+  static [entityKind] = "PgSmallIntBuilder";
+  constructor(name) {
+    super(name, "number", "PgSmallInt");
+  }
+  /** @internal */
+  build(table) {
+    return new PgSmallInt(table, this.config);
+  }
+};
+var PgSmallInt = class extends PgColumn {
+  static [entityKind] = "PgSmallInt";
+  getSQLType() {
+    return "smallint";
+  }
+  mapFromDriverValue = (value) => {
+    if (typeof value === "string") {
+      return Number(value);
+    }
+    return value;
+  };
+};
+function smallint(name) {
+  return new PgSmallIntBuilder(name ?? "");
+}
+
+// ../../node_modules/.pnpm/drizzle-orm@0.36.4_@neondatabase+serverless@0.9.5_@types+pg@8.11.6_@types+react@19.2.7_react@19.2.3/node_modules/drizzle-orm/pg-core/columns/smallserial.js
+var PgSmallSerialBuilder = class extends PgColumnBuilder {
+  static [entityKind] = "PgSmallSerialBuilder";
+  constructor(name) {
+    super(name, "number", "PgSmallSerial");
+    this.config.hasDefault = true;
+    this.config.notNull = true;
+  }
+  /** @internal */
+  build(table) {
+    return new PgSmallSerial(
+      table,
+      this.config
+    );
+  }
+};
+var PgSmallSerial = class extends PgColumn {
+  static [entityKind] = "PgSmallSerial";
+  getSQLType() {
+    return "smallserial";
+  }
+};
+function smallserial(name) {
+  return new PgSmallSerialBuilder(name ?? "");
+}
+
+// ../../node_modules/.pnpm/drizzle-orm@0.36.4_@neondatabase+serverless@0.9.5_@types+pg@8.11.6_@types+react@19.2.7_react@19.2.3/node_modules/drizzle-orm/pg-core/columns/text.js
+var PgTextBuilder = class extends PgColumnBuilder {
+  static [entityKind] = "PgTextBuilder";
+  constructor(name, config2) {
+    super(name, "string", "PgText");
+    this.config.enumValues = config2.enum;
+  }
+  /** @internal */
+  build(table) {
+    return new PgText(table, this.config);
+  }
+};
+var PgText = class extends PgColumn {
+  static [entityKind] = "PgText";
+  enumValues = this.config.enumValues;
+  getSQLType() {
+    return "text";
+  }
+};
+function text(a, b = {}) {
+  const { name, config: config2 } = getColumnNameAndConfig(a, b);
+  return new PgTextBuilder(name, config2);
+}
+
+// ../../node_modules/.pnpm/drizzle-orm@0.36.4_@neondatabase+serverless@0.9.5_@types+pg@8.11.6_@types+react@19.2.7_react@19.2.3/node_modules/drizzle-orm/pg-core/columns/time.js
+var PgTimeBuilder = class extends PgDateColumnBaseBuilder {
+  constructor(name, withTimezone, precision) {
+    super(name, "string", "PgTime");
+    this.withTimezone = withTimezone;
+    this.precision = precision;
+    this.config.withTimezone = withTimezone;
+    this.config.precision = precision;
+  }
+  static [entityKind] = "PgTimeBuilder";
+  /** @internal */
+  build(table) {
+    return new PgTime(table, this.config);
+  }
+};
+var PgTime = class extends PgColumn {
+  static [entityKind] = "PgTime";
+  withTimezone;
+  precision;
+  constructor(table, config2) {
+    super(table, config2);
+    this.withTimezone = config2.withTimezone;
+    this.precision = config2.precision;
+  }
+  getSQLType() {
+    const precision = this.precision === void 0 ? "" : `(${this.precision})`;
+    return `time${precision}${this.withTimezone ? " with time zone" : ""}`;
+  }
+};
+function time(a, b = {}) {
+  const { name, config: config2 } = getColumnNameAndConfig(a, b);
+  return new PgTimeBuilder(name, config2.withTimezone ?? false, config2.precision);
+}
+
+// ../../node_modules/.pnpm/drizzle-orm@0.36.4_@neondatabase+serverless@0.9.5_@types+pg@8.11.6_@types+react@19.2.7_react@19.2.3/node_modules/drizzle-orm/pg-core/columns/timestamp.js
+var PgTimestampBuilder = class extends PgDateColumnBaseBuilder {
+  static [entityKind] = "PgTimestampBuilder";
+  constructor(name, withTimezone, precision) {
+    super(name, "date", "PgTimestamp");
+    this.config.withTimezone = withTimezone;
+    this.config.precision = precision;
+  }
+  /** @internal */
+  build(table) {
+    return new PgTimestamp(table, this.config);
+  }
+};
+var PgTimestamp = class extends PgColumn {
+  static [entityKind] = "PgTimestamp";
+  withTimezone;
+  precision;
+  constructor(table, config2) {
+    super(table, config2);
+    this.withTimezone = config2.withTimezone;
+    this.precision = config2.precision;
+  }
+  getSQLType() {
+    const precision = this.precision === void 0 ? "" : ` (${this.precision})`;
+    return `timestamp${precision}${this.withTimezone ? " with time zone" : ""}`;
+  }
+  mapFromDriverValue = (value) => {
+    return new Date(this.withTimezone ? value : value + "+0000");
+  };
+  mapToDriverValue = (value) => {
+    return value.toISOString();
+  };
+};
+var PgTimestampStringBuilder = class extends PgDateColumnBaseBuilder {
+  static [entityKind] = "PgTimestampStringBuilder";
+  constructor(name, withTimezone, precision) {
+    super(name, "string", "PgTimestampString");
+    this.config.withTimezone = withTimezone;
+    this.config.precision = precision;
+  }
+  /** @internal */
+  build(table) {
+    return new PgTimestampString(
+      table,
+      this.config
+    );
+  }
+};
+var PgTimestampString = class extends PgColumn {
+  static [entityKind] = "PgTimestampString";
+  withTimezone;
+  precision;
+  constructor(table, config2) {
+    super(table, config2);
+    this.withTimezone = config2.withTimezone;
+    this.precision = config2.precision;
+  }
+  getSQLType() {
+    const precision = this.precision === void 0 ? "" : `(${this.precision})`;
+    return `timestamp${precision}${this.withTimezone ? " with time zone" : ""}`;
+  }
+};
+function timestamp(a, b = {}) {
+  const { name, config: config2 } = getColumnNameAndConfig(a, b);
+  if (config2?.mode === "string") {
+    return new PgTimestampStringBuilder(name, config2.withTimezone ?? false, config2.precision);
+  }
+  return new PgTimestampBuilder(name, config2?.withTimezone ?? false, config2?.precision);
+}
+
+// ../../node_modules/.pnpm/drizzle-orm@0.36.4_@neondatabase+serverless@0.9.5_@types+pg@8.11.6_@types+react@19.2.7_react@19.2.3/node_modules/drizzle-orm/pg-core/columns/uuid.js
+var PgUUIDBuilder = class extends PgColumnBuilder {
+  static [entityKind] = "PgUUIDBuilder";
+  constructor(name) {
+    super(name, "string", "PgUUID");
+  }
+  /**
+   * Adds `default gen_random_uuid()` to the column definition.
+   */
+  defaultRandom() {
+    return this.default(sql`gen_random_uuid()`);
+  }
+  /** @internal */
+  build(table) {
+    return new PgUUID(table, this.config);
+  }
+};
+var PgUUID = class extends PgColumn {
+  static [entityKind] = "PgUUID";
+  getSQLType() {
+    return "uuid";
+  }
+};
+function uuid(name) {
+  return new PgUUIDBuilder(name ?? "");
+}
+
+// ../../node_modules/.pnpm/drizzle-orm@0.36.4_@neondatabase+serverless@0.9.5_@types+pg@8.11.6_@types+react@19.2.7_react@19.2.3/node_modules/drizzle-orm/pg-core/columns/varchar.js
+var PgVarcharBuilder = class extends PgColumnBuilder {
+  static [entityKind] = "PgVarcharBuilder";
+  constructor(name, config2) {
+    super(name, "string", "PgVarchar");
+    this.config.length = config2.length;
+    this.config.enumValues = config2.enum;
+  }
+  /** @internal */
+  build(table) {
+    return new PgVarchar(table, this.config);
+  }
+};
+var PgVarchar = class extends PgColumn {
+  static [entityKind] = "PgVarchar";
+  length = this.config.length;
+  enumValues = this.config.enumValues;
+  getSQLType() {
+    return this.length === void 0 ? `varchar` : `varchar(${this.length})`;
+  }
+};
+function varchar(a, b = {}) {
+  const { name, config: config2 } = getColumnNameAndConfig(a, b);
+  return new PgVarcharBuilder(name, config2);
+}
+
+// ../../node_modules/.pnpm/drizzle-orm@0.36.4_@neondatabase+serverless@0.9.5_@types+pg@8.11.6_@types+react@19.2.7_react@19.2.3/node_modules/drizzle-orm/pg-core/columns/vector_extension/bit.js
+var PgBinaryVectorBuilder = class extends PgColumnBuilder {
+  static [entityKind] = "PgBinaryVectorBuilder";
+  constructor(name, config2) {
+    super(name, "string", "PgBinaryVector");
+    this.config.dimensions = config2.dimensions;
+  }
+  /** @internal */
+  build(table) {
+    return new PgBinaryVector(
+      table,
+      this.config
+    );
+  }
+};
+var PgBinaryVector = class extends PgColumn {
+  static [entityKind] = "PgBinaryVector";
+  dimensions = this.config.dimensions;
+  getSQLType() {
+    return `bit(${this.dimensions})`;
+  }
+};
+function bit(a, b) {
+  const { name, config: config2 } = getColumnNameAndConfig(a, b);
+  return new PgBinaryVectorBuilder(name, config2);
+}
+
+// ../../node_modules/.pnpm/drizzle-orm@0.36.4_@neondatabase+serverless@0.9.5_@types+pg@8.11.6_@types+react@19.2.7_react@19.2.3/node_modules/drizzle-orm/pg-core/columns/vector_extension/halfvec.js
+var PgHalfVectorBuilder = class extends PgColumnBuilder {
+  static [entityKind] = "PgHalfVectorBuilder";
+  constructor(name, config2) {
+    super(name, "array", "PgHalfVector");
+    this.config.dimensions = config2.dimensions;
+  }
+  /** @internal */
+  build(table) {
+    return new PgHalfVector(
+      table,
+      this.config
+    );
+  }
+};
+var PgHalfVector = class extends PgColumn {
+  static [entityKind] = "PgHalfVector";
+  dimensions = this.config.dimensions;
+  getSQLType() {
+    return `halfvec(${this.dimensions})`;
+  }
+  mapToDriverValue(value) {
+    return JSON.stringify(value);
+  }
+  mapFromDriverValue(value) {
+    return value.slice(1, -1).split(",").map((v) => Number.parseFloat(v));
+  }
+};
+function halfvec(a, b) {
+  const { name, config: config2 } = getColumnNameAndConfig(a, b);
+  return new PgHalfVectorBuilder(name, config2);
+}
+
+// ../../node_modules/.pnpm/drizzle-orm@0.36.4_@neondatabase+serverless@0.9.5_@types+pg@8.11.6_@types+react@19.2.7_react@19.2.3/node_modules/drizzle-orm/pg-core/columns/vector_extension/sparsevec.js
+var PgSparseVectorBuilder = class extends PgColumnBuilder {
+  static [entityKind] = "PgSparseVectorBuilder";
+  constructor(name, config2) {
+    super(name, "string", "PgSparseVector");
+    this.config.dimensions = config2.dimensions;
+  }
+  /** @internal */
+  build(table) {
+    return new PgSparseVector(
+      table,
+      this.config
+    );
+  }
+};
+var PgSparseVector = class extends PgColumn {
+  static [entityKind] = "PgSparseVector";
+  dimensions = this.config.dimensions;
+  getSQLType() {
+    return `sparsevec(${this.dimensions})`;
+  }
+};
+function sparsevec(a, b) {
+  const { name, config: config2 } = getColumnNameAndConfig(a, b);
+  return new PgSparseVectorBuilder(name, config2);
+}
+
+// ../../node_modules/.pnpm/drizzle-orm@0.36.4_@neondatabase+serverless@0.9.5_@types+pg@8.11.6_@types+react@19.2.7_react@19.2.3/node_modules/drizzle-orm/pg-core/columns/vector_extension/vector.js
+var PgVectorBuilder = class extends PgColumnBuilder {
+  static [entityKind] = "PgVectorBuilder";
+  constructor(name, config2) {
+    super(name, "array", "PgVector");
+    this.config.dimensions = config2.dimensions;
+  }
+  /** @internal */
+  build(table) {
+    return new PgVector(table, this.config);
+  }
+};
+var PgVector = class extends PgColumn {
+  static [entityKind] = "PgVector";
+  dimensions = this.config.dimensions;
+  getSQLType() {
+    return `vector(${this.dimensions})`;
+  }
+  mapToDriverValue(value) {
+    return JSON.stringify(value);
+  }
+  mapFromDriverValue(value) {
+    return value.slice(1, -1).split(",").map((v) => Number.parseFloat(v));
+  }
+};
+function vector(a, b) {
+  const { name, config: config2 } = getColumnNameAndConfig(a, b);
+  return new PgVectorBuilder(name, config2);
+}
+
+// ../../node_modules/.pnpm/drizzle-orm@0.36.4_@neondatabase+serverless@0.9.5_@types+pg@8.11.6_@types+react@19.2.7_react@19.2.3/node_modules/drizzle-orm/pg-core/columns/all.js
+function getPgColumnBuilders() {
+  return {
+    bigint,
+    bigserial,
+    boolean,
+    char,
+    cidr,
+    customType,
+    date,
+    doublePrecision,
+    inet,
+    integer,
+    interval,
+    json,
+    jsonb,
+    line,
+    macaddr,
+    macaddr8,
+    numeric,
+    point,
+    geometry,
+    real,
+    serial,
+    smallint,
+    smallserial,
+    text,
+    time,
+    timestamp,
+    uuid,
+    varchar,
+    bit,
+    halfvec,
+    sparsevec,
+    vector
+  };
+}
+
+// ../../node_modules/.pnpm/drizzle-orm@0.36.4_@neondatabase+serverless@0.9.5_@types+pg@8.11.6_@types+react@19.2.7_react@19.2.3/node_modules/drizzle-orm/pg-core/table.js
+var InlineForeignKeys = /* @__PURE__ */ Symbol.for("drizzle:PgInlineForeignKeys");
+var EnableRLS = /* @__PURE__ */ Symbol.for("drizzle:EnableRLS");
+var PgTable = class extends Table {
+  static [entityKind] = "PgTable";
+  /** @internal */
+  static Symbol = Object.assign({}, Table.Symbol, {
+    InlineForeignKeys,
+    EnableRLS
+  });
+  /**@internal */
+  [InlineForeignKeys] = [];
+  /** @internal */
+  [EnableRLS] = false;
+  /** @internal */
+  [Table.Symbol.ExtraConfigBuilder] = void 0;
+};
+function pgTableWithSchema(name, columns, extraConfig, schema, baseName = name) {
+  const rawTable = new PgTable(name, schema, baseName);
+  const parsedColumns = typeof columns === "function" ? columns(getPgColumnBuilders()) : columns;
+  const builtColumns = Object.fromEntries(
+    Object.entries(parsedColumns).map(([name2, colBuilderBase]) => {
+      const colBuilder = colBuilderBase;
+      colBuilder.setName(name2);
+      const column = colBuilder.build(rawTable);
+      rawTable[InlineForeignKeys].push(...colBuilder.buildForeignKeys(column, rawTable));
+      return [name2, column];
+    })
+  );
+  const builtColumnsForExtraConfig = Object.fromEntries(
+    Object.entries(parsedColumns).map(([name2, colBuilderBase]) => {
+      const colBuilder = colBuilderBase;
+      colBuilder.setName(name2);
+      const column = colBuilder.buildExtraConfigColumn(rawTable);
+      return [name2, column];
+    })
+  );
+  const table = Object.assign(rawTable, builtColumns);
+  table[Table.Symbol.Columns] = builtColumns;
+  table[Table.Symbol.ExtraConfigColumns] = builtColumnsForExtraConfig;
+  if (extraConfig) {
+    table[PgTable.Symbol.ExtraConfigBuilder] = extraConfig;
+  }
+  return Object.assign(table, {
+    enableRLS: () => {
+      table[PgTable.Symbol.EnableRLS] = true;
+      return table;
+    }
+  });
+}
+var pgTable = (name, columns, extraConfig) => {
+  return pgTableWithSchema(name, columns, extraConfig, void 0);
+};
+
+// ../../node_modules/.pnpm/drizzle-orm@0.36.4_@neondatabase+serverless@0.9.5_@types+pg@8.11.6_@types+react@19.2.7_react@19.2.3/node_modules/drizzle-orm/pg-core/primary-keys.js
+var PrimaryKeyBuilder = class {
+  static [entityKind] = "PgPrimaryKeyBuilder";
+  /** @internal */
+  columns;
+  /** @internal */
+  name;
+  constructor(columns, name) {
+    this.columns = columns;
+    this.name = name;
+  }
+  /** @internal */
+  build(table) {
+    return new PrimaryKey(table, this.columns, this.name);
+  }
+};
+var PrimaryKey = class {
+  constructor(table, columns, name) {
+    this.table = table;
+    this.columns = columns;
+    this.name = name;
+  }
+  static [entityKind] = "PgPrimaryKey";
+  columns;
+  name;
+  getName() {
+    return this.name ?? `${this.table[PgTable.Symbol.Name]}_${this.columns.map((column) => column.name).join("_")}_pk`;
+  }
+};
+
+// ../../node_modules/.pnpm/drizzle-orm@0.36.4_@neondatabase+serverless@0.9.5_@types+pg@8.11.6_@types+react@19.2.7_react@19.2.3/node_modules/drizzle-orm/sql/expressions/conditions.js
+function bindIfParam(value, column) {
+  if (isDriverValueEncoder(column) && !isSQLWrapper(value) && !is(value, Param) && !is(value, Placeholder) && !is(value, Column) && !is(value, Table) && !is(value, View)) {
+    return new Param(value, column);
+  }
+  return value;
+}
+var eq = (left, right) => {
+  return sql`${left} = ${bindIfParam(right, left)}`;
+};
+var ne = (left, right) => {
+  return sql`${left} <> ${bindIfParam(right, left)}`;
+};
+function and(...unfilteredConditions) {
+  const conditions = unfilteredConditions.filter(
+    (c) => c !== void 0
+  );
+  if (conditions.length === 0) {
+    return void 0;
+  }
+  if (conditions.length === 1) {
+    return new SQL(conditions);
+  }
+  return new SQL([
+    new StringChunk("("),
+    sql.join(conditions, new StringChunk(" and ")),
+    new StringChunk(")")
+  ]);
+}
+function or(...unfilteredConditions) {
+  const conditions = unfilteredConditions.filter(
+    (c) => c !== void 0
+  );
+  if (conditions.length === 0) {
+    return void 0;
+  }
+  if (conditions.length === 1) {
+    return new SQL(conditions);
+  }
+  return new SQL([
+    new StringChunk("("),
+    sql.join(conditions, new StringChunk(" or ")),
+    new StringChunk(")")
+  ]);
+}
+function not(condition) {
+  return sql`not ${condition}`;
+}
+var gt = (left, right) => {
+  return sql`${left} > ${bindIfParam(right, left)}`;
+};
+var gte = (left, right) => {
+  return sql`${left} >= ${bindIfParam(right, left)}`;
+};
+var lt = (left, right) => {
+  return sql`${left} < ${bindIfParam(right, left)}`;
+};
+var lte = (left, right) => {
+  return sql`${left} <= ${bindIfParam(right, left)}`;
+};
+function inArray(column, values) {
+  if (Array.isArray(values)) {
+    if (values.length === 0) {
+      return sql`false`;
+    }
+    return sql`${column} in ${values.map((v) => bindIfParam(v, column))}`;
+  }
+  return sql`${column} in ${bindIfParam(values, column)}`;
+}
+function notInArray(column, values) {
+  if (Array.isArray(values)) {
+    if (values.length === 0) {
+      return sql`true`;
+    }
+    return sql`${column} not in ${values.map((v) => bindIfParam(v, column))}`;
+  }
+  return sql`${column} not in ${bindIfParam(values, column)}`;
+}
+function isNull(value) {
+  return sql`${value} is null`;
+}
+function isNotNull(value) {
+  return sql`${value} is not null`;
+}
+function exists(subquery) {
+  return sql`exists ${subquery}`;
+}
+function notExists(subquery) {
+  return sql`not exists ${subquery}`;
+}
+function between(column, min2, max2) {
+  return sql`${column} between ${bindIfParam(min2, column)} and ${bindIfParam(
+    max2,
+    column
+  )}`;
+}
+function notBetween(column, min2, max2) {
+  return sql`${column} not between ${bindIfParam(
+    min2,
+    column
+  )} and ${bindIfParam(max2, column)}`;
+}
+function like(column, value) {
+  return sql`${column} like ${value}`;
+}
+function notLike(column, value) {
+  return sql`${column} not like ${value}`;
+}
+function ilike(column, value) {
+  return sql`${column} ilike ${value}`;
+}
+function notIlike(column, value) {
+  return sql`${column} not ilike ${value}`;
+}
+
+// ../../node_modules/.pnpm/drizzle-orm@0.36.4_@neondatabase+serverless@0.9.5_@types+pg@8.11.6_@types+react@19.2.7_react@19.2.3/node_modules/drizzle-orm/sql/expressions/select.js
+function asc(column) {
+  return sql`${column} asc`;
+}
+function desc(column) {
+  return sql`${column} desc`;
+}
+
+// ../../node_modules/.pnpm/drizzle-orm@0.36.4_@neondatabase+serverless@0.9.5_@types+pg@8.11.6_@types+react@19.2.7_react@19.2.3/node_modules/drizzle-orm/relations.js
+var Relation = class {
+  constructor(sourceTable, referencedTable, relationName) {
+    this.sourceTable = sourceTable;
+    this.referencedTable = referencedTable;
+    this.relationName = relationName;
+    this.referencedTableName = referencedTable[Table.Symbol.Name];
+  }
+  static [entityKind] = "Relation";
+  referencedTableName;
+  fieldName;
+};
+var Relations = class {
+  constructor(table, config2) {
+    this.table = table;
+    this.config = config2;
+  }
+  static [entityKind] = "Relations";
+};
+var One = class _One extends Relation {
+  constructor(sourceTable, referencedTable, config2, isNullable) {
+    super(sourceTable, referencedTable, config2?.relationName);
+    this.config = config2;
+    this.isNullable = isNullable;
+  }
+  static [entityKind] = "One";
+  withFieldName(fieldName) {
+    const relation = new _One(
+      this.sourceTable,
+      this.referencedTable,
+      this.config,
+      this.isNullable
+    );
+    relation.fieldName = fieldName;
+    return relation;
+  }
+};
+var Many = class _Many extends Relation {
+  constructor(sourceTable, referencedTable, config2) {
+    super(sourceTable, referencedTable, config2?.relationName);
+    this.config = config2;
+  }
+  static [entityKind] = "Many";
+  withFieldName(fieldName) {
+    const relation = new _Many(
+      this.sourceTable,
+      this.referencedTable,
+      this.config
+    );
+    relation.fieldName = fieldName;
+    return relation;
+  }
+};
+function getOperators() {
+  return {
+    and,
+    between,
+    eq,
+    exists,
+    gt,
+    gte,
+    ilike,
+    inArray,
+    isNull,
+    isNotNull,
+    like,
+    lt,
+    lte,
+    ne,
+    not,
+    notBetween,
+    notExists,
+    notLike,
+    notIlike,
+    notInArray,
+    or,
+    sql
+  };
+}
+function getOrderByOperators() {
+  return {
+    sql,
+    asc,
+    desc
+  };
+}
+function extractTablesRelationalConfig(schema, configHelpers) {
+  if (Object.keys(schema).length === 1 && "default" in schema && !is(schema["default"], Table)) {
+    schema = schema["default"];
+  }
+  const tableNamesMap = {};
+  const relationsBuffer = {};
+  const tablesConfig = {};
+  for (const [key, value] of Object.entries(schema)) {
+    if (is(value, Table)) {
+      const dbName = getTableUniqueName(value);
+      const bufferedRelations = relationsBuffer[dbName];
+      tableNamesMap[dbName] = key;
+      tablesConfig[key] = {
+        tsName: key,
+        dbName: value[Table.Symbol.Name],
+        schema: value[Table.Symbol.Schema],
+        columns: value[Table.Symbol.Columns],
+        relations: bufferedRelations?.relations ?? {},
+        primaryKey: bufferedRelations?.primaryKey ?? []
+      };
+      for (const column of Object.values(
+        value[Table.Symbol.Columns]
+      )) {
+        if (column.primary) {
+          tablesConfig[key].primaryKey.push(column);
+        }
+      }
+      const extraConfig = value[Table.Symbol.ExtraConfigBuilder]?.(value[Table.Symbol.ExtraConfigColumns]);
+      if (extraConfig) {
+        for (const configEntry of Object.values(extraConfig)) {
+          if (is(configEntry, PrimaryKeyBuilder)) {
+            tablesConfig[key].primaryKey.push(...configEntry.columns);
+          }
+        }
+      }
+    } else if (is(value, Relations)) {
+      const dbName = getTableUniqueName(value.table);
+      const tableName = tableNamesMap[dbName];
+      const relations2 = value.config(
+        configHelpers(value.table)
+      );
+      let primaryKey;
+      for (const [relationName, relation] of Object.entries(relations2)) {
+        if (tableName) {
+          const tableConfig = tablesConfig[tableName];
+          tableConfig.relations[relationName] = relation;
+          if (primaryKey) {
+            tableConfig.primaryKey.push(...primaryKey);
+          }
+        } else {
+          if (!(dbName in relationsBuffer)) {
+            relationsBuffer[dbName] = {
+              relations: {},
+              primaryKey
+            };
+          }
+          relationsBuffer[dbName].relations[relationName] = relation;
+        }
+      }
+    }
+  }
+  return { tables: tablesConfig, tableNamesMap };
+}
+function relations(table, relations2) {
+  return new Relations(
+    table,
+    (helpers) => Object.fromEntries(
+      Object.entries(relations2(helpers)).map(([key, value]) => [
+        key,
+        value.withFieldName(key)
+      ])
+    )
+  );
+}
+function createOne(sourceTable) {
+  return function one(table, config2) {
+    return new One(
+      sourceTable,
+      table,
+      config2,
+      config2?.fields.reduce((res, f) => res && f.notNull, true) ?? false
+    );
+  };
+}
+function createMany(sourceTable) {
+  return function many(referencedTable, config2) {
+    return new Many(sourceTable, referencedTable, config2);
+  };
+}
+function normalizeRelation(schema, tableNamesMap, relation) {
+  if (is(relation, One) && relation.config) {
+    return {
+      fields: relation.config.fields,
+      references: relation.config.references
+    };
+  }
+  const referencedTableTsName = tableNamesMap[getTableUniqueName(relation.referencedTable)];
+  if (!referencedTableTsName) {
+    throw new Error(
+      `Table "${relation.referencedTable[Table.Symbol.Name]}" not found in schema`
+    );
+  }
+  const referencedTableConfig = schema[referencedTableTsName];
+  if (!referencedTableConfig) {
+    throw new Error(`Table "${referencedTableTsName}" not found in schema`);
+  }
+  const sourceTable = relation.sourceTable;
+  const sourceTableTsName = tableNamesMap[getTableUniqueName(sourceTable)];
+  if (!sourceTableTsName) {
+    throw new Error(
+      `Table "${sourceTable[Table.Symbol.Name]}" not found in schema`
+    );
+  }
+  const reverseRelations = [];
+  for (const referencedTableRelation of Object.values(
+    referencedTableConfig.relations
+  )) {
+    if (relation.relationName && relation !== referencedTableRelation && referencedTableRelation.relationName === relation.relationName || !relation.relationName && referencedTableRelation.referencedTable === relation.sourceTable) {
+      reverseRelations.push(referencedTableRelation);
+    }
+  }
+  if (reverseRelations.length > 1) {
+    throw relation.relationName ? new Error(
+      `There are multiple relations with name "${relation.relationName}" in table "${referencedTableTsName}"`
+    ) : new Error(
+      `There are multiple relations between "${referencedTableTsName}" and "${relation.sourceTable[Table.Symbol.Name]}". Please specify relation name`
+    );
+  }
+  if (reverseRelations[0] && is(reverseRelations[0], One) && reverseRelations[0].config) {
+    return {
+      fields: reverseRelations[0].config.references,
+      references: reverseRelations[0].config.fields
+    };
+  }
+  throw new Error(
+    `There is not enough information to infer relation "${sourceTableTsName}.${relation.fieldName}"`
+  );
+}
+function createTableRelationsHelpers(sourceTable) {
+  return {
+    one: createOne(sourceTable),
+    many: createMany(sourceTable)
+  };
+}
+function mapRelationalRow(tablesConfig, tableConfig, row, buildQueryResultSelection, mapColumnValue = (value) => value) {
+  const result = {};
+  for (const [
+    selectionItemIndex,
+    selectionItem
+  ] of buildQueryResultSelection.entries()) {
+    if (selectionItem.isJson) {
+      const relation = tableConfig.relations[selectionItem.tsKey];
+      const rawSubRows = row[selectionItemIndex];
+      const subRows = typeof rawSubRows === "string" ? JSON.parse(rawSubRows) : rawSubRows;
+      result[selectionItem.tsKey] = is(relation, One) ? subRows && mapRelationalRow(
+        tablesConfig,
+        tablesConfig[selectionItem.relationTableTsKey],
+        subRows,
+        selectionItem.selection,
+        mapColumnValue
+      ) : subRows.map(
+        (subRow) => mapRelationalRow(
+          tablesConfig,
+          tablesConfig[selectionItem.relationTableTsKey],
+          subRow,
+          selectionItem.selection,
+          mapColumnValue
+        )
+      );
+    } else {
+      const value = mapColumnValue(row[selectionItemIndex]);
+      const field = selectionItem.field;
+      let decoder;
+      if (is(field, Column)) {
+        decoder = field;
+      } else if (is(field, SQL)) {
+        decoder = field.decoder;
+      } else {
+        decoder = field.sql.decoder;
+      }
+      result[selectionItem.tsKey] = value === null ? null : decoder.mapFromDriverValue(value);
+    }
+  }
+  return result;
+}
+
+// ../../node_modules/.pnpm/drizzle-orm@0.36.4_@neondatabase+serverless@0.9.5_@types+pg@8.11.6_@types+react@19.2.7_react@19.2.3/node_modules/drizzle-orm/pg-core/view-base.js
+var PgViewBase = class extends View {
+  static [entityKind] = "PgViewBase";
+};
+
+// ../../node_modules/.pnpm/drizzle-orm@0.36.4_@neondatabase+serverless@0.9.5_@types+pg@8.11.6_@types+react@19.2.7_react@19.2.3/node_modules/drizzle-orm/pg-core/dialect.js
+var PgDialect = class {
+  static [entityKind] = "PgDialect";
+  /** @internal */
+  casing;
+  constructor(config2) {
+    this.casing = new CasingCache(config2?.casing);
+  }
+  async migrate(migrations, session, config2) {
+    const migrationsTable = typeof config2 === "string" ? "__drizzle_migrations" : config2.migrationsTable ?? "__drizzle_migrations";
+    const migrationsSchema = typeof config2 === "string" ? "drizzle" : config2.migrationsSchema ?? "drizzle";
+    const migrationTableCreate = sql`
+			CREATE TABLE IF NOT EXISTS ${sql.identifier(migrationsSchema)}.${sql.identifier(migrationsTable)} (
+				id SERIAL PRIMARY KEY,
+				hash text NOT NULL,
+				created_at bigint
+			)
+		`;
+    await session.execute(sql`CREATE SCHEMA IF NOT EXISTS ${sql.identifier(migrationsSchema)}`);
+    await session.execute(migrationTableCreate);
+    const dbMigrations = await session.all(
+      sql`select id, hash, created_at from ${sql.identifier(migrationsSchema)}.${sql.identifier(migrationsTable)} order by created_at desc limit 1`
+    );
+    const lastDbMigration = dbMigrations[0];
+    await session.transaction(async (tx) => {
+      for await (const migration of migrations) {
+        if (!lastDbMigration || Number(lastDbMigration.created_at) < migration.folderMillis) {
+          for (const stmt of migration.sql) {
+            await tx.execute(sql.raw(stmt));
+          }
+          await tx.execute(
+            sql`insert into ${sql.identifier(migrationsSchema)}.${sql.identifier(migrationsTable)} ("hash", "created_at") values(${migration.hash}, ${migration.folderMillis})`
+          );
+        }
+      }
+    });
+  }
+  escapeName(name) {
+    return `"${name}"`;
+  }
+  escapeParam(num) {
+    return `$${num + 1}`;
+  }
+  escapeString(str) {
+    return `'${str.replace(/'/g, "''")}'`;
+  }
+  buildWithCTE(queries) {
+    if (!queries?.length)
+      return void 0;
+    const withSqlChunks = [sql`with `];
+    for (const [i, w] of queries.entries()) {
+      withSqlChunks.push(sql`${sql.identifier(w._.alias)} as (${w._.sql})`);
+      if (i < queries.length - 1) {
+        withSqlChunks.push(sql`, `);
+      }
+    }
+    withSqlChunks.push(sql` `);
+    return sql.join(withSqlChunks);
+  }
+  buildDeleteQuery({ table, where, returning, withList }) {
+    const withSql = this.buildWithCTE(withList);
+    const returningSql = returning ? sql` returning ${this.buildSelection(returning, { isSingleTable: true })}` : void 0;
+    const whereSql = where ? sql` where ${where}` : void 0;
+    return sql`${withSql}delete from ${table}${whereSql}${returningSql}`;
+  }
+  buildUpdateSet(table, set) {
+    const tableColumns = table[Table.Symbol.Columns];
+    const columnNames = Object.keys(tableColumns).filter(
+      (colName) => set[colName] !== void 0 || tableColumns[colName]?.onUpdateFn !== void 0
+    );
+    const setSize = columnNames.length;
+    return sql.join(columnNames.flatMap((colName, i) => {
+      const col = tableColumns[colName];
+      const value = set[colName] ?? sql.param(col.onUpdateFn(), col);
+      const res = sql`${sql.identifier(this.casing.getColumnCasing(col))} = ${value}`;
+      if (i < setSize - 1) {
+        return [res, sql.raw(", ")];
+      }
+      return [res];
+    }));
+  }
+  buildUpdateQuery({ table, set, where, returning, withList, from, joins }) {
+    const withSql = this.buildWithCTE(withList);
+    const tableName = table[PgTable.Symbol.Name];
+    const tableSchema = table[PgTable.Symbol.Schema];
+    const origTableName = table[PgTable.Symbol.OriginalName];
+    const alias = tableName === origTableName ? void 0 : tableName;
+    const tableSql = sql`${tableSchema ? sql`${sql.identifier(tableSchema)}.` : void 0}${sql.identifier(origTableName)}${alias && sql` ${sql.identifier(alias)}`}`;
+    const setSql = this.buildUpdateSet(table, set);
+    const fromSql = from && sql.join([sql.raw(" from "), this.buildFromTable(from)]);
+    const joinsSql = this.buildJoins(joins);
+    const returningSql = returning ? sql` returning ${this.buildSelection(returning, { isSingleTable: !from })}` : void 0;
+    const whereSql = where ? sql` where ${where}` : void 0;
+    return sql`${withSql}update ${tableSql} set ${setSql}${fromSql}${joinsSql}${whereSql}${returningSql}`;
+  }
+  /**
+   * Builds selection SQL with provided fields/expressions
+   *
+   * Examples:
+   *
+   * `select <selection> from`
+   *
+   * `insert ... returning <selection>`
+   *
+   * If `isSingleTable` is true, then columns won't be prefixed with table name
+   */
+  buildSelection(fields, { isSingleTable = false } = {}) {
+    const columnsLen = fields.length;
+    const chunks = fields.flatMap(({ field }, i) => {
+      const chunk = [];
+      if (is(field, SQL.Aliased) && field.isSelectionField) {
+        chunk.push(sql.identifier(field.fieldAlias));
+      } else if (is(field, SQL.Aliased) || is(field, SQL)) {
+        const query = is(field, SQL.Aliased) ? field.sql : field;
+        if (isSingleTable) {
+          chunk.push(
+            new SQL(
+              query.queryChunks.map((c) => {
+                if (is(c, PgColumn)) {
+                  return sql.identifier(this.casing.getColumnCasing(c));
+                }
+                return c;
+              })
+            )
+          );
+        } else {
+          chunk.push(query);
+        }
+        if (is(field, SQL.Aliased)) {
+          chunk.push(sql` as ${sql.identifier(field.fieldAlias)}`);
+        }
+      } else if (is(field, Column)) {
+        if (isSingleTable) {
+          chunk.push(sql.identifier(this.casing.getColumnCasing(field)));
+        } else {
+          chunk.push(field);
+        }
+      }
+      if (i < columnsLen - 1) {
+        chunk.push(sql`, `);
+      }
+      return chunk;
+    });
+    return sql.join(chunks);
+  }
+  buildJoins(joins) {
+    if (!joins || joins.length === 0) {
+      return void 0;
+    }
+    const joinsArray = [];
+    for (const [index2, joinMeta] of joins.entries()) {
+      if (index2 === 0) {
+        joinsArray.push(sql` `);
+      }
+      const table = joinMeta.table;
+      const lateralSql = joinMeta.lateral ? sql` lateral` : void 0;
+      if (is(table, PgTable)) {
+        const tableName = table[PgTable.Symbol.Name];
+        const tableSchema = table[PgTable.Symbol.Schema];
+        const origTableName = table[PgTable.Symbol.OriginalName];
+        const alias = tableName === origTableName ? void 0 : joinMeta.alias;
+        joinsArray.push(
+          sql`${sql.raw(joinMeta.joinType)} join${lateralSql} ${tableSchema ? sql`${sql.identifier(tableSchema)}.` : void 0}${sql.identifier(origTableName)}${alias && sql` ${sql.identifier(alias)}`} on ${joinMeta.on}`
+        );
+      } else if (is(table, View)) {
+        const viewName = table[ViewBaseConfig].name;
+        const viewSchema = table[ViewBaseConfig].schema;
+        const origViewName = table[ViewBaseConfig].originalName;
+        const alias = viewName === origViewName ? void 0 : joinMeta.alias;
+        joinsArray.push(
+          sql`${sql.raw(joinMeta.joinType)} join${lateralSql} ${viewSchema ? sql`${sql.identifier(viewSchema)}.` : void 0}${sql.identifier(origViewName)}${alias && sql` ${sql.identifier(alias)}`} on ${joinMeta.on}`
+        );
+      } else {
+        joinsArray.push(
+          sql`${sql.raw(joinMeta.joinType)} join${lateralSql} ${table} on ${joinMeta.on}`
+        );
+      }
+      if (index2 < joins.length - 1) {
+        joinsArray.push(sql` `);
+      }
+    }
+    return sql.join(joinsArray);
+  }
+  buildFromTable(table) {
+    if (is(table, Table) && table[Table.Symbol.OriginalName] !== table[Table.Symbol.Name]) {
+      let fullName = sql`${sql.identifier(table[Table.Symbol.OriginalName])}`;
+      if (table[Table.Symbol.Schema]) {
+        fullName = sql`${sql.identifier(table[Table.Symbol.Schema])}.${fullName}`;
+      }
+      return sql`${fullName} ${sql.identifier(table[Table.Symbol.Name])}`;
+    }
+    return table;
+  }
+  buildSelectQuery({
+    withList,
+    fields,
+    fieldsFlat,
+    where,
+    having,
+    table,
+    joins,
+    orderBy,
+    groupBy,
+    limit,
+    offset,
+    lockingClause,
+    distinct,
+    setOperators
+  }) {
+    const fieldsList = fieldsFlat ?? orderSelectedFields(fields);
+    for (const f of fieldsList) {
+      if (is(f.field, Column) && getTableName(f.field.table) !== (is(table, Subquery) ? table._.alias : is(table, PgViewBase) ? table[ViewBaseConfig].name : is(table, SQL) ? void 0 : getTableName(table)) && !((table2) => joins?.some(
+        ({ alias }) => alias === (table2[Table.Symbol.IsAlias] ? getTableName(table2) : table2[Table.Symbol.BaseName])
+      ))(f.field.table)) {
+        const tableName = getTableName(f.field.table);
+        throw new Error(
+          `Your "${f.path.join("->")}" field references a column "${tableName}"."${f.field.name}", but the table "${tableName}" is not part of the query! Did you forget to join it?`
+        );
+      }
+    }
+    const isSingleTable = !joins || joins.length === 0;
+    const withSql = this.buildWithCTE(withList);
+    let distinctSql;
+    if (distinct) {
+      distinctSql = distinct === true ? sql` distinct` : sql` distinct on (${sql.join(distinct.on, sql`, `)})`;
+    }
+    const selection = this.buildSelection(fieldsList, { isSingleTable });
+    const tableSql = this.buildFromTable(table);
+    const joinsSql = this.buildJoins(joins);
+    const whereSql = where ? sql` where ${where}` : void 0;
+    const havingSql = having ? sql` having ${having}` : void 0;
+    let orderBySql;
+    if (orderBy && orderBy.length > 0) {
+      orderBySql = sql` order by ${sql.join(orderBy, sql`, `)}`;
+    }
+    let groupBySql;
+    if (groupBy && groupBy.length > 0) {
+      groupBySql = sql` group by ${sql.join(groupBy, sql`, `)}`;
+    }
+    const limitSql = typeof limit === "object" || typeof limit === "number" && limit >= 0 ? sql` limit ${limit}` : void 0;
+    const offsetSql = offset ? sql` offset ${offset}` : void 0;
+    const lockingClauseSql = sql.empty();
+    if (lockingClause) {
+      const clauseSql = sql` for ${sql.raw(lockingClause.strength)}`;
+      if (lockingClause.config.of) {
+        clauseSql.append(
+          sql` of ${sql.join(
+            Array.isArray(lockingClause.config.of) ? lockingClause.config.of : [lockingClause.config.of],
+            sql`, `
+          )}`
+        );
+      }
+      if (lockingClause.config.noWait) {
+        clauseSql.append(sql` no wait`);
+      } else if (lockingClause.config.skipLocked) {
+        clauseSql.append(sql` skip locked`);
+      }
+      lockingClauseSql.append(clauseSql);
+    }
+    const finalQuery = sql`${withSql}select${distinctSql} ${selection} from ${tableSql}${joinsSql}${whereSql}${groupBySql}${havingSql}${orderBySql}${limitSql}${offsetSql}${lockingClauseSql}`;
+    if (setOperators.length > 0) {
+      return this.buildSetOperations(finalQuery, setOperators);
+    }
+    return finalQuery;
+  }
+  buildSetOperations(leftSelect, setOperators) {
+    const [setOperator, ...rest] = setOperators;
+    if (!setOperator) {
+      throw new Error("Cannot pass undefined values to any set operator");
+    }
+    if (rest.length === 0) {
+      return this.buildSetOperationQuery({ leftSelect, setOperator });
+    }
+    return this.buildSetOperations(
+      this.buildSetOperationQuery({ leftSelect, setOperator }),
+      rest
+    );
+  }
+  buildSetOperationQuery({
+    leftSelect,
+    setOperator: { type, isAll, rightSelect, limit, orderBy, offset }
+  }) {
+    const leftChunk = sql`(${leftSelect.getSQL()}) `;
+    const rightChunk = sql`(${rightSelect.getSQL()})`;
+    let orderBySql;
+    if (orderBy && orderBy.length > 0) {
+      const orderByValues = [];
+      for (const singleOrderBy of orderBy) {
+        if (is(singleOrderBy, PgColumn)) {
+          orderByValues.push(sql.identifier(singleOrderBy.name));
+        } else if (is(singleOrderBy, SQL)) {
+          for (let i = 0; i < singleOrderBy.queryChunks.length; i++) {
+            const chunk = singleOrderBy.queryChunks[i];
+            if (is(chunk, PgColumn)) {
+              singleOrderBy.queryChunks[i] = sql.identifier(chunk.name);
+            }
+          }
+          orderByValues.push(sql`${singleOrderBy}`);
+        } else {
+          orderByValues.push(sql`${singleOrderBy}`);
+        }
+      }
+      orderBySql = sql` order by ${sql.join(orderByValues, sql`, `)} `;
+    }
+    const limitSql = typeof limit === "object" || typeof limit === "number" && limit >= 0 ? sql` limit ${limit}` : void 0;
+    const operatorChunk = sql.raw(`${type} ${isAll ? "all " : ""}`);
+    const offsetSql = offset ? sql` offset ${offset}` : void 0;
+    return sql`${leftChunk}${operatorChunk}${rightChunk}${orderBySql}${limitSql}${offsetSql}`;
+  }
+  buildInsertQuery({ table, values: valuesOrSelect, onConflict, returning, withList, select, overridingSystemValue_ }) {
+    const valuesSqlList = [];
+    const columns = table[Table.Symbol.Columns];
+    const colEntries = Object.entries(columns).filter(([_, col]) => !col.shouldDisableInsert());
+    const insertOrder = colEntries.map(
+      ([, column]) => sql.identifier(this.casing.getColumnCasing(column))
+    );
+    if (select) {
+      const select2 = valuesOrSelect;
+      if (is(select2, SQL)) {
+        valuesSqlList.push(select2);
+      } else {
+        valuesSqlList.push(select2.getSQL());
+      }
+    } else {
+      const values = valuesOrSelect;
+      valuesSqlList.push(sql.raw("values "));
+      for (const [valueIndex, value] of values.entries()) {
+        const valueList = [];
+        for (const [fieldName, col] of colEntries) {
+          const colValue = value[fieldName];
+          if (colValue === void 0 || is(colValue, Param) && colValue.value === void 0) {
+            if (col.defaultFn !== void 0) {
+              const defaultFnResult = col.defaultFn();
+              const defaultValue = is(defaultFnResult, SQL) ? defaultFnResult : sql.param(defaultFnResult, col);
+              valueList.push(defaultValue);
+            } else if (!col.default && col.onUpdateFn !== void 0) {
+              const onUpdateFnResult = col.onUpdateFn();
+              const newValue = is(onUpdateFnResult, SQL) ? onUpdateFnResult : sql.param(onUpdateFnResult, col);
+              valueList.push(newValue);
+            } else {
+              valueList.push(sql`default`);
+            }
+          } else {
+            valueList.push(colValue);
+          }
+        }
+        valuesSqlList.push(valueList);
+        if (valueIndex < values.length - 1) {
+          valuesSqlList.push(sql`, `);
+        }
+      }
+    }
+    const withSql = this.buildWithCTE(withList);
+    const valuesSql = sql.join(valuesSqlList);
+    const returningSql = returning ? sql` returning ${this.buildSelection(returning, { isSingleTable: true })}` : void 0;
+    const onConflictSql = onConflict ? sql` on conflict ${onConflict}` : void 0;
+    const overridingSql = overridingSystemValue_ === true ? sql`overriding system value ` : void 0;
+    return sql`${withSql}insert into ${table} ${insertOrder} ${overridingSql}${valuesSql}${onConflictSql}${returningSql}`;
+  }
+  buildRefreshMaterializedViewQuery({ view, concurrently, withNoData }) {
+    const concurrentlySql = concurrently ? sql` concurrently` : void 0;
+    const withNoDataSql = withNoData ? sql` with no data` : void 0;
+    return sql`refresh materialized view${concurrentlySql} ${view}${withNoDataSql}`;
+  }
+  prepareTyping(encoder) {
+    if (is(encoder, PgJsonb) || is(encoder, PgJson)) {
+      return "json";
+    } else if (is(encoder, PgNumeric)) {
+      return "decimal";
+    } else if (is(encoder, PgTime)) {
+      return "time";
+    } else if (is(encoder, PgTimestamp) || is(encoder, PgTimestampString)) {
+      return "timestamp";
+    } else if (is(encoder, PgDate) || is(encoder, PgDateString)) {
+      return "date";
+    } else if (is(encoder, PgUUID)) {
+      return "uuid";
+    } else {
+      return "none";
+    }
+  }
+  sqlToQuery(sql22, invokeSource) {
+    return sql22.toQuery({
+      casing: this.casing,
+      escapeName: this.escapeName,
+      escapeParam: this.escapeParam,
+      escapeString: this.escapeString,
+      prepareTyping: this.prepareTyping,
+      invokeSource
+    });
+  }
+  // buildRelationalQueryWithPK({
+  // 	fullSchema,
+  // 	schema,
+  // 	tableNamesMap,
+  // 	table,
+  // 	tableConfig,
+  // 	queryConfig: config,
+  // 	tableAlias,
+  // 	isRoot = false,
+  // 	joinOn,
+  // }: {
+  // 	fullSchema: Record<string, unknown>;
+  // 	schema: TablesRelationalConfig;
+  // 	tableNamesMap: Record<string, string>;
+  // 	table: PgTable;
+  // 	tableConfig: TableRelationalConfig;
+  // 	queryConfig: true | DBQueryConfig<'many', true>;
+  // 	tableAlias: string;
+  // 	isRoot?: boolean;
+  // 	joinOn?: SQL;
+  // }): BuildRelationalQueryResult<PgTable, PgColumn> {
+  // 	// For { "<relation>": true }, return a table with selection of all columns
+  // 	if (config === true) {
+  // 		const selectionEntries = Object.entries(tableConfig.columns);
+  // 		const selection: BuildRelationalQueryResult<PgTable, PgColumn>['selection'] = selectionEntries.map((
+  // 			[key, value],
+  // 		) => ({
+  // 			dbKey: value.name,
+  // 			tsKey: key,
+  // 			field: value as PgColumn,
+  // 			relationTableTsKey: undefined,
+  // 			isJson: false,
+  // 			selection: [],
+  // 		}));
+  // 		return {
+  // 			tableTsKey: tableConfig.tsName,
+  // 			sql: table,
+  // 			selection,
+  // 		};
+  // 	}
+  // 	// let selection: BuildRelationalQueryResult<PgTable, PgColumn>['selection'] = [];
+  // 	// let selectionForBuild = selection;
+  // 	const aliasedColumns = Object.fromEntries(
+  // 		Object.entries(tableConfig.columns).map(([key, value]) => [key, aliasedTableColumn(value, tableAlias)]),
+  // 	);
+  // 	const aliasedRelations = Object.fromEntries(
+  // 		Object.entries(tableConfig.relations).map(([key, value]) => [key, aliasedRelation(value, tableAlias)]),
+  // 	);
+  // 	const aliasedFields = Object.assign({}, aliasedColumns, aliasedRelations);
+  // 	let where, hasUserDefinedWhere;
+  // 	if (config.where) {
+  // 		const whereSql = typeof config.where === 'function' ? config.where(aliasedFields, operators) : config.where;
+  // 		where = whereSql && mapColumnsInSQLToAlias(whereSql, tableAlias);
+  // 		hasUserDefinedWhere = !!where;
+  // 	}
+  // 	where = and(joinOn, where);
+  // 	// const fieldsSelection: { tsKey: string; value: PgColumn | SQL.Aliased; isExtra?: boolean }[] = [];
+  // 	let joins: Join[] = [];
+  // 	let selectedColumns: string[] = [];
+  // 	// Figure out which columns to select
+  // 	if (config.columns) {
+  // 		let isIncludeMode = false;
+  // 		for (const [field, value] of Object.entries(config.columns)) {
+  // 			if (value === undefined) {
+  // 				continue;
+  // 			}
+  // 			if (field in tableConfig.columns) {
+  // 				if (!isIncludeMode && value === true) {
+  // 					isIncludeMode = true;
+  // 				}
+  // 				selectedColumns.push(field);
+  // 			}
+  // 		}
+  // 		if (selectedColumns.length > 0) {
+  // 			selectedColumns = isIncludeMode
+  // 				? selectedColumns.filter((c) => config.columns?.[c] === true)
+  // 				: Object.keys(tableConfig.columns).filter((key) => !selectedColumns.includes(key));
+  // 		}
+  // 	} else {
+  // 		// Select all columns if selection is not specified
+  // 		selectedColumns = Object.keys(tableConfig.columns);
+  // 	}
+  // 	// for (const field of selectedColumns) {
+  // 	// 	const column = tableConfig.columns[field]! as PgColumn;
+  // 	// 	fieldsSelection.push({ tsKey: field, value: column });
+  // 	// }
+  // 	let initiallySelectedRelations: {
+  // 		tsKey: string;
+  // 		queryConfig: true | DBQueryConfig<'many', false>;
+  // 		relation: Relation;
+  // 	}[] = [];
+  // 	// let selectedRelations: BuildRelationalQueryResult<PgTable, PgColumn>['selection'] = [];
+  // 	// Figure out which relations to select
+  // 	if (config.with) {
+  // 		initiallySelectedRelations = Object.entries(config.with)
+  // 			.filter((entry): entry is [typeof entry[0], NonNullable<typeof entry[1]>] => !!entry[1])
+  // 			.map(([tsKey, queryConfig]) => ({ tsKey, queryConfig, relation: tableConfig.relations[tsKey]! }));
+  // 	}
+  // 	const manyRelations = initiallySelectedRelations.filter((r) =>
+  // 		is(r.relation, Many)
+  // 		&& (schema[tableNamesMap[r.relation.referencedTable[Table.Symbol.Name]]!]?.primaryKey.length ?? 0) > 0
+  // 	);
+  // 	// If this is the last Many relation (or there are no Many relations), we are on the innermost subquery level
+  // 	const isInnermostQuery = manyRelations.length < 2;
+  // 	const selectedExtras: {
+  // 		tsKey: string;
+  // 		value: SQL.Aliased;
+  // 	}[] = [];
+  // 	// Figure out which extras to select
+  // 	if (isInnermostQuery && config.extras) {
+  // 		const extras = typeof config.extras === 'function'
+  // 			? config.extras(aliasedFields, { sql })
+  // 			: config.extras;
+  // 		for (const [tsKey, value] of Object.entries(extras)) {
+  // 			selectedExtras.push({
+  // 				tsKey,
+  // 				value: mapColumnsInAliasedSQLToAlias(value, tableAlias),
+  // 			});
+  // 		}
+  // 	}
+  // 	// Transform `fieldsSelection` into `selection`
+  // 	// `fieldsSelection` shouldn't be used after this point
+  // 	// for (const { tsKey, value, isExtra } of fieldsSelection) {
+  // 	// 	selection.push({
+  // 	// 		dbKey: is(value, SQL.Aliased) ? value.fieldAlias : tableConfig.columns[tsKey]!.name,
+  // 	// 		tsKey,
+  // 	// 		field: is(value, Column) ? aliasedTableColumn(value, tableAlias) : value,
+  // 	// 		relationTableTsKey: undefined,
+  // 	// 		isJson: false,
+  // 	// 		isExtra,
+  // 	// 		selection: [],
+  // 	// 	});
+  // 	// }
+  // 	let orderByOrig = typeof config.orderBy === 'function'
+  // 		? config.orderBy(aliasedFields, orderByOperators)
+  // 		: config.orderBy ?? [];
+  // 	if (!Array.isArray(orderByOrig)) {
+  // 		orderByOrig = [orderByOrig];
+  // 	}
+  // 	const orderBy = orderByOrig.map((orderByValue) => {
+  // 		if (is(orderByValue, Column)) {
+  // 			return aliasedTableColumn(orderByValue, tableAlias) as PgColumn;
+  // 		}
+  // 		return mapColumnsInSQLToAlias(orderByValue, tableAlias);
+  // 	});
+  // 	const limit = isInnermostQuery ? config.limit : undefined;
+  // 	const offset = isInnermostQuery ? config.offset : undefined;
+  // 	// For non-root queries without additional config except columns, return a table with selection
+  // 	if (
+  // 		!isRoot
+  // 		&& initiallySelectedRelations.length === 0
+  // 		&& selectedExtras.length === 0
+  // 		&& !where
+  // 		&& orderBy.length === 0
+  // 		&& limit === undefined
+  // 		&& offset === undefined
+  // 	) {
+  // 		return {
+  // 			tableTsKey: tableConfig.tsName,
+  // 			sql: table,
+  // 			selection: selectedColumns.map((key) => ({
+  // 				dbKey: tableConfig.columns[key]!.name,
+  // 				tsKey: key,
+  // 				field: tableConfig.columns[key] as PgColumn,
+  // 				relationTableTsKey: undefined,
+  // 				isJson: false,
+  // 				selection: [],
+  // 			})),
+  // 		};
+  // 	}
+  // 	const selectedRelationsWithoutPK:
+  // 	// Process all relations without primary keys, because they need to be joined differently and will all be on the same query level
+  // 	for (
+  // 		const {
+  // 			tsKey: selectedRelationTsKey,
+  // 			queryConfig: selectedRelationConfigValue,
+  // 			relation,
+  // 		} of initiallySelectedRelations
+  // 	) {
+  // 		const normalizedRelation = normalizeRelation(schema, tableNamesMap, relation);
+  // 		const relationTableName = relation.referencedTable[Table.Symbol.Name];
+  // 		const relationTableTsName = tableNamesMap[relationTableName]!;
+  // 		const relationTable = schema[relationTableTsName]!;
+  // 		if (relationTable.primaryKey.length > 0) {
+  // 			continue;
+  // 		}
+  // 		const relationTableAlias = `${tableAlias}_${selectedRelationTsKey}`;
+  // 		const joinOn = and(
+  // 			...normalizedRelation.fields.map((field, i) =>
+  // 				eq(
+  // 					aliasedTableColumn(normalizedRelation.references[i]!, relationTableAlias),
+  // 					aliasedTableColumn(field, tableAlias),
+  // 				)
+  // 			),
+  // 		);
+  // 		const builtRelation = this.buildRelationalQueryWithoutPK({
+  // 			fullSchema,
+  // 			schema,
+  // 			tableNamesMap,
+  // 			table: fullSchema[relationTableTsName] as PgTable,
+  // 			tableConfig: schema[relationTableTsName]!,
+  // 			queryConfig: selectedRelationConfigValue,
+  // 			tableAlias: relationTableAlias,
+  // 			joinOn,
+  // 			nestedQueryRelation: relation,
+  // 		});
+  // 		const field = sql`${sql.identifier(relationTableAlias)}.${sql.identifier('data')}`.as(selectedRelationTsKey);
+  // 		joins.push({
+  // 			on: sql`true`,
+  // 			table: new Subquery(builtRelation.sql as SQL, {}, relationTableAlias),
+  // 			alias: relationTableAlias,
+  // 			joinType: 'left',
+  // 			lateral: true,
+  // 		});
+  // 		selectedRelations.push({
+  // 			dbKey: selectedRelationTsKey,
+  // 			tsKey: selectedRelationTsKey,
+  // 			field,
+  // 			relationTableTsKey: relationTableTsName,
+  // 			isJson: true,
+  // 			selection: builtRelation.selection,
+  // 		});
+  // 	}
+  // 	const oneRelations = initiallySelectedRelations.filter((r): r is typeof r & { relation: One } =>
+  // 		is(r.relation, One)
+  // 	);
+  // 	// Process all One relations with PKs, because they can all be joined on the same level
+  // 	for (
+  // 		const {
+  // 			tsKey: selectedRelationTsKey,
+  // 			queryConfig: selectedRelationConfigValue,
+  // 			relation,
+  // 		} of oneRelations
+  // 	) {
+  // 		const normalizedRelation = normalizeRelation(schema, tableNamesMap, relation);
+  // 		const relationTableName = relation.referencedTable[Table.Symbol.Name];
+  // 		const relationTableTsName = tableNamesMap[relationTableName]!;
+  // 		const relationTableAlias = `${tableAlias}_${selectedRelationTsKey}`;
+  // 		const relationTable = schema[relationTableTsName]!;
+  // 		if (relationTable.primaryKey.length === 0) {
+  // 			continue;
+  // 		}
+  // 		const joinOn = and(
+  // 			...normalizedRelation.fields.map((field, i) =>
+  // 				eq(
+  // 					aliasedTableColumn(normalizedRelation.references[i]!, relationTableAlias),
+  // 					aliasedTableColumn(field, tableAlias),
+  // 				)
+  // 			),
+  // 		);
+  // 		const builtRelation = this.buildRelationalQueryWithPK({
+  // 			fullSchema,
+  // 			schema,
+  // 			tableNamesMap,
+  // 			table: fullSchema[relationTableTsName] as PgTable,
+  // 			tableConfig: schema[relationTableTsName]!,
+  // 			queryConfig: selectedRelationConfigValue,
+  // 			tableAlias: relationTableAlias,
+  // 			joinOn,
+  // 		});
+  // 		const field = sql`case when ${sql.identifier(relationTableAlias)} is null then null else json_build_array(${
+  // 			sql.join(
+  // 				builtRelation.selection.map(({ field }) =>
+  // 					is(field, SQL.Aliased)
+  // 						? sql`${sql.identifier(relationTableAlias)}.${sql.identifier(field.fieldAlias)}`
+  // 						: is(field, Column)
+  // 						? aliasedTableColumn(field, relationTableAlias)
+  // 						: field
+  // 				),
+  // 				sql`, `,
+  // 			)
+  // 		}) end`.as(selectedRelationTsKey);
+  // 		const isLateralJoin = is(builtRelation.sql, SQL);
+  // 		joins.push({
+  // 			on: isLateralJoin ? sql`true` : joinOn,
+  // 			table: is(builtRelation.sql, SQL)
+  // 				? new Subquery(builtRelation.sql, {}, relationTableAlias)
+  // 				: aliasedTable(builtRelation.sql, relationTableAlias),
+  // 			alias: relationTableAlias,
+  // 			joinType: 'left',
+  // 			lateral: is(builtRelation.sql, SQL),
+  // 		});
+  // 		selectedRelations.push({
+  // 			dbKey: selectedRelationTsKey,
+  // 			tsKey: selectedRelationTsKey,
+  // 			field,
+  // 			relationTableTsKey: relationTableTsName,
+  // 			isJson: true,
+  // 			selection: builtRelation.selection,
+  // 		});
+  // 	}
+  // 	let distinct: PgSelectConfig['distinct'];
+  // 	let tableFrom: PgTable | Subquery = table;
+  // 	// Process first Many relation - each one requires a nested subquery
+  // 	const manyRelation = manyRelations[0];
+  // 	if (manyRelation) {
+  // 		const {
+  // 			tsKey: selectedRelationTsKey,
+  // 			queryConfig: selectedRelationQueryConfig,
+  // 			relation,
+  // 		} = manyRelation;
+  // 		distinct = {
+  // 			on: tableConfig.primaryKey.map((c) => aliasedTableColumn(c as PgColumn, tableAlias)),
+  // 		};
+  // 		const normalizedRelation = normalizeRelation(schema, tableNamesMap, relation);
+  // 		const relationTableName = relation.referencedTable[Table.Symbol.Name];
+  // 		const relationTableTsName = tableNamesMap[relationTableName]!;
+  // 		const relationTableAlias = `${tableAlias}_${selectedRelationTsKey}`;
+  // 		const joinOn = and(
+  // 			...normalizedRelation.fields.map((field, i) =>
+  // 				eq(
+  // 					aliasedTableColumn(normalizedRelation.references[i]!, relationTableAlias),
+  // 					aliasedTableColumn(field, tableAlias),
+  // 				)
+  // 			),
+  // 		);
+  // 		const builtRelationJoin = this.buildRelationalQueryWithPK({
+  // 			fullSchema,
+  // 			schema,
+  // 			tableNamesMap,
+  // 			table: fullSchema[relationTableTsName] as PgTable,
+  // 			tableConfig: schema[relationTableTsName]!,
+  // 			queryConfig: selectedRelationQueryConfig,
+  // 			tableAlias: relationTableAlias,
+  // 			joinOn,
+  // 		});
+  // 		const builtRelationSelectionField = sql`case when ${
+  // 			sql.identifier(relationTableAlias)
+  // 		} is null then '[]' else json_agg(json_build_array(${
+  // 			sql.join(
+  // 				builtRelationJoin.selection.map(({ field }) =>
+  // 					is(field, SQL.Aliased)
+  // 						? sql`${sql.identifier(relationTableAlias)}.${sql.identifier(field.fieldAlias)}`
+  // 						: is(field, Column)
+  // 						? aliasedTableColumn(field, relationTableAlias)
+  // 						: field
+  // 				),
+  // 				sql`, `,
+  // 			)
+  // 		})) over (partition by ${sql.join(distinct.on, sql`, `)}) end`.as(selectedRelationTsKey);
+  // 		const isLateralJoin = is(builtRelationJoin.sql, SQL);
+  // 		joins.push({
+  // 			on: isLateralJoin ? sql`true` : joinOn,
+  // 			table: isLateralJoin
+  // 				? new Subquery(builtRelationJoin.sql as SQL, {}, relationTableAlias)
+  // 				: aliasedTable(builtRelationJoin.sql as PgTable, relationTableAlias),
+  // 			alias: relationTableAlias,
+  // 			joinType: 'left',
+  // 			lateral: isLateralJoin,
+  // 		});
+  // 		// Build the "from" subquery with the remaining Many relations
+  // 		const builtTableFrom = this.buildRelationalQueryWithPK({
+  // 			fullSchema,
+  // 			schema,
+  // 			tableNamesMap,
+  // 			table,
+  // 			tableConfig,
+  // 			queryConfig: {
+  // 				...config,
+  // 				where: undefined,
+  // 				orderBy: undefined,
+  // 				limit: undefined,
+  // 				offset: undefined,
+  // 				with: manyRelations.slice(1).reduce<NonNullable<typeof config['with']>>(
+  // 					(result, { tsKey, queryConfig: configValue }) => {
+  // 						result[tsKey] = configValue;
+  // 						return result;
+  // 					},
+  // 					{},
+  // 				),
+  // 			},
+  // 			tableAlias,
+  // 		});
+  // 		selectedRelations.push({
+  // 			dbKey: selectedRelationTsKey,
+  // 			tsKey: selectedRelationTsKey,
+  // 			field: builtRelationSelectionField,
+  // 			relationTableTsKey: relationTableTsName,
+  // 			isJson: true,
+  // 			selection: builtRelationJoin.selection,
+  // 		});
+  // 		// selection = builtTableFrom.selection.map((item) =>
+  // 		// 	is(item.field, SQL.Aliased)
+  // 		// 		? { ...item, field: sql`${sql.identifier(tableAlias)}.${sql.identifier(item.field.fieldAlias)}` }
+  // 		// 		: item
+  // 		// );
+  // 		// selectionForBuild = [{
+  // 		// 	dbKey: '*',
+  // 		// 	tsKey: '*',
+  // 		// 	field: sql`${sql.identifier(tableAlias)}.*`,
+  // 		// 	selection: [],
+  // 		// 	isJson: false,
+  // 		// 	relationTableTsKey: undefined,
+  // 		// }];
+  // 		// const newSelectionItem: (typeof selection)[number] = {
+  // 		// 	dbKey: selectedRelationTsKey,
+  // 		// 	tsKey: selectedRelationTsKey,
+  // 		// 	field,
+  // 		// 	relationTableTsKey: relationTableTsName,
+  // 		// 	isJson: true,
+  // 		// 	selection: builtRelationJoin.selection,
+  // 		// };
+  // 		// selection.push(newSelectionItem);
+  // 		// selectionForBuild.push(newSelectionItem);
+  // 		tableFrom = is(builtTableFrom.sql, PgTable)
+  // 			? builtTableFrom.sql
+  // 			: new Subquery(builtTableFrom.sql, {}, tableAlias);
+  // 	}
+  // 	if (selectedColumns.length === 0 && selectedRelations.length === 0 && selectedExtras.length === 0) {
+  // 		throw new DrizzleError(`No fields selected for table "${tableConfig.tsName}" ("${tableAlias}")`);
+  // 	}
+  // 	let selection: BuildRelationalQueryResult<PgTable, PgColumn>['selection'];
+  // 	function prepareSelectedColumns() {
+  // 		return selectedColumns.map((key) => ({
+  // 			dbKey: tableConfig.columns[key]!.name,
+  // 			tsKey: key,
+  // 			field: tableConfig.columns[key] as PgColumn,
+  // 			relationTableTsKey: undefined,
+  // 			isJson: false,
+  // 			selection: [],
+  // 		}));
+  // 	}
+  // 	function prepareSelectedExtras() {
+  // 		return selectedExtras.map((item) => ({
+  // 			dbKey: item.value.fieldAlias,
+  // 			tsKey: item.tsKey,
+  // 			field: item.value,
+  // 			relationTableTsKey: undefined,
+  // 			isJson: false,
+  // 			selection: [],
+  // 		}));
+  // 	}
+  // 	if (isRoot) {
+  // 		selection = [
+  // 			...prepareSelectedColumns(),
+  // 			...prepareSelectedExtras(),
+  // 		];
+  // 	}
+  // 	if (hasUserDefinedWhere || orderBy.length > 0) {
+  // 		tableFrom = new Subquery(
+  // 			this.buildSelectQuery({
+  // 				table: is(tableFrom, PgTable) ? aliasedTable(tableFrom, tableAlias) : tableFrom,
+  // 				fields: {},
+  // 				fieldsFlat: selectionForBuild.map(({ field }) => ({
+  // 					path: [],
+  // 					field: is(field, Column) ? aliasedTableColumn(field, tableAlias) : field,
+  // 				})),
+  // 				joins,
+  // 				distinct,
+  // 			}),
+  // 			{},
+  // 			tableAlias,
+  // 		);
+  // 		selectionForBuild = selection.map((item) =>
+  // 			is(item.field, SQL.Aliased)
+  // 				? { ...item, field: sql`${sql.identifier(tableAlias)}.${sql.identifier(item.field.fieldAlias)}` }
+  // 				: item
+  // 		);
+  // 		joins = [];
+  // 		distinct = undefined;
+  // 	}
+  // 	const result = this.buildSelectQuery({
+  // 		table: is(tableFrom, PgTable) ? aliasedTable(tableFrom, tableAlias) : tableFrom,
+  // 		fields: {},
+  // 		fieldsFlat: selectionForBuild.map(({ field }) => ({
+  // 			path: [],
+  // 			field: is(field, Column) ? aliasedTableColumn(field, tableAlias) : field,
+  // 		})),
+  // 		where,
+  // 		limit,
+  // 		offset,
+  // 		joins,
+  // 		orderBy,
+  // 		distinct,
+  // 	});
+  // 	return {
+  // 		tableTsKey: tableConfig.tsName,
+  // 		sql: result,
+  // 		selection,
+  // 	};
+  // }
+  buildRelationalQueryWithoutPK({
+    fullSchema,
+    schema,
+    tableNamesMap,
+    table,
+    tableConfig,
+    queryConfig: config2,
+    tableAlias,
+    nestedQueryRelation,
+    joinOn
+  }) {
+    let selection = [];
+    let limit, offset, orderBy = [], where;
+    const joins = [];
+    if (config2 === true) {
+      const selectionEntries = Object.entries(tableConfig.columns);
+      selection = selectionEntries.map(([key, value]) => ({
+        dbKey: value.name,
+        tsKey: key,
+        field: aliasedTableColumn(value, tableAlias),
+        relationTableTsKey: void 0,
+        isJson: false,
+        selection: []
+      }));
+    } else {
+      const aliasedColumns = Object.fromEntries(
+        Object.entries(tableConfig.columns).map(([key, value]) => [key, aliasedTableColumn(value, tableAlias)])
+      );
+      if (config2.where) {
+        const whereSql = typeof config2.where === "function" ? config2.where(aliasedColumns, getOperators()) : config2.where;
+        where = whereSql && mapColumnsInSQLToAlias(whereSql, tableAlias);
+      }
+      const fieldsSelection = [];
+      let selectedColumns = [];
+      if (config2.columns) {
+        let isIncludeMode = false;
+        for (const [field, value] of Object.entries(config2.columns)) {
+          if (value === void 0) {
+            continue;
+          }
+          if (field in tableConfig.columns) {
+            if (!isIncludeMode && value === true) {
+              isIncludeMode = true;
+            }
+            selectedColumns.push(field);
+          }
+        }
+        if (selectedColumns.length > 0) {
+          selectedColumns = isIncludeMode ? selectedColumns.filter((c) => config2.columns?.[c] === true) : Object.keys(tableConfig.columns).filter((key) => !selectedColumns.includes(key));
+        }
+      } else {
+        selectedColumns = Object.keys(tableConfig.columns);
+      }
+      for (const field of selectedColumns) {
+        const column = tableConfig.columns[field];
+        fieldsSelection.push({ tsKey: field, value: column });
+      }
+      let selectedRelations = [];
+      if (config2.with) {
+        selectedRelations = Object.entries(config2.with).filter((entry) => !!entry[1]).map(([tsKey, queryConfig2]) => ({ tsKey, queryConfig: queryConfig2, relation: tableConfig.relations[tsKey] }));
+      }
+      let extras;
+      if (config2.extras) {
+        extras = typeof config2.extras === "function" ? config2.extras(aliasedColumns, { sql }) : config2.extras;
+        for (const [tsKey, value] of Object.entries(extras)) {
+          fieldsSelection.push({
+            tsKey,
+            value: mapColumnsInAliasedSQLToAlias(value, tableAlias)
+          });
+        }
+      }
+      for (const { tsKey, value } of fieldsSelection) {
+        selection.push({
+          dbKey: is(value, SQL.Aliased) ? value.fieldAlias : tableConfig.columns[tsKey].name,
+          tsKey,
+          field: is(value, Column) ? aliasedTableColumn(value, tableAlias) : value,
+          relationTableTsKey: void 0,
+          isJson: false,
+          selection: []
+        });
+      }
+      let orderByOrig = typeof config2.orderBy === "function" ? config2.orderBy(aliasedColumns, getOrderByOperators()) : config2.orderBy ?? [];
+      if (!Array.isArray(orderByOrig)) {
+        orderByOrig = [orderByOrig];
+      }
+      orderBy = orderByOrig.map((orderByValue) => {
+        if (is(orderByValue, Column)) {
+          return aliasedTableColumn(orderByValue, tableAlias);
+        }
+        return mapColumnsInSQLToAlias(orderByValue, tableAlias);
+      });
+      limit = config2.limit;
+      offset = config2.offset;
+      for (const {
+        tsKey: selectedRelationTsKey,
+        queryConfig: selectedRelationConfigValue,
+        relation
+      } of selectedRelations) {
+        const normalizedRelation = normalizeRelation(schema, tableNamesMap, relation);
+        const relationTableName = getTableUniqueName(relation.referencedTable);
+        const relationTableTsName = tableNamesMap[relationTableName];
+        const relationTableAlias = `${tableAlias}_${selectedRelationTsKey}`;
+        const joinOn2 = and(
+          ...normalizedRelation.fields.map(
+            (field2, i) => eq(
+              aliasedTableColumn(normalizedRelation.references[i], relationTableAlias),
+              aliasedTableColumn(field2, tableAlias)
+            )
+          )
+        );
+        const builtRelation = this.buildRelationalQueryWithoutPK({
+          fullSchema,
+          schema,
+          tableNamesMap,
+          table: fullSchema[relationTableTsName],
+          tableConfig: schema[relationTableTsName],
+          queryConfig: is(relation, One) ? selectedRelationConfigValue === true ? { limit: 1 } : { ...selectedRelationConfigValue, limit: 1 } : selectedRelationConfigValue,
+          tableAlias: relationTableAlias,
+          joinOn: joinOn2,
+          nestedQueryRelation: relation
+        });
+        const field = sql`${sql.identifier(relationTableAlias)}.${sql.identifier("data")}`.as(selectedRelationTsKey);
+        joins.push({
+          on: sql`true`,
+          table: new Subquery(builtRelation.sql, {}, relationTableAlias),
+          alias: relationTableAlias,
+          joinType: "left",
+          lateral: true
+        });
+        selection.push({
+          dbKey: selectedRelationTsKey,
+          tsKey: selectedRelationTsKey,
+          field,
+          relationTableTsKey: relationTableTsName,
+          isJson: true,
+          selection: builtRelation.selection
+        });
+      }
+    }
+    if (selection.length === 0) {
+      throw new DrizzleError({ message: `No fields selected for table "${tableConfig.tsName}" ("${tableAlias}")` });
+    }
+    let result;
+    where = and(joinOn, where);
+    if (nestedQueryRelation) {
+      let field = sql`json_build_array(${sql.join(
+        selection.map(
+          ({ field: field2, tsKey, isJson }) => isJson ? sql`${sql.identifier(`${tableAlias}_${tsKey}`)}.${sql.identifier("data")}` : is(field2, SQL.Aliased) ? field2.sql : field2
+        ),
+        sql`, `
+      )})`;
+      if (is(nestedQueryRelation, Many)) {
+        field = sql`coalesce(json_agg(${field}${orderBy.length > 0 ? sql` order by ${sql.join(orderBy, sql`, `)}` : void 0}), '[]'::json)`;
+      }
+      const nestedSelection = [{
+        dbKey: "data",
+        tsKey: "data",
+        field: field.as("data"),
+        isJson: true,
+        relationTableTsKey: tableConfig.tsName,
+        selection
+      }];
+      const needsSubquery = limit !== void 0 || offset !== void 0 || orderBy.length > 0;
+      if (needsSubquery) {
+        result = this.buildSelectQuery({
+          table: aliasedTable(table, tableAlias),
+          fields: {},
+          fieldsFlat: [{
+            path: [],
+            field: sql.raw("*")
+          }],
+          where,
+          limit,
+          offset,
+          orderBy,
+          setOperators: []
+        });
+        where = void 0;
+        limit = void 0;
+        offset = void 0;
+        orderBy = [];
+      } else {
+        result = aliasedTable(table, tableAlias);
+      }
+      result = this.buildSelectQuery({
+        table: is(result, PgTable) ? result : new Subquery(result, {}, tableAlias),
+        fields: {},
+        fieldsFlat: nestedSelection.map(({ field: field2 }) => ({
+          path: [],
+          field: is(field2, Column) ? aliasedTableColumn(field2, tableAlias) : field2
+        })),
+        joins,
+        where,
+        limit,
+        offset,
+        orderBy,
+        setOperators: []
+      });
+    } else {
+      result = this.buildSelectQuery({
+        table: aliasedTable(table, tableAlias),
+        fields: {},
+        fieldsFlat: selection.map(({ field }) => ({
+          path: [],
+          field: is(field, Column) ? aliasedTableColumn(field, tableAlias) : field
+        })),
+        joins,
+        where,
+        limit,
+        offset,
+        orderBy,
+        setOperators: []
+      });
+    }
+    return {
+      tableTsKey: tableConfig.tsName,
+      sql: result,
+      selection
+    };
+  }
+};
+
+// ../../node_modules/.pnpm/drizzle-orm@0.36.4_@neondatabase+serverless@0.9.5_@types+pg@8.11.6_@types+react@19.2.7_react@19.2.3/node_modules/drizzle-orm/selection-proxy.js
+var SelectionProxyHandler = class _SelectionProxyHandler {
+  static [entityKind] = "SelectionProxyHandler";
+  config;
+  constructor(config2) {
+    this.config = { ...config2 };
+  }
+  get(subquery, prop) {
+    if (prop === "_") {
+      return {
+        ...subquery["_"],
+        selectedFields: new Proxy(
+          subquery._.selectedFields,
+          this
+        )
+      };
+    }
+    if (prop === ViewBaseConfig) {
+      return {
+        ...subquery[ViewBaseConfig],
+        selectedFields: new Proxy(
+          subquery[ViewBaseConfig].selectedFields,
+          this
+        )
+      };
+    }
+    if (typeof prop === "symbol") {
+      return subquery[prop];
+    }
+    const columns = is(subquery, Subquery) ? subquery._.selectedFields : is(subquery, View) ? subquery[ViewBaseConfig].selectedFields : subquery;
+    const value = columns[prop];
+    if (is(value, SQL.Aliased)) {
+      if (this.config.sqlAliasedBehavior === "sql" && !value.isSelectionField) {
+        return value.sql;
+      }
+      const newValue = value.clone();
+      newValue.isSelectionField = true;
+      return newValue;
+    }
+    if (is(value, SQL)) {
+      if (this.config.sqlBehavior === "sql") {
+        return value;
+      }
+      throw new Error(
+        `You tried to reference "${prop}" field from a subquery, which is a raw SQL field, but it doesn't have an alias declared. Please add an alias to the field using ".as('alias')" method.`
+      );
+    }
+    if (is(value, Column)) {
+      if (this.config.alias) {
+        return new Proxy(
+          value,
+          new ColumnAliasProxyHandler(
+            new Proxy(
+              value.table,
+              new TableAliasProxyHandler(this.config.alias, this.config.replaceOriginalName ?? false)
+            )
+          )
+        );
+      }
+      return value;
+    }
+    if (typeof value !== "object" || value === null) {
+      return value;
+    }
+    return new Proxy(value, new _SelectionProxyHandler(this.config));
+  }
+};
+
+// ../../node_modules/.pnpm/drizzle-orm@0.36.4_@neondatabase+serverless@0.9.5_@types+pg@8.11.6_@types+react@19.2.7_react@19.2.3/node_modules/drizzle-orm/query-builders/query-builder.js
+var TypedQueryBuilder = class {
+  static [entityKind] = "TypedQueryBuilder";
+  /** @internal */
+  getSelectedFields() {
+    return this._.selectedFields;
+  }
+};
+
+// ../../node_modules/.pnpm/drizzle-orm@0.36.4_@neondatabase+serverless@0.9.5_@types+pg@8.11.6_@types+react@19.2.7_react@19.2.3/node_modules/drizzle-orm/pg-core/query-builders/select.js
+var PgSelectBuilder = class {
+  static [entityKind] = "PgSelectBuilder";
+  fields;
+  session;
+  dialect;
+  withList = [];
+  distinct;
+  constructor(config2) {
+    this.fields = config2.fields;
+    this.session = config2.session;
+    this.dialect = config2.dialect;
+    if (config2.withList) {
+      this.withList = config2.withList;
+    }
+    this.distinct = config2.distinct;
+  }
+  authToken;
+  /** @internal */
+  setToken(token) {
+    this.authToken = token;
+    return this;
+  }
+  /**
+   * Specify the table, subquery, or other target that you're
+   * building a select query against.
+   *
+   * {@link https://www.postgresql.org/docs/current/sql-select.html#SQL-FROM | Postgres from documentation}
+   */
+  from(source) {
+    const isPartialSelect = !!this.fields;
+    let fields;
+    if (this.fields) {
+      fields = this.fields;
+    } else if (is(source, Subquery)) {
+      fields = Object.fromEntries(
+        Object.keys(source._.selectedFields).map((key) => [key, source[key]])
+      );
+    } else if (is(source, PgViewBase)) {
+      fields = source[ViewBaseConfig].selectedFields;
+    } else if (is(source, SQL)) {
+      fields = {};
+    } else {
+      fields = getTableColumns(source);
+    }
+    return this.authToken === void 0 ? new PgSelectBase({
+      table: source,
+      fields,
+      isPartialSelect,
+      session: this.session,
+      dialect: this.dialect,
+      withList: this.withList,
+      distinct: this.distinct
+    }) : new PgSelectBase({
+      table: source,
+      fields,
+      isPartialSelect,
+      session: this.session,
+      dialect: this.dialect,
+      withList: this.withList,
+      distinct: this.distinct
+    }).setToken(this.authToken);
+  }
+};
+var PgSelectQueryBuilderBase = class extends TypedQueryBuilder {
+  static [entityKind] = "PgSelectQueryBuilder";
+  _;
+  config;
+  joinsNotNullableMap;
+  tableName;
+  isPartialSelect;
+  session;
+  dialect;
+  constructor({ table, fields, isPartialSelect, session, dialect, withList, distinct }) {
+    super();
+    this.config = {
+      withList,
+      table,
+      fields: { ...fields },
+      distinct,
+      setOperators: []
+    };
+    this.isPartialSelect = isPartialSelect;
+    this.session = session;
+    this.dialect = dialect;
+    this._ = {
+      selectedFields: fields
+    };
+    this.tableName = getTableLikeName(table);
+    this.joinsNotNullableMap = typeof this.tableName === "string" ? { [this.tableName]: true } : {};
+  }
+  createJoin(joinType) {
+    return (table, on) => {
+      const baseTableName = this.tableName;
+      const tableName = getTableLikeName(table);
+      if (typeof tableName === "string" && this.config.joins?.some((join) => join.alias === tableName)) {
+        throw new Error(`Alias "${tableName}" is already used in this query`);
+      }
+      if (!this.isPartialSelect) {
+        if (Object.keys(this.joinsNotNullableMap).length === 1 && typeof baseTableName === "string") {
+          this.config.fields = {
+            [baseTableName]: this.config.fields
+          };
+        }
+        if (typeof tableName === "string" && !is(table, SQL)) {
+          const selection = is(table, Subquery) ? table._.selectedFields : is(table, View) ? table[ViewBaseConfig].selectedFields : table[Table.Symbol.Columns];
+          this.config.fields[tableName] = selection;
+        }
+      }
+      if (typeof on === "function") {
+        on = on(
+          new Proxy(
+            this.config.fields,
+            new SelectionProxyHandler({ sqlAliasedBehavior: "sql", sqlBehavior: "sql" })
+          )
+        );
+      }
+      if (!this.config.joins) {
+        this.config.joins = [];
+      }
+      this.config.joins.push({ on, table, joinType, alias: tableName });
+      if (typeof tableName === "string") {
+        switch (joinType) {
+          case "left": {
+            this.joinsNotNullableMap[tableName] = false;
+            break;
+          }
+          case "right": {
+            this.joinsNotNullableMap = Object.fromEntries(
+              Object.entries(this.joinsNotNullableMap).map(([key]) => [key, false])
+            );
+            this.joinsNotNullableMap[tableName] = true;
+            break;
+          }
+          case "inner": {
+            this.joinsNotNullableMap[tableName] = true;
+            break;
+          }
+          case "full": {
+            this.joinsNotNullableMap = Object.fromEntries(
+              Object.entries(this.joinsNotNullableMap).map(([key]) => [key, false])
+            );
+            this.joinsNotNullableMap[tableName] = false;
+            break;
+          }
+        }
+      }
+      return this;
+    };
+  }
+  /**
+   * Executes a `left join` operation by adding another table to the current query.
+   *
+   * Calling this method associates each row of the table with the corresponding row from the joined table, if a match is found. If no matching row exists, it sets all columns of the joined table to null.
+   *
+   * See docs: {@link https://orm.drizzle.team/docs/joins#left-join}
+   *
+   * @param table the table to join.
+   * @param on the `on` clause.
+   *
+   * @example
+   *
+   * ```ts
+   * // Select all users and their pets
+   * const usersWithPets: { user: User; pets: Pet | null }[] = await db.select()
+   *   .from(users)
+   *   .leftJoin(pets, eq(users.id, pets.ownerId))
+   *
+   * // Select userId and petId
+   * const usersIdsAndPetIds: { userId: number; petId: number | null }[] = await db.select({
+   *   userId: users.id,
+   *   petId: pets.id,
+   * })
+   *   .from(users)
+   *   .leftJoin(pets, eq(users.id, pets.ownerId))
+   * ```
+   */
+  leftJoin = this.createJoin("left");
+  /**
+   * Executes a `right join` operation by adding another table to the current query.
+   *
+   * Calling this method associates each row of the joined table with the corresponding row from the main table, if a match is found. If no matching row exists, it sets all columns of the main table to null.
+   *
+   * See docs: {@link https://orm.drizzle.team/docs/joins#right-join}
+   *
+   * @param table the table to join.
+   * @param on the `on` clause.
+   *
+   * @example
+   *
+   * ```ts
+   * // Select all users and their pets
+   * const usersWithPets: { user: User | null; pets: Pet }[] = await db.select()
+   *   .from(users)
+   *   .rightJoin(pets, eq(users.id, pets.ownerId))
+   *
+   * // Select userId and petId
+   * const usersIdsAndPetIds: { userId: number | null; petId: number }[] = await db.select({
+   *   userId: users.id,
+   *   petId: pets.id,
+   * })
+   *   .from(users)
+   *   .rightJoin(pets, eq(users.id, pets.ownerId))
+   * ```
+   */
+  rightJoin = this.createJoin("right");
+  /**
+   * Executes an `inner join` operation, creating a new table by combining rows from two tables that have matching values.
+   *
+   * Calling this method retrieves rows that have corresponding entries in both joined tables. Rows without matching entries in either table are excluded, resulting in a table that includes only matching pairs.
+   *
+   * See docs: {@link https://orm.drizzle.team/docs/joins#inner-join}
+   *
+   * @param table the table to join.
+   * @param on the `on` clause.
+   *
+   * @example
+   *
+   * ```ts
+   * // Select all users and their pets
+   * const usersWithPets: { user: User; pets: Pet }[] = await db.select()
+   *   .from(users)
+   *   .innerJoin(pets, eq(users.id, pets.ownerId))
+   *
+   * // Select userId and petId
+   * const usersIdsAndPetIds: { userId: number; petId: number }[] = await db.select({
+   *   userId: users.id,
+   *   petId: pets.id,
+   * })
+   *   .from(users)
+   *   .innerJoin(pets, eq(users.id, pets.ownerId))
+   * ```
+   */
+  innerJoin = this.createJoin("inner");
+  /**
+   * Executes a `full join` operation by combining rows from two tables into a new table.
+   *
+   * Calling this method retrieves all rows from both main and joined tables, merging rows with matching values and filling in `null` for non-matching columns.
+   *
+   * See docs: {@link https://orm.drizzle.team/docs/joins#full-join}
+   *
+   * @param table the table to join.
+   * @param on the `on` clause.
+   *
+   * @example
+   *
+   * ```ts
+   * // Select all users and their pets
+   * const usersWithPets: { user: User | null; pets: Pet | null }[] = await db.select()
+   *   .from(users)
+   *   .fullJoin(pets, eq(users.id, pets.ownerId))
+   *
+   * // Select userId and petId
+   * const usersIdsAndPetIds: { userId: number | null; petId: number | null }[] = await db.select({
+   *   userId: users.id,
+   *   petId: pets.id,
+   * })
+   *   .from(users)
+   *   .fullJoin(pets, eq(users.id, pets.ownerId))
+   * ```
+   */
+  fullJoin = this.createJoin("full");
+  createSetOperator(type, isAll) {
+    return (rightSelection) => {
+      const rightSelect = typeof rightSelection === "function" ? rightSelection(getPgSetOperators()) : rightSelection;
+      if (!haveSameKeys(this.getSelectedFields(), rightSelect.getSelectedFields())) {
+        throw new Error(
+          "Set operator error (union / intersect / except): selected fields are not the same or are in a different order"
+        );
+      }
+      this.config.setOperators.push({ type, isAll, rightSelect });
+      return this;
+    };
+  }
+  /**
+   * Adds `union` set operator to the query.
+   *
+   * Calling this method will combine the result sets of the `select` statements and remove any duplicate rows that appear across them.
+   *
+   * See docs: {@link https://orm.drizzle.team/docs/set-operations#union}
+   *
+   * @example
+   *
+   * ```ts
+   * // Select all unique names from customers and users tables
+   * await db.select({ name: users.name })
+   *   .from(users)
+   *   .union(
+   *     db.select({ name: customers.name }).from(customers)
+   *   );
+   * // or
+   * import { union } from 'drizzle-orm/pg-core'
+   *
+   * await union(
+   *   db.select({ name: users.name }).from(users),
+   *   db.select({ name: customers.name }).from(customers)
+   * );
+   * ```
+   */
+  union = this.createSetOperator("union", false);
+  /**
+   * Adds `union all` set operator to the query.
+   *
+   * Calling this method will combine the result-set of the `select` statements and keep all duplicate rows that appear across them.
+   *
+   * See docs: {@link https://orm.drizzle.team/docs/set-operations#union-all}
+   *
+   * @example
+   *
+   * ```ts
+   * // Select all transaction ids from both online and in-store sales
+   * await db.select({ transaction: onlineSales.transactionId })
+   *   .from(onlineSales)
+   *   .unionAll(
+   *     db.select({ transaction: inStoreSales.transactionId }).from(inStoreSales)
+   *   );
+   * // or
+   * import { unionAll } from 'drizzle-orm/pg-core'
+   *
+   * await unionAll(
+   *   db.select({ transaction: onlineSales.transactionId }).from(onlineSales),
+   *   db.select({ transaction: inStoreSales.transactionId }).from(inStoreSales)
+   * );
+   * ```
+   */
+  unionAll = this.createSetOperator("union", true);
+  /**
+   * Adds `intersect` set operator to the query.
+   *
+   * Calling this method will retain only the rows that are present in both result sets and eliminate duplicates.
+   *
+   * See docs: {@link https://orm.drizzle.team/docs/set-operations#intersect}
+   *
+   * @example
+   *
+   * ```ts
+   * // Select course names that are offered in both departments A and B
+   * await db.select({ courseName: depA.courseName })
+   *   .from(depA)
+   *   .intersect(
+   *     db.select({ courseName: depB.courseName }).from(depB)
+   *   );
+   * // or
+   * import { intersect } from 'drizzle-orm/pg-core'
+   *
+   * await intersect(
+   *   db.select({ courseName: depA.courseName }).from(depA),
+   *   db.select({ courseName: depB.courseName }).from(depB)
+   * );
+   * ```
+   */
+  intersect = this.createSetOperator("intersect", false);
+  /**
+   * Adds `intersect all` set operator to the query.
+   *
+   * Calling this method will retain only the rows that are present in both result sets including all duplicates.
+   *
+   * See docs: {@link https://orm.drizzle.team/docs/set-operations#intersect-all}
+   *
+   * @example
+   *
+   * ```ts
+   * // Select all products and quantities that are ordered by both regular and VIP customers
+   * await db.select({
+   *   productId: regularCustomerOrders.productId,
+   *   quantityOrdered: regularCustomerOrders.quantityOrdered
+   * })
+   * .from(regularCustomerOrders)
+   * .intersectAll(
+   *   db.select({
+   *     productId: vipCustomerOrders.productId,
+   *     quantityOrdered: vipCustomerOrders.quantityOrdered
+   *   })
+   *   .from(vipCustomerOrders)
+   * );
+   * // or
+   * import { intersectAll } from 'drizzle-orm/pg-core'
+   *
+   * await intersectAll(
+   *   db.select({
+   *     productId: regularCustomerOrders.productId,
+   *     quantityOrdered: regularCustomerOrders.quantityOrdered
+   *   })
+   *   .from(regularCustomerOrders),
+   *   db.select({
+   *     productId: vipCustomerOrders.productId,
+   *     quantityOrdered: vipCustomerOrders.quantityOrdered
+   *   })
+   *   .from(vipCustomerOrders)
+   * );
+   * ```
+   */
+  intersectAll = this.createSetOperator("intersect", true);
+  /**
+   * Adds `except` set operator to the query.
+   *
+   * Calling this method will retrieve all unique rows from the left query, except for the rows that are present in the result set of the right query.
+   *
+   * See docs: {@link https://orm.drizzle.team/docs/set-operations#except}
+   *
+   * @example
+   *
+   * ```ts
+   * // Select all courses offered in department A but not in department B
+   * await db.select({ courseName: depA.courseName })
+   *   .from(depA)
+   *   .except(
+   *     db.select({ courseName: depB.courseName }).from(depB)
+   *   );
+   * // or
+   * import { except } from 'drizzle-orm/pg-core'
+   *
+   * await except(
+   *   db.select({ courseName: depA.courseName }).from(depA),
+   *   db.select({ courseName: depB.courseName }).from(depB)
+   * );
+   * ```
+   */
+  except = this.createSetOperator("except", false);
+  /**
+   * Adds `except all` set operator to the query.
+   *
+   * Calling this method will retrieve all rows from the left query, except for the rows that are present in the result set of the right query.
+   *
+   * See docs: {@link https://orm.drizzle.team/docs/set-operations#except-all}
+   *
+   * @example
+   *
+   * ```ts
+   * // Select all products that are ordered by regular customers but not by VIP customers
+   * await db.select({
+   *   productId: regularCustomerOrders.productId,
+   *   quantityOrdered: regularCustomerOrders.quantityOrdered,
+   * })
+   * .from(regularCustomerOrders)
+   * .exceptAll(
+   *   db.select({
+   *     productId: vipCustomerOrders.productId,
+   *     quantityOrdered: vipCustomerOrders.quantityOrdered,
+   *   })
+   *   .from(vipCustomerOrders)
+   * );
+   * // or
+   * import { exceptAll } from 'drizzle-orm/pg-core'
+   *
+   * await exceptAll(
+   *   db.select({
+   *     productId: regularCustomerOrders.productId,
+   *     quantityOrdered: regularCustomerOrders.quantityOrdered
+   *   })
+   *   .from(regularCustomerOrders),
+   *   db.select({
+   *     productId: vipCustomerOrders.productId,
+   *     quantityOrdered: vipCustomerOrders.quantityOrdered
+   *   })
+   *   .from(vipCustomerOrders)
+   * );
+   * ```
+   */
+  exceptAll = this.createSetOperator("except", true);
+  /** @internal */
+  addSetOperators(setOperators) {
+    this.config.setOperators.push(...setOperators);
+    return this;
+  }
+  /**
+   * Adds a `where` clause to the query.
+   *
+   * Calling this method will select only those rows that fulfill a specified condition.
+   *
+   * See docs: {@link https://orm.drizzle.team/docs/select#filtering}
+   *
+   * @param where the `where` clause.
+   *
+   * @example
+   * You can use conditional operators and `sql function` to filter the rows to be selected.
+   *
+   * ```ts
+   * // Select all cars with green color
+   * await db.select().from(cars).where(eq(cars.color, 'green'));
+   * // or
+   * await db.select().from(cars).where(sql`${cars.color} = 'green'`)
+   * ```
+   *
+   * You can logically combine conditional operators with `and()` and `or()` operators:
+   *
+   * ```ts
+   * // Select all BMW cars with a green color
+   * await db.select().from(cars).where(and(eq(cars.color, 'green'), eq(cars.brand, 'BMW')));
+   *
+   * // Select all cars with the green or blue color
+   * await db.select().from(cars).where(or(eq(cars.color, 'green'), eq(cars.color, 'blue')));
+   * ```
+   */
+  where(where) {
+    if (typeof where === "function") {
+      where = where(
+        new Proxy(
+          this.config.fields,
+          new SelectionProxyHandler({ sqlAliasedBehavior: "sql", sqlBehavior: "sql" })
+        )
+      );
+    }
+    this.config.where = where;
+    return this;
+  }
+  /**
+   * Adds a `having` clause to the query.
+   *
+   * Calling this method will select only those rows that fulfill a specified condition. It is typically used with aggregate functions to filter the aggregated data based on a specified condition.
+   *
+   * See docs: {@link https://orm.drizzle.team/docs/select#aggregations}
+   *
+   * @param having the `having` clause.
+   *
+   * @example
+   *
+   * ```ts
+   * // Select all brands with more than one car
+   * await db.select({
+   * 	brand: cars.brand,
+   * 	count: sql<number>`cast(count(${cars.id}) as int)`,
+   * })
+   *   .from(cars)
+   *   .groupBy(cars.brand)
+   *   .having(({ count }) => gt(count, 1));
+   * ```
+   */
+  having(having) {
+    if (typeof having === "function") {
+      having = having(
+        new Proxy(
+          this.config.fields,
+          new SelectionProxyHandler({ sqlAliasedBehavior: "sql", sqlBehavior: "sql" })
+        )
+      );
+    }
+    this.config.having = having;
+    return this;
+  }
+  groupBy(...columns) {
+    if (typeof columns[0] === "function") {
+      const groupBy = columns[0](
+        new Proxy(
+          this.config.fields,
+          new SelectionProxyHandler({ sqlAliasedBehavior: "alias", sqlBehavior: "sql" })
+        )
+      );
+      this.config.groupBy = Array.isArray(groupBy) ? groupBy : [groupBy];
+    } else {
+      this.config.groupBy = columns;
+    }
+    return this;
+  }
+  orderBy(...columns) {
+    if (typeof columns[0] === "function") {
+      const orderBy = columns[0](
+        new Proxy(
+          this.config.fields,
+          new SelectionProxyHandler({ sqlAliasedBehavior: "alias", sqlBehavior: "sql" })
+        )
+      );
+      const orderByArray = Array.isArray(orderBy) ? orderBy : [orderBy];
+      if (this.config.setOperators.length > 0) {
+        this.config.setOperators.at(-1).orderBy = orderByArray;
+      } else {
+        this.config.orderBy = orderByArray;
+      }
+    } else {
+      const orderByArray = columns;
+      if (this.config.setOperators.length > 0) {
+        this.config.setOperators.at(-1).orderBy = orderByArray;
+      } else {
+        this.config.orderBy = orderByArray;
+      }
+    }
+    return this;
+  }
+  /**
+   * Adds a `limit` clause to the query.
+   *
+   * Calling this method will set the maximum number of rows that will be returned by this query.
+   *
+   * See docs: {@link https://orm.drizzle.team/docs/select#limit--offset}
+   *
+   * @param limit the `limit` clause.
+   *
+   * @example
+   *
+   * ```ts
+   * // Get the first 10 people from this query.
+   * await db.select().from(people).limit(10);
+   * ```
+   */
+  limit(limit) {
+    if (this.config.setOperators.length > 0) {
+      this.config.setOperators.at(-1).limit = limit;
+    } else {
+      this.config.limit = limit;
+    }
+    return this;
+  }
+  /**
+   * Adds an `offset` clause to the query.
+   *
+   * Calling this method will skip a number of rows when returning results from this query.
+   *
+   * See docs: {@link https://orm.drizzle.team/docs/select#limit--offset}
+   *
+   * @param offset the `offset` clause.
+   *
+   * @example
+   *
+   * ```ts
+   * // Get the 10th-20th people from this query.
+   * await db.select().from(people).offset(10).limit(10);
+   * ```
+   */
+  offset(offset) {
+    if (this.config.setOperators.length > 0) {
+      this.config.setOperators.at(-1).offset = offset;
+    } else {
+      this.config.offset = offset;
+    }
+    return this;
+  }
+  /**
+   * Adds a `for` clause to the query.
+   *
+   * Calling this method will specify a lock strength for this query that controls how strictly it acquires exclusive access to the rows being queried.
+   *
+   * See docs: {@link https://www.postgresql.org/docs/current/sql-select.html#SQL-FOR-UPDATE-SHARE}
+   *
+   * @param strength the lock strength.
+   * @param config the lock configuration.
+   */
+  for(strength, config2 = {}) {
+    this.config.lockingClause = { strength, config: config2 };
+    return this;
+  }
+  /** @internal */
+  getSQL() {
+    return this.dialect.buildSelectQuery(this.config);
+  }
+  toSQL() {
+    const { typings: _typings, ...rest } = this.dialect.sqlToQuery(this.getSQL());
+    return rest;
+  }
+  as(alias) {
+    return new Proxy(
+      new Subquery(this.getSQL(), this.config.fields, alias),
+      new SelectionProxyHandler({ alias, sqlAliasedBehavior: "alias", sqlBehavior: "error" })
+    );
+  }
+  /** @internal */
+  getSelectedFields() {
+    return new Proxy(
+      this.config.fields,
+      new SelectionProxyHandler({ alias: this.tableName, sqlAliasedBehavior: "alias", sqlBehavior: "error" })
+    );
+  }
+  $dynamic() {
+    return this;
+  }
+};
+var PgSelectBase = class extends PgSelectQueryBuilderBase {
+  static [entityKind] = "PgSelect";
+  /** @internal */
+  _prepare(name) {
+    const { session, config: config2, dialect, joinsNotNullableMap, authToken } = this;
+    if (!session) {
+      throw new Error("Cannot execute a query on a query builder. Please use a database instance instead.");
+    }
+    return tracer.startActiveSpan("drizzle.prepareQuery", () => {
+      const fieldsList = orderSelectedFields(config2.fields);
+      const query = session.prepareQuery(dialect.sqlToQuery(this.getSQL()), fieldsList, name, true);
+      query.joinsNotNullableMap = joinsNotNullableMap;
+      return authToken === void 0 ? query : query.setToken(authToken);
+    });
+  }
+  /**
+   * Create a prepared statement for this query. This allows
+   * the database to remember this query for the given session
+   * and call it by name, rather than specifying the full query.
+   *
+   * {@link https://www.postgresql.org/docs/current/sql-prepare.html | Postgres prepare documentation}
+   */
+  prepare(name) {
+    return this._prepare(name);
+  }
+  authToken;
+  /** @internal */
+  setToken(token) {
+    this.authToken = token;
+    return this;
+  }
+  execute = (placeholderValues) => {
+    return tracer.startActiveSpan("drizzle.operation", () => {
+      return this._prepare().execute(placeholderValues, this.authToken);
+    });
+  };
+};
+applyMixins(PgSelectBase, [QueryPromise]);
+function createSetOperator(type, isAll) {
+  return (leftSelect, rightSelect, ...restSelects) => {
+    const setOperators = [rightSelect, ...restSelects].map((select) => ({
+      type,
+      isAll,
+      rightSelect: select
+    }));
+    for (const setOperator of setOperators) {
+      if (!haveSameKeys(leftSelect.getSelectedFields(), setOperator.rightSelect.getSelectedFields())) {
+        throw new Error(
+          "Set operator error (union / intersect / except): selected fields are not the same or are in a different order"
+        );
+      }
+    }
+    return leftSelect.addSetOperators(setOperators);
+  };
+}
+var getPgSetOperators = () => ({
+  union,
+  unionAll,
+  intersect,
+  intersectAll,
+  except,
+  exceptAll
+});
+var union = createSetOperator("union", false);
+var unionAll = createSetOperator("union", true);
+var intersect = createSetOperator("intersect", false);
+var intersectAll = createSetOperator("intersect", true);
+var except = createSetOperator("except", false);
+var exceptAll = createSetOperator("except", true);
+
+// ../../node_modules/.pnpm/drizzle-orm@0.36.4_@neondatabase+serverless@0.9.5_@types+pg@8.11.6_@types+react@19.2.7_react@19.2.3/node_modules/drizzle-orm/pg-core/query-builders/query-builder.js
+var QueryBuilder = class {
+  static [entityKind] = "PgQueryBuilder";
+  dialect;
+  dialectConfig;
+  constructor(dialect) {
+    this.dialect = is(dialect, PgDialect) ? dialect : void 0;
+    this.dialectConfig = is(dialect, PgDialect) ? void 0 : dialect;
+  }
+  $with(alias) {
+    const queryBuilder = this;
+    return {
+      as(qb) {
+        if (typeof qb === "function") {
+          qb = qb(queryBuilder);
+        }
+        return new Proxy(
+          new WithSubquery(qb.getSQL(), qb.getSelectedFields(), alias, true),
+          new SelectionProxyHandler({ alias, sqlAliasedBehavior: "alias", sqlBehavior: "error" })
+        );
+      }
+    };
+  }
+  with(...queries) {
+    const self = this;
+    function select(fields) {
+      return new PgSelectBuilder({
+        fields: fields ?? void 0,
+        session: void 0,
+        dialect: self.getDialect(),
+        withList: queries
+      });
+    }
+    function selectDistinct(fields) {
+      return new PgSelectBuilder({
+        fields: fields ?? void 0,
+        session: void 0,
+        dialect: self.getDialect(),
+        distinct: true
+      });
+    }
+    function selectDistinctOn(on, fields) {
+      return new PgSelectBuilder({
+        fields: fields ?? void 0,
+        session: void 0,
+        dialect: self.getDialect(),
+        distinct: { on }
+      });
+    }
+    return { select, selectDistinct, selectDistinctOn };
+  }
+  select(fields) {
+    return new PgSelectBuilder({
+      fields: fields ?? void 0,
+      session: void 0,
+      dialect: this.getDialect()
+    });
+  }
+  selectDistinct(fields) {
+    return new PgSelectBuilder({
+      fields: fields ?? void 0,
+      session: void 0,
+      dialect: this.getDialect(),
+      distinct: true
+    });
+  }
+  selectDistinctOn(on, fields) {
+    return new PgSelectBuilder({
+      fields: fields ?? void 0,
+      session: void 0,
+      dialect: this.getDialect(),
+      distinct: { on }
+    });
+  }
+  // Lazy load dialect to avoid circular dependency
+  getDialect() {
+    if (!this.dialect) {
+      this.dialect = new PgDialect(this.dialectConfig);
+    }
+    return this.dialect;
+  }
+};
+
+// ../../node_modules/.pnpm/drizzle-orm@0.36.4_@neondatabase+serverless@0.9.5_@types+pg@8.11.6_@types+react@19.2.7_react@19.2.3/node_modules/drizzle-orm/pg-core/query-builders/insert.js
+var PgInsertBuilder = class {
+  constructor(table, session, dialect, withList, overridingSystemValue_) {
+    this.table = table;
+    this.session = session;
+    this.dialect = dialect;
+    this.withList = withList;
+    this.overridingSystemValue_ = overridingSystemValue_;
+  }
+  static [entityKind] = "PgInsertBuilder";
+  authToken;
+  /** @internal */
+  setToken(token) {
+    this.authToken = token;
+    return this;
+  }
+  overridingSystemValue() {
+    this.overridingSystemValue_ = true;
+    return this;
+  }
+  values(values) {
+    values = Array.isArray(values) ? values : [values];
+    if (values.length === 0) {
+      throw new Error("values() must be called with at least one value");
+    }
+    const mappedValues = values.map((entry) => {
+      const result = {};
+      const cols = this.table[Table.Symbol.Columns];
+      for (const colKey of Object.keys(entry)) {
+        const colValue = entry[colKey];
+        result[colKey] = is(colValue, SQL) ? colValue : new Param(colValue, cols[colKey]);
+      }
+      return result;
+    });
+    return this.authToken === void 0 ? new PgInsertBase(
+      this.table,
+      mappedValues,
+      this.session,
+      this.dialect,
+      this.withList,
+      false,
+      this.overridingSystemValue_
+    ) : new PgInsertBase(
+      this.table,
+      mappedValues,
+      this.session,
+      this.dialect,
+      this.withList,
+      false,
+      this.overridingSystemValue_
+    ).setToken(this.authToken);
+  }
+  select(selectQuery) {
+    const select = typeof selectQuery === "function" ? selectQuery(new QueryBuilder()) : selectQuery;
+    if (!is(select, SQL) && !haveSameKeys(this.table[Columns], select._.selectedFields)) {
+      throw new Error(
+        "Insert select error: selected fields are not the same or are in a different order compared to the table definition"
+      );
+    }
+    return new PgInsertBase(this.table, select, this.session, this.dialect, this.withList, true);
+  }
+};
+var PgInsertBase = class extends QueryPromise {
+  constructor(table, values, session, dialect, withList, select, overridingSystemValue_) {
+    super();
+    this.session = session;
+    this.dialect = dialect;
+    this.config = { table, values, withList, select, overridingSystemValue_ };
+  }
+  static [entityKind] = "PgInsert";
+  config;
+  returning(fields = this.config.table[Table.Symbol.Columns]) {
+    this.config.returning = orderSelectedFields(fields);
+    return this;
+  }
+  /**
+   * Adds an `on conflict do nothing` clause to the query.
+   *
+   * Calling this method simply avoids inserting a row as its alternative action.
+   *
+   * See docs: {@link https://orm.drizzle.team/docs/insert#on-conflict-do-nothing}
+   *
+   * @param config The `target` and `where` clauses.
+   *
+   * @example
+   * ```ts
+   * // Insert one row and cancel the insert if there's a conflict
+   * await db.insert(cars)
+   *   .values({ id: 1, brand: 'BMW' })
+   *   .onConflictDoNothing();
+   *
+   * // Explicitly specify conflict target
+   * await db.insert(cars)
+   *   .values({ id: 1, brand: 'BMW' })
+   *   .onConflictDoNothing({ target: cars.id });
+   * ```
+   */
+  onConflictDoNothing(config2 = {}) {
+    if (config2.target === void 0) {
+      this.config.onConflict = sql`do nothing`;
+    } else {
+      let targetColumn = "";
+      targetColumn = Array.isArray(config2.target) ? config2.target.map((it) => this.dialect.escapeName(this.dialect.casing.getColumnCasing(it))).join(",") : this.dialect.escapeName(this.dialect.casing.getColumnCasing(config2.target));
+      const whereSql = config2.where ? sql` where ${config2.where}` : void 0;
+      this.config.onConflict = sql`(${sql.raw(targetColumn)})${whereSql} do nothing`;
+    }
+    return this;
+  }
+  /**
+   * Adds an `on conflict do update` clause to the query.
+   *
+   * Calling this method will update the existing row that conflicts with the row proposed for insertion as its alternative action.
+   *
+   * See docs: {@link https://orm.drizzle.team/docs/insert#upserts-and-conflicts}
+   *
+   * @param config The `target`, `set` and `where` clauses.
+   *
+   * @example
+   * ```ts
+   * // Update the row if there's a conflict
+   * await db.insert(cars)
+   *   .values({ id: 1, brand: 'BMW' })
+   *   .onConflictDoUpdate({
+   *     target: cars.id,
+   *     set: { brand: 'Porsche' }
+   *   });
+   *
+   * // Upsert with 'where' clause
+   * await db.insert(cars)
+   *   .values({ id: 1, brand: 'BMW' })
+   *   .onConflictDoUpdate({
+   *     target: cars.id,
+   *     set: { brand: 'newBMW' },
+   *     targetWhere: sql`${cars.createdAt} > '2023-01-01'::date`,
+   *   });
+   * ```
+   */
+  onConflictDoUpdate(config2) {
+    if (config2.where && (config2.targetWhere || config2.setWhere)) {
+      throw new Error(
+        'You cannot use both "where" and "targetWhere"/"setWhere" at the same time - "where" is deprecated, use "targetWhere" or "setWhere" instead.'
+      );
+    }
+    const whereSql = config2.where ? sql` where ${config2.where}` : void 0;
+    const targetWhereSql = config2.targetWhere ? sql` where ${config2.targetWhere}` : void 0;
+    const setWhereSql = config2.setWhere ? sql` where ${config2.setWhere}` : void 0;
+    const setSql = this.dialect.buildUpdateSet(this.config.table, mapUpdateSet(this.config.table, config2.set));
+    let targetColumn = "";
+    targetColumn = Array.isArray(config2.target) ? config2.target.map((it) => this.dialect.escapeName(this.dialect.casing.getColumnCasing(it))).join(",") : this.dialect.escapeName(this.dialect.casing.getColumnCasing(config2.target));
+    this.config.onConflict = sql`(${sql.raw(targetColumn)})${targetWhereSql} do update set ${setSql}${whereSql}${setWhereSql}`;
+    return this;
+  }
+  /** @internal */
+  getSQL() {
+    return this.dialect.buildInsertQuery(this.config);
+  }
+  toSQL() {
+    const { typings: _typings, ...rest } = this.dialect.sqlToQuery(this.getSQL());
+    return rest;
+  }
+  /** @internal */
+  _prepare(name) {
+    return tracer.startActiveSpan("drizzle.prepareQuery", () => {
+      return this.session.prepareQuery(this.dialect.sqlToQuery(this.getSQL()), this.config.returning, name, true);
+    });
+  }
+  prepare(name) {
+    return this._prepare(name);
+  }
+  authToken;
+  /** @internal */
+  setToken(token) {
+    this.authToken = token;
+    return this;
+  }
+  execute = (placeholderValues) => {
+    return tracer.startActiveSpan("drizzle.operation", () => {
+      return this._prepare().execute(placeholderValues, this.authToken);
+    });
+  };
+  $dynamic() {
+    return this;
+  }
+};
+
+// ../../node_modules/.pnpm/drizzle-orm@0.36.4_@neondatabase+serverless@0.9.5_@types+pg@8.11.6_@types+react@19.2.7_react@19.2.3/node_modules/drizzle-orm/pg-core/query-builders/refresh-materialized-view.js
+var PgRefreshMaterializedView = class extends QueryPromise {
+  constructor(view, session, dialect) {
+    super();
+    this.session = session;
+    this.dialect = dialect;
+    this.config = { view };
+  }
+  static [entityKind] = "PgRefreshMaterializedView";
+  config;
+  concurrently() {
+    if (this.config.withNoData !== void 0) {
+      throw new Error("Cannot use concurrently and withNoData together");
+    }
+    this.config.concurrently = true;
+    return this;
+  }
+  withNoData() {
+    if (this.config.concurrently !== void 0) {
+      throw new Error("Cannot use concurrently and withNoData together");
+    }
+    this.config.withNoData = true;
+    return this;
+  }
+  /** @internal */
+  getSQL() {
+    return this.dialect.buildRefreshMaterializedViewQuery(this.config);
+  }
+  toSQL() {
+    const { typings: _typings, ...rest } = this.dialect.sqlToQuery(this.getSQL());
+    return rest;
+  }
+  /** @internal */
+  _prepare(name) {
+    return tracer.startActiveSpan("drizzle.prepareQuery", () => {
+      return this.session.prepareQuery(this.dialect.sqlToQuery(this.getSQL()), void 0, name, true);
+    });
+  }
+  prepare(name) {
+    return this._prepare(name);
+  }
+  authToken;
+  /** @internal */
+  setToken(token) {
+    this.authToken = token;
+    return this;
+  }
+  execute = (placeholderValues) => {
+    return tracer.startActiveSpan("drizzle.operation", () => {
+      return this._prepare().execute(placeholderValues, this.authToken);
+    });
+  };
+};
+
+// ../../node_modules/.pnpm/drizzle-orm@0.36.4_@neondatabase+serverless@0.9.5_@types+pg@8.11.6_@types+react@19.2.7_react@19.2.3/node_modules/drizzle-orm/pg-core/query-builders/update.js
+var PgUpdateBuilder = class {
+  constructor(table, session, dialect, withList) {
+    this.table = table;
+    this.session = session;
+    this.dialect = dialect;
+    this.withList = withList;
+  }
+  static [entityKind] = "PgUpdateBuilder";
+  authToken;
+  setToken(token) {
+    this.authToken = token;
+    return this;
+  }
+  set(values) {
+    return this.authToken === void 0 ? new PgUpdateBase(
+      this.table,
+      mapUpdateSet(this.table, values),
+      this.session,
+      this.dialect,
+      this.withList
+    ) : new PgUpdateBase(
+      this.table,
+      mapUpdateSet(this.table, values),
+      this.session,
+      this.dialect,
+      this.withList
+    ).setToken(this.authToken);
+  }
+};
+var PgUpdateBase = class extends QueryPromise {
+  constructor(table, set, session, dialect, withList) {
+    super();
+    this.session = session;
+    this.dialect = dialect;
+    this.config = { set, table, withList, joins: [] };
+    this.tableName = getTableLikeName(table);
+    this.joinsNotNullableMap = typeof this.tableName === "string" ? { [this.tableName]: true } : {};
+  }
+  static [entityKind] = "PgUpdate";
+  config;
+  tableName;
+  joinsNotNullableMap;
+  from(source) {
+    const tableName = getTableLikeName(source);
+    if (typeof tableName === "string") {
+      this.joinsNotNullableMap[tableName] = true;
+    }
+    this.config.from = source;
+    return this;
+  }
+  getTableLikeFields(table) {
+    if (is(table, PgTable)) {
+      return table[Table.Symbol.Columns];
+    } else if (is(table, Subquery)) {
+      return table._.selectedFields;
+    }
+    return table[ViewBaseConfig].selectedFields;
+  }
+  createJoin(joinType) {
+    return (table, on) => {
+      const tableName = getTableLikeName(table);
+      if (typeof tableName === "string" && this.config.joins.some((join) => join.alias === tableName)) {
+        throw new Error(`Alias "${tableName}" is already used in this query`);
+      }
+      if (typeof on === "function") {
+        const from = this.config.from && !is(this.config.from, SQL) ? this.getTableLikeFields(this.config.from) : void 0;
+        on = on(
+          new Proxy(
+            this.config.table[Table.Symbol.Columns],
+            new SelectionProxyHandler({ sqlAliasedBehavior: "sql", sqlBehavior: "sql" })
+          ),
+          from && new Proxy(
+            from,
+            new SelectionProxyHandler({ sqlAliasedBehavior: "sql", sqlBehavior: "sql" })
+          )
+        );
+      }
+      this.config.joins.push({ on, table, joinType, alias: tableName });
+      if (typeof tableName === "string") {
+        switch (joinType) {
+          case "left": {
+            this.joinsNotNullableMap[tableName] = false;
+            break;
+          }
+          case "right": {
+            this.joinsNotNullableMap = Object.fromEntries(
+              Object.entries(this.joinsNotNullableMap).map(([key]) => [key, false])
+            );
+            this.joinsNotNullableMap[tableName] = true;
+            break;
+          }
+          case "inner": {
+            this.joinsNotNullableMap[tableName] = true;
+            break;
+          }
+          case "full": {
+            this.joinsNotNullableMap = Object.fromEntries(
+              Object.entries(this.joinsNotNullableMap).map(([key]) => [key, false])
+            );
+            this.joinsNotNullableMap[tableName] = false;
+            break;
+          }
+        }
+      }
+      return this;
+    };
+  }
+  leftJoin = this.createJoin("left");
+  rightJoin = this.createJoin("right");
+  innerJoin = this.createJoin("inner");
+  fullJoin = this.createJoin("full");
+  /**
+   * Adds a 'where' clause to the query.
+   *
+   * Calling this method will update only those rows that fulfill a specified condition.
+   *
+   * See docs: {@link https://orm.drizzle.team/docs/update}
+   *
+   * @param where the 'where' clause.
+   *
+   * @example
+   * You can use conditional operators and `sql function` to filter the rows to be updated.
+   *
+   * ```ts
+   * // Update all cars with green color
+   * await db.update(cars).set({ color: 'red' })
+   *   .where(eq(cars.color, 'green'));
+   * // or
+   * await db.update(cars).set({ color: 'red' })
+   *   .where(sql`${cars.color} = 'green'`)
+   * ```
+   *
+   * You can logically combine conditional operators with `and()` and `or()` operators:
+   *
+   * ```ts
+   * // Update all BMW cars with a green color
+   * await db.update(cars).set({ color: 'red' })
+   *   .where(and(eq(cars.color, 'green'), eq(cars.brand, 'BMW')));
+   *
+   * // Update all cars with the green or blue color
+   * await db.update(cars).set({ color: 'red' })
+   *   .where(or(eq(cars.color, 'green'), eq(cars.color, 'blue')));
+   * ```
+   */
+  where(where) {
+    this.config.where = where;
+    return this;
+  }
+  returning(fields) {
+    if (!fields) {
+      fields = Object.assign({}, this.config.table[Table.Symbol.Columns]);
+      if (this.config.from) {
+        const tableName = getTableLikeName(this.config.from);
+        if (typeof tableName === "string" && this.config.from && !is(this.config.from, SQL)) {
+          const fromFields = this.getTableLikeFields(this.config.from);
+          fields[tableName] = fromFields;
+        }
+        for (const join of this.config.joins) {
+          const tableName2 = getTableLikeName(join.table);
+          if (typeof tableName2 === "string" && !is(join.table, SQL)) {
+            const fromFields = this.getTableLikeFields(join.table);
+            fields[tableName2] = fromFields;
+          }
+        }
+      }
+    }
+    this.config.returning = orderSelectedFields(fields);
+    return this;
+  }
+  /** @internal */
+  getSQL() {
+    return this.dialect.buildUpdateQuery(this.config);
+  }
+  toSQL() {
+    const { typings: _typings, ...rest } = this.dialect.sqlToQuery(this.getSQL());
+    return rest;
+  }
+  /** @internal */
+  _prepare(name) {
+    const query = this.session.prepareQuery(this.dialect.sqlToQuery(this.getSQL()), this.config.returning, name, true);
+    query.joinsNotNullableMap = this.joinsNotNullableMap;
+    return query;
+  }
+  prepare(name) {
+    return this._prepare(name);
+  }
+  authToken;
+  /** @internal */
+  setToken(token) {
+    this.authToken = token;
+    return this;
+  }
+  execute = (placeholderValues) => {
+    return this._prepare().execute(placeholderValues, this.authToken);
+  };
+  $dynamic() {
+    return this;
+  }
+};
+
+// ../../node_modules/.pnpm/drizzle-orm@0.36.4_@neondatabase+serverless@0.9.5_@types+pg@8.11.6_@types+react@19.2.7_react@19.2.3/node_modules/drizzle-orm/pg-core/query-builders/count.js
+var PgCountBuilder = class _PgCountBuilder extends SQL {
+  constructor(params) {
+    super(_PgCountBuilder.buildEmbeddedCount(params.source, params.filters).queryChunks);
+    this.params = params;
+    this.mapWith(Number);
+    this.session = params.session;
+    this.sql = _PgCountBuilder.buildCount(
+      params.source,
+      params.filters
+    );
+  }
+  sql;
+  token;
+  static [entityKind] = "PgCountBuilder";
+  [Symbol.toStringTag] = "PgCountBuilder";
+  session;
+  static buildEmbeddedCount(source, filters) {
+    return sql`(select count(*) from ${source}${sql.raw(" where ").if(filters)}${filters})`;
+  }
+  static buildCount(source, filters) {
+    return sql`select count(*) as count from ${source}${sql.raw(" where ").if(filters)}${filters};`;
+  }
+  /** @intrnal */
+  setToken(token) {
+    this.token = token;
+  }
+  then(onfulfilled, onrejected) {
+    return Promise.resolve(this.session.count(this.sql, this.token)).then(
+      onfulfilled,
+      onrejected
+    );
+  }
+  catch(onRejected) {
+    return this.then(void 0, onRejected);
+  }
+  finally(onFinally) {
+    return this.then(
+      (value) => {
+        onFinally?.();
+        return value;
+      },
+      (reason) => {
+        onFinally?.();
+        throw reason;
+      }
+    );
+  }
+};
+
+// ../../node_modules/.pnpm/drizzle-orm@0.36.4_@neondatabase+serverless@0.9.5_@types+pg@8.11.6_@types+react@19.2.7_react@19.2.3/node_modules/drizzle-orm/pg-core/query-builders/query.js
+var RelationalQueryBuilder = class {
+  constructor(fullSchema, schema, tableNamesMap, table, tableConfig, dialect, session) {
+    this.fullSchema = fullSchema;
+    this.schema = schema;
+    this.tableNamesMap = tableNamesMap;
+    this.table = table;
+    this.tableConfig = tableConfig;
+    this.dialect = dialect;
+    this.session = session;
+  }
+  static [entityKind] = "PgRelationalQueryBuilder";
+  findMany(config2) {
+    return new PgRelationalQuery(
+      this.fullSchema,
+      this.schema,
+      this.tableNamesMap,
+      this.table,
+      this.tableConfig,
+      this.dialect,
+      this.session,
+      config2 ? config2 : {},
+      "many"
+    );
+  }
+  findFirst(config2) {
+    return new PgRelationalQuery(
+      this.fullSchema,
+      this.schema,
+      this.tableNamesMap,
+      this.table,
+      this.tableConfig,
+      this.dialect,
+      this.session,
+      config2 ? { ...config2, limit: 1 } : { limit: 1 },
+      "first"
+    );
+  }
+};
+var PgRelationalQuery = class extends QueryPromise {
+  constructor(fullSchema, schema, tableNamesMap, table, tableConfig, dialect, session, config2, mode) {
+    super();
+    this.fullSchema = fullSchema;
+    this.schema = schema;
+    this.tableNamesMap = tableNamesMap;
+    this.table = table;
+    this.tableConfig = tableConfig;
+    this.dialect = dialect;
+    this.session = session;
+    this.config = config2;
+    this.mode = mode;
+  }
+  static [entityKind] = "PgRelationalQuery";
+  /** @internal */
+  _prepare(name) {
+    return tracer.startActiveSpan("drizzle.prepareQuery", () => {
+      const { query, builtQuery } = this._toSQL();
+      return this.session.prepareQuery(
+        builtQuery,
+        void 0,
+        name,
+        true,
+        (rawRows, mapColumnValue) => {
+          const rows = rawRows.map(
+            (row) => mapRelationalRow(this.schema, this.tableConfig, row, query.selection, mapColumnValue)
+          );
+          if (this.mode === "first") {
+            return rows[0];
+          }
+          return rows;
+        }
+      );
+    });
+  }
+  prepare(name) {
+    return this._prepare(name);
+  }
+  _getQuery() {
+    return this.dialect.buildRelationalQueryWithoutPK({
+      fullSchema: this.fullSchema,
+      schema: this.schema,
+      tableNamesMap: this.tableNamesMap,
+      table: this.table,
+      tableConfig: this.tableConfig,
+      queryConfig: this.config,
+      tableAlias: this.tableConfig.tsName
+    });
+  }
+  /** @internal */
+  getSQL() {
+    return this._getQuery().sql;
+  }
+  _toSQL() {
+    const query = this._getQuery();
+    const builtQuery = this.dialect.sqlToQuery(query.sql);
+    return { query, builtQuery };
+  }
+  toSQL() {
+    return this._toSQL().builtQuery;
+  }
+  authToken;
+  /** @internal */
+  setToken(token) {
+    this.authToken = token;
+    return this;
+  }
+  execute() {
+    return tracer.startActiveSpan("drizzle.operation", () => {
+      return this._prepare().execute(void 0, this.authToken);
+    });
+  }
+};
+
+// ../../node_modules/.pnpm/drizzle-orm@0.36.4_@neondatabase+serverless@0.9.5_@types+pg@8.11.6_@types+react@19.2.7_react@19.2.3/node_modules/drizzle-orm/pg-core/query-builders/raw.js
+var PgRaw = class extends QueryPromise {
+  constructor(execute, sql3, query, mapBatchResult) {
+    super();
+    this.execute = execute;
+    this.sql = sql3;
+    this.query = query;
+    this.mapBatchResult = mapBatchResult;
+  }
+  static [entityKind] = "PgRaw";
+  /** @internal */
+  getSQL() {
+    return this.sql;
+  }
+  getQuery() {
+    return this.query;
+  }
+  mapResult(result, isFromBatch) {
+    return isFromBatch ? this.mapBatchResult(result) : result;
+  }
+  _prepare() {
+    return this;
+  }
+  /** @internal */
+  isResponseInArrayMode() {
+    return false;
+  }
+};
+
+// ../../node_modules/.pnpm/drizzle-orm@0.36.4_@neondatabase+serverless@0.9.5_@types+pg@8.11.6_@types+react@19.2.7_react@19.2.3/node_modules/drizzle-orm/pg-core/db.js
+var PgDatabase = class {
+  constructor(dialect, session, schema) {
+    this.dialect = dialect;
+    this.session = session;
+    this._ = schema ? {
+      schema: schema.schema,
+      fullSchema: schema.fullSchema,
+      tableNamesMap: schema.tableNamesMap,
+      session
+    } : {
+      schema: void 0,
+      fullSchema: {},
+      tableNamesMap: {},
+      session
+    };
+    this.query = {};
+    if (this._.schema) {
+      for (const [tableName, columns] of Object.entries(this._.schema)) {
+        this.query[tableName] = new RelationalQueryBuilder(
+          schema.fullSchema,
+          this._.schema,
+          this._.tableNamesMap,
+          schema.fullSchema[tableName],
+          columns,
+          dialect,
+          session
+        );
+      }
+    }
+  }
+  static [entityKind] = "PgDatabase";
+  query;
+  /**
+   * Creates a subquery that defines a temporary named result set as a CTE.
+   *
+   * It is useful for breaking down complex queries into simpler parts and for reusing the result set in subsequent parts of the query.
+   *
+   * See docs: {@link https://orm.drizzle.team/docs/select#with-clause}
+   *
+   * @param alias The alias for the subquery.
+   *
+   * Failure to provide an alias will result in a DrizzleTypeError, preventing the subquery from being referenced in other queries.
+   *
+   * @example
+   *
+   * ```ts
+   * // Create a subquery with alias 'sq' and use it in the select query
+   * const sq = db.$with('sq').as(db.select().from(users).where(eq(users.id, 42)));
+   *
+   * const result = await db.with(sq).select().from(sq);
+   * ```
+   *
+   * To select arbitrary SQL values as fields in a CTE and reference them in other CTEs or in the main query, you need to add aliases to them:
+   *
+   * ```ts
+   * // Select an arbitrary SQL value as a field in a CTE and reference it in the main query
+   * const sq = db.$with('sq').as(db.select({
+   *   name: sql<string>`upper(${users.name})`.as('name'),
+   * })
+   * .from(users));
+   *
+   * const result = await db.with(sq).select({ name: sq.name }).from(sq);
+   * ```
+   */
+  $with(alias) {
+    const self = this;
+    return {
+      as(qb) {
+        if (typeof qb === "function") {
+          qb = qb(new QueryBuilder(self.dialect));
+        }
+        return new Proxy(
+          new WithSubquery(qb.getSQL(), qb.getSelectedFields(), alias, true),
+          new SelectionProxyHandler({ alias, sqlAliasedBehavior: "alias", sqlBehavior: "error" })
+        );
+      }
+    };
+  }
+  $count(source, filters) {
+    return new PgCountBuilder({ source, filters, session: this.session });
+  }
+  /**
+   * Incorporates a previously defined CTE (using `$with`) into the main query.
+   *
+   * This method allows the main query to reference a temporary named result set.
+   *
+   * See docs: {@link https://orm.drizzle.team/docs/select#with-clause}
+   *
+   * @param queries The CTEs to incorporate into the main query.
+   *
+   * @example
+   *
+   * ```ts
+   * // Define a subquery 'sq' as a CTE using $with
+   * const sq = db.$with('sq').as(db.select().from(users).where(eq(users.id, 42)));
+   *
+   * // Incorporate the CTE 'sq' into the main query and select from it
+   * const result = await db.with(sq).select().from(sq);
+   * ```
+   */
+  with(...queries) {
+    const self = this;
+    function select(fields) {
+      return new PgSelectBuilder({
+        fields: fields ?? void 0,
+        session: self.session,
+        dialect: self.dialect,
+        withList: queries
+      });
+    }
+    function selectDistinct(fields) {
+      return new PgSelectBuilder({
+        fields: fields ?? void 0,
+        session: self.session,
+        dialect: self.dialect,
+        withList: queries,
+        distinct: true
+      });
+    }
+    function selectDistinctOn(on, fields) {
+      return new PgSelectBuilder({
+        fields: fields ?? void 0,
+        session: self.session,
+        dialect: self.dialect,
+        withList: queries,
+        distinct: { on }
+      });
+    }
+    function update(table) {
+      return new PgUpdateBuilder(table, self.session, self.dialect, queries);
+    }
+    function insert(table) {
+      return new PgInsertBuilder(table, self.session, self.dialect, queries);
+    }
+    function delete_(table) {
+      return new PgDeleteBase(table, self.session, self.dialect, queries);
+    }
+    return { select, selectDistinct, selectDistinctOn, update, insert, delete: delete_ };
+  }
+  select(fields) {
+    return new PgSelectBuilder({
+      fields: fields ?? void 0,
+      session: this.session,
+      dialect: this.dialect
+    });
+  }
+  selectDistinct(fields) {
+    return new PgSelectBuilder({
+      fields: fields ?? void 0,
+      session: this.session,
+      dialect: this.dialect,
+      distinct: true
+    });
+  }
+  selectDistinctOn(on, fields) {
+    return new PgSelectBuilder({
+      fields: fields ?? void 0,
+      session: this.session,
+      dialect: this.dialect,
+      distinct: { on }
+    });
+  }
+  /**
+   * Creates an update query.
+   *
+   * Calling this method without `.where()` clause will update all rows in a table. The `.where()` clause specifies which rows should be updated.
+   *
+   * Use `.set()` method to specify which values to update.
+   *
+   * See docs: {@link https://orm.drizzle.team/docs/update}
+   *
+   * @param table The table to update.
+   *
+   * @example
+   *
+   * ```ts
+   * // Update all rows in the 'cars' table
+   * await db.update(cars).set({ color: 'red' });
+   *
+   * // Update rows with filters and conditions
+   * await db.update(cars).set({ color: 'red' }).where(eq(cars.brand, 'BMW'));
+   *
+   * // Update with returning clause
+   * const updatedCar: Car[] = await db.update(cars)
+   *   .set({ color: 'red' })
+   *   .where(eq(cars.id, 1))
+   *   .returning();
+   * ```
+   */
+  update(table) {
+    return new PgUpdateBuilder(table, this.session, this.dialect);
+  }
+  /**
+   * Creates an insert query.
+   *
+   * Calling this method will create new rows in a table. Use `.values()` method to specify which values to insert.
+   *
+   * See docs: {@link https://orm.drizzle.team/docs/insert}
+   *
+   * @param table The table to insert into.
+   *
+   * @example
+   *
+   * ```ts
+   * // Insert one row
+   * await db.insert(cars).values({ brand: 'BMW' });
+   *
+   * // Insert multiple rows
+   * await db.insert(cars).values([{ brand: 'BMW' }, { brand: 'Porsche' }]);
+   *
+   * // Insert with returning clause
+   * const insertedCar: Car[] = await db.insert(cars)
+   *   .values({ brand: 'BMW' })
+   *   .returning();
+   * ```
+   */
+  insert(table) {
+    return new PgInsertBuilder(table, this.session, this.dialect);
+  }
+  /**
+   * Creates a delete query.
+   *
+   * Calling this method without `.where()` clause will delete all rows in a table. The `.where()` clause specifies which rows should be deleted.
+   *
+   * See docs: {@link https://orm.drizzle.team/docs/delete}
+   *
+   * @param table The table to delete from.
+   *
+   * @example
+   *
+   * ```ts
+   * // Delete all rows in the 'cars' table
+   * await db.delete(cars);
+   *
+   * // Delete rows with filters and conditions
+   * await db.delete(cars).where(eq(cars.color, 'green'));
+   *
+   * // Delete with returning clause
+   * const deletedCar: Car[] = await db.delete(cars)
+   *   .where(eq(cars.id, 1))
+   *   .returning();
+   * ```
+   */
+  delete(table) {
+    return new PgDeleteBase(table, this.session, this.dialect);
+  }
+  refreshMaterializedView(view) {
+    return new PgRefreshMaterializedView(view, this.session, this.dialect);
+  }
+  authToken;
+  execute(query) {
+    const sequel = typeof query === "string" ? sql.raw(query) : query.getSQL();
+    const builtQuery = this.dialect.sqlToQuery(sequel);
+    const prepared = this.session.prepareQuery(
+      builtQuery,
+      void 0,
+      void 0,
+      false
+    );
+    return new PgRaw(
+      () => prepared.execute(void 0, this.authToken),
+      sequel,
+      builtQuery,
+      (result) => prepared.mapResult(result, true)
+    );
+  }
+  transaction(transaction, config2) {
+    return this.session.transaction(transaction, config2);
+  }
+};
+
+// ../../node_modules/.pnpm/drizzle-orm@0.36.4_@neondatabase+serverless@0.9.5_@types+pg@8.11.6_@types+react@19.2.7_react@19.2.3/node_modules/drizzle-orm/pg-core/indexes.js
+var IndexBuilderOn = class {
+  constructor(unique, name) {
+    this.unique = unique;
+    this.name = name;
+  }
+  static [entityKind] = "PgIndexBuilderOn";
+  on(...columns) {
+    return new IndexBuilder(
+      columns.map((it) => {
+        if (is(it, SQL)) {
+          return it;
+        }
+        it = it;
+        const clonedIndexedColumn = new IndexedColumn(it.name, !!it.keyAsName, it.columnType, it.indexConfig);
+        it.indexConfig = JSON.parse(JSON.stringify(it.defaultConfig));
+        return clonedIndexedColumn;
+      }),
+      this.unique,
+      false,
+      this.name
+    );
+  }
+  onOnly(...columns) {
+    return new IndexBuilder(
+      columns.map((it) => {
+        if (is(it, SQL)) {
+          return it;
+        }
+        it = it;
+        const clonedIndexedColumn = new IndexedColumn(it.name, !!it.keyAsName, it.columnType, it.indexConfig);
+        it.indexConfig = it.defaultConfig;
+        return clonedIndexedColumn;
+      }),
+      this.unique,
+      true,
+      this.name
+    );
+  }
+  /**
+   * Specify what index method to use. Choices are `btree`, `hash`, `gist`, `spgist`, `gin`, `brin`, or user-installed access methods like `bloom`. The default method is `btree.
+   *
+   * If you have the `pg_vector` extension installed in your database, you can use the `hnsw` and `ivfflat` options, which are predefined types.
+   *
+   * **You can always specify any string you want in the method, in case Drizzle doesn't have it natively in its types**
+   *
+   * @param method The name of the index method to be used
+   * @param columns
+   * @returns
+   */
+  using(method, ...columns) {
+    return new IndexBuilder(
+      columns.map((it) => {
+        if (is(it, SQL)) {
+          return it;
+        }
+        it = it;
+        const clonedIndexedColumn = new IndexedColumn(it.name, !!it.keyAsName, it.columnType, it.indexConfig);
+        it.indexConfig = JSON.parse(JSON.stringify(it.defaultConfig));
+        return clonedIndexedColumn;
+      }),
+      this.unique,
+      true,
+      this.name,
+      method
+    );
+  }
+};
+var IndexBuilder = class {
+  static [entityKind] = "PgIndexBuilder";
+  /** @internal */
+  config;
+  constructor(columns, unique, only, name, method = "btree") {
+    this.config = {
+      name,
+      columns,
+      unique,
+      only,
+      method
+    };
+  }
+  concurrently() {
+    this.config.concurrently = true;
+    return this;
+  }
+  with(obj) {
+    this.config.with = obj;
+    return this;
+  }
+  where(condition) {
+    this.config.where = condition;
+    return this;
+  }
+  /** @internal */
+  build(table) {
+    return new Index(this.config, table);
+  }
+};
+var Index = class {
+  static [entityKind] = "PgIndex";
+  config;
+  constructor(config2, table) {
+    this.config = { ...config2, table };
+  }
+};
+function index(name) {
+  return new IndexBuilderOn(false, name);
+}
+function uniqueIndex(name) {
+  return new IndexBuilderOn(true, name);
+}
+
+// ../../node_modules/.pnpm/drizzle-orm@0.36.4_@neondatabase+serverless@0.9.5_@types+pg@8.11.6_@types+react@19.2.7_react@19.2.3/node_modules/drizzle-orm/pg-core/session.js
+var PgPreparedQuery = class {
+  constructor(query) {
+    this.query = query;
+  }
+  authToken;
+  getQuery() {
+    return this.query;
+  }
+  mapResult(response, _isFromBatch) {
+    return response;
+  }
+  /** @internal */
+  setToken(token) {
+    this.authToken = token;
+    return this;
+  }
+  static [entityKind] = "PgPreparedQuery";
+  /** @internal */
+  joinsNotNullableMap;
+};
+var PgSession = class {
+  constructor(dialect) {
+    this.dialect = dialect;
+  }
+  static [entityKind] = "PgSession";
+  /** @internal */
+  execute(query, token) {
+    return tracer.startActiveSpan("drizzle.operation", () => {
+      const prepared = tracer.startActiveSpan("drizzle.prepareQuery", () => {
+        return this.prepareQuery(
+          this.dialect.sqlToQuery(query),
+          void 0,
+          void 0,
+          false
+        );
+      });
+      return prepared.setToken(token).execute(void 0, token);
+    });
+  }
+  all(query) {
+    return this.prepareQuery(
+      this.dialect.sqlToQuery(query),
+      void 0,
+      void 0,
+      false
+    ).all();
+  }
+  /** @internal */
+  async count(sql22, token) {
+    const res = await this.execute(sql22, token);
+    return Number(
+      res[0]["count"]
+    );
+  }
+};
+var PgTransaction = class extends PgDatabase {
+  constructor(dialect, session, schema, nestedIndex = 0) {
+    super(dialect, session, schema);
+    this.schema = schema;
+    this.nestedIndex = nestedIndex;
+  }
+  static [entityKind] = "PgTransaction";
+  rollback() {
+    throw new TransactionRollbackError();
+  }
+  /** @internal */
+  getTransactionConfigSQL(config2) {
+    const chunks = [];
+    if (config2.isolationLevel) {
+      chunks.push(`isolation level ${config2.isolationLevel}`);
+    }
+    if (config2.accessMode) {
+      chunks.push(config2.accessMode);
+    }
+    if (typeof config2.deferrable === "boolean") {
+      chunks.push(config2.deferrable ? "deferrable" : "not deferrable");
+    }
+    return sql.raw(chunks.join(" "));
+  }
+  setTransaction(config2) {
+    return this.session.execute(sql`set transaction ${this.getTransactionConfigSQL(config2)}`);
+  }
+};
+
+// ../../node_modules/.pnpm/drizzle-orm@0.36.4_@neondatabase+serverless@0.9.5_@types+pg@8.11.6_@types+react@19.2.7_react@19.2.3/node_modules/drizzle-orm/neon-http/session.js
+var rawQueryConfig = {
+  arrayMode: false,
+  fullResults: true
+};
+var queryConfig = {
+  arrayMode: true,
+  fullResults: true
+};
+var NeonHttpPreparedQuery = class extends PgPreparedQuery {
+  constructor(client, query, logger2, fields, _isResponseInArrayMode, customResultMapper) {
+    super(query);
+    this.client = client;
+    this.logger = logger2;
+    this.fields = fields;
+    this._isResponseInArrayMode = _isResponseInArrayMode;
+    this.customResultMapper = customResultMapper;
+  }
+  static [entityKind] = "NeonHttpPreparedQuery";
+  /** @internal */
+  async execute(placeholderValues = {}, token = this.authToken) {
+    const params = fillPlaceholders(this.query.params, placeholderValues);
+    this.logger.logQuery(this.query.sql, params);
+    const { fields, client, query, customResultMapper } = this;
+    if (!fields && !customResultMapper) {
+      return client(
+        query.sql,
+        params,
+        token === void 0 ? rawQueryConfig : {
+          ...rawQueryConfig,
+          authToken: token
+        }
+      );
+    }
+    const result = await client(
+      query.sql,
+      params,
+      token === void 0 ? queryConfig : {
+        ...queryConfig,
+        authToken: token
+      }
+    );
+    return this.mapResult(result);
+  }
+  mapResult(result) {
+    if (!this.fields && !this.customResultMapper) {
+      return result;
+    }
+    const rows = result.rows;
+    if (this.customResultMapper) {
+      return this.customResultMapper(rows);
+    }
+    return rows.map((row) => mapResultRow(this.fields, row, this.joinsNotNullableMap));
+  }
+  all(placeholderValues = {}) {
+    const params = fillPlaceholders(this.query.params, placeholderValues);
+    this.logger.logQuery(this.query.sql, params);
+    return this.client(
+      this.query.sql,
+      params,
+      this.authToken === void 0 ? rawQueryConfig : {
+        ...rawQueryConfig,
+        authToken: this.authToken
+      }
+    ).then((result) => result.rows);
+  }
+  /** @internal */
+  values(placeholderValues = {}, token) {
+    const params = fillPlaceholders(this.query.params, placeholderValues);
+    this.logger.logQuery(this.query.sql, params);
+    return this.client(this.query.sql, params, { arrayMode: true, fullResults: true, authToken: token }).then((result) => result.rows);
+  }
+  /** @internal */
+  isResponseInArrayMode() {
+    return this._isResponseInArrayMode;
+  }
+};
+var NeonHttpSession = class extends PgSession {
+  constructor(client, dialect, schema, options = {}) {
+    super(dialect);
+    this.client = client;
+    this.schema = schema;
+    this.options = options;
+    this.logger = options.logger ?? new NoopLogger();
+  }
+  static [entityKind] = "NeonHttpSession";
+  logger;
+  prepareQuery(query, fields, name, isResponseInArrayMode, customResultMapper) {
+    return new NeonHttpPreparedQuery(
+      this.client,
+      query,
+      this.logger,
+      fields,
+      isResponseInArrayMode,
+      customResultMapper
+    );
+  }
+  async batch(queries) {
+    const preparedQueries = [];
+    const builtQueries = [];
+    for (const query of queries) {
+      const preparedQuery = query._prepare();
+      const builtQuery = preparedQuery.getQuery();
+      preparedQueries.push(preparedQuery);
+      builtQueries.push(
+        this.client(builtQuery.sql, builtQuery.params, {
+          fullResults: true,
+          arrayMode: preparedQuery.isResponseInArrayMode()
+        })
+      );
+    }
+    const batchResults = await this.client.transaction(builtQueries, queryConfig);
+    return batchResults.map((result, i) => preparedQueries[i].mapResult(result, true));
+  }
+  // change return type to QueryRows<true>
+  async query(query, params) {
+    this.logger.logQuery(query, params);
+    const result = await this.client(query, params, { arrayMode: true, fullResults: true });
+    return result;
+  }
+  // change return type to QueryRows<false>
+  async queryObjects(query, params) {
+    return this.client(query, params, { arrayMode: false, fullResults: true });
+  }
+  /** @internal */
+  async count(sql3, token) {
+    const res = await this.execute(sql3, token);
+    return Number(
+      res["rows"][0]["count"]
+    );
+  }
+  async transaction(_transaction, _config = {}) {
+    throw new Error("No transactions support in neon-http driver");
+  }
+};
+var NeonTransaction = class extends PgTransaction {
+  static [entityKind] = "NeonHttpTransaction";
+  async transaction(_transaction) {
+    throw new Error("No transactions support in neon-http driver");
+  }
+};
+
+// ../../node_modules/.pnpm/drizzle-orm@0.36.4_@neondatabase+serverless@0.9.5_@types+pg@8.11.6_@types+react@19.2.7_react@19.2.3/node_modules/drizzle-orm/neon-http/driver.js
+var NeonHttpDriver = class {
+  constructor(client, dialect, options = {}) {
+    this.client = client;
+    this.dialect = dialect;
+    this.options = options;
+    this.initMappers();
+  }
+  static [entityKind] = "NeonHttpDriver";
+  createSession(schema) {
+    return new NeonHttpSession(this.client, this.dialect, schema, { logger: this.options.logger });
+  }
+  initMappers() {
+    import_serverless.types.setTypeParser(import_serverless.types.builtins.TIMESTAMPTZ, (val) => val);
+    import_serverless.types.setTypeParser(import_serverless.types.builtins.TIMESTAMP, (val) => val);
+    import_serverless.types.setTypeParser(import_serverless.types.builtins.DATE, (val) => val);
+    import_serverless.types.setTypeParser(import_serverless.types.builtins.INTERVAL, (val) => val);
+  }
+};
+function wrap(target, token, cb, deep) {
+  return new Proxy(target, {
+    get(target2, p) {
+      const element = target2[p];
+      if (typeof element !== "function" && (typeof element !== "object" || element === null))
+        return element;
+      if (deep)
+        return wrap(element, token, cb);
+      if (p === "query")
+        return wrap(element, token, cb, true);
+      return new Proxy(element, {
+        apply(target3, thisArg, argArray) {
+          const res = target3.call(thisArg, ...argArray);
+          if ("setToken" in res && typeof res.setToken === "function") {
+            res.setToken(token);
+          }
+          return cb(target3, p, res);
+        }
+      });
+    }
+  });
+}
+var NeonHttpDatabase = class extends PgDatabase {
+  static [entityKind] = "NeonHttpDatabase";
+  $withAuth(token) {
+    this.authToken = token;
+    return wrap(this, token, (target, p, res) => {
+      if (p === "with") {
+        return wrap(res, token, (_, __, res2) => res2);
+      }
+      return res;
+    });
+  }
+  async batch(batch) {
+    return this.session.batch(batch);
+  }
+};
+function construct(client, config2 = {}) {
+  const dialect = new PgDialect({ casing: config2.casing });
+  let logger2;
+  if (config2.logger === true) {
+    logger2 = new DefaultLogger();
+  } else if (config2.logger !== false) {
+    logger2 = config2.logger;
+  }
+  let schema;
+  if (config2.schema) {
+    const tablesConfig = extractTablesRelationalConfig(
+      config2.schema,
+      createTableRelationsHelpers
+    );
+    schema = {
+      fullSchema: config2.schema,
+      schema: tablesConfig.tables,
+      tableNamesMap: tablesConfig.tableNamesMap
+    };
+  }
+  const driver = new NeonHttpDriver(client, dialect, { logger: logger2 });
+  const session = driver.createSession(schema);
+  const db2 = new NeonHttpDatabase(
+    dialect,
+    session,
+    schema
+  );
+  db2.$client = client;
+  return db2;
+}
+function drizzle(...params) {
+  if (typeof params[0] === "string") {
+    const instance = (0, import_serverless.neon)(params[0]);
+    return construct(instance, params[1]);
+  }
+  if (isConfig(params[0])) {
+    const { connection, client, ...drizzleConfig } = params[0];
+    if (client)
+      return construct(client, drizzleConfig);
+    if (typeof connection === "object") {
+      const { connectionString, ...options } = connection;
+      const instance2 = (0, import_serverless.neon)(connectionString, options);
+      return construct(instance2, drizzleConfig);
+    }
+    const instance = (0, import_serverless.neon)(connection);
+    return construct(instance, drizzleConfig);
+  }
+  return construct(params[0], params[1]);
+}
+((drizzle2) => {
+  function mock(config2) {
+    return construct({}, config2);
+  }
+  drizzle2.mock = mock;
+})(drizzle || (drizzle = {}));
 
 // ../../packages/database/src/schema/index.ts
 var schema_exports = {};
@@ -348,21 +6996,19 @@ __export(schema_exports, {
 });
 
 // ../../packages/database/src/schema/categories.ts
-var import_pg_core = require("drizzle-orm/pg-core");
-var import_drizzle_orm = require("drizzle-orm");
-var categories = (0, import_pg_core.pgTable)("categories", {
-  id: (0, import_pg_core.uuid)("id").primaryKey().defaultRandom(),
-  name: (0, import_pg_core.varchar)("name", { length: 255 }).notNull(),
-  slug: (0, import_pg_core.varchar)("slug", { length: 255 }).notNull().unique(),
-  description: (0, import_pg_core.text)("description"),
-  imageUrl: (0, import_pg_core.varchar)("image_url", { length: 500 }),
-  parentId: (0, import_pg_core.uuid)("parent_id").references(() => categories.id, { onDelete: "set null" }),
-  isActive: (0, import_pg_core.boolean)("is_active").default(true).notNull(),
-  sortOrder: (0, import_pg_core.integer)("sort_order").default(0).notNull(),
-  createdAt: (0, import_pg_core.timestamp)("created_at").defaultNow().notNull(),
-  updatedAt: (0, import_pg_core.timestamp)("updated_at").defaultNow().notNull()
+var categories = pgTable("categories", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: varchar("name", { length: 255 }).notNull(),
+  slug: varchar("slug", { length: 255 }).notNull().unique(),
+  description: text("description"),
+  imageUrl: varchar("image_url", { length: 500 }),
+  parentId: uuid("parent_id").references(() => categories.id, { onDelete: "set null" }),
+  isActive: boolean("is_active").default(true).notNull(),
+  sortOrder: integer("sort_order").default(0).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
 });
-var categoriesRelations = (0, import_drizzle_orm.relations)(categories, ({ one, many }) => ({
+var categoriesRelations = relations(categories, ({ one, many }) => ({
   parent: one(categories, {
     fields: [categories.parentId],
     references: [categories.id],
@@ -372,79 +7018,77 @@ var categoriesRelations = (0, import_drizzle_orm.relations)(categories, ({ one, 
 }));
 
 // ../../packages/database/src/schema/products.ts
-var import_pg_core2 = require("drizzle-orm/pg-core");
-var import_drizzle_orm2 = require("drizzle-orm");
-var productStatusEnum = (0, import_pg_core2.pgEnum)("product_status", ["draft", "active", "archived"]);
-var products = (0, import_pg_core2.pgTable)("products", {
-  id: (0, import_pg_core2.uuid)("id").primaryKey().defaultRandom(),
-  sku: (0, import_pg_core2.varchar)("sku", { length: 100 }).notNull().unique(),
-  barcode: (0, import_pg_core2.varchar)("barcode", { length: 100 }),
-  name: (0, import_pg_core2.varchar)("name", { length: 255 }).notNull(),
-  slug: (0, import_pg_core2.varchar)("slug", { length: 255 }).notNull().unique(),
-  description: (0, import_pg_core2.text)("description"),
-  shortDescription: (0, import_pg_core2.varchar)("short_description", { length: 500 }),
-  categoryId: (0, import_pg_core2.uuid)("category_id").references(() => categories.id, { onDelete: "set null" }),
-  brand: (0, import_pg_core2.varchar)("brand", { length: 255 }),
+var productStatusEnum = pgEnum("product_status", ["draft", "active", "archived"]);
+var products = pgTable("products", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  sku: varchar("sku", { length: 100 }).notNull().unique(),
+  barcode: varchar("barcode", { length: 100 }),
+  name: varchar("name", { length: 255 }).notNull(),
+  slug: varchar("slug", { length: 255 }).notNull().unique(),
+  description: text("description"),
+  shortDescription: varchar("short_description", { length: 500 }),
+  categoryId: uuid("category_id").references(() => categories.id, { onDelete: "set null" }),
+  brand: varchar("brand", { length: 255 }),
   // Pricing - base price only, calculations done in backend
-  basePrice: (0, import_pg_core2.decimal)("base_price", { precision: 10, scale: 2 }).notNull(),
-  costPrice: (0, import_pg_core2.decimal)("cost_price", { precision: 10, scale: 2 }),
-  compareAtPrice: (0, import_pg_core2.decimal)("compare_at_price", { precision: 10, scale: 2 }),
+  basePrice: decimal("base_price", { precision: 10, scale: 2 }).notNull(),
+  costPrice: decimal("cost_price", { precision: 10, scale: 2 }),
+  compareAtPrice: decimal("compare_at_price", { precision: 10, scale: 2 }),
   // Physical attributes
-  weight: (0, import_pg_core2.decimal)("weight", { precision: 10, scale: 2 }),
+  weight: decimal("weight", { precision: 10, scale: 2 }),
   // in grams
-  dimensions: (0, import_pg_core2.jsonb)("dimensions").$type(),
+  dimensions: jsonb("dimensions").$type(),
   // Inventory
-  stockQuantity: (0, import_pg_core2.integer)("stock_quantity").default(0).notNull(),
-  lowStockThreshold: (0, import_pg_core2.integer)("low_stock_threshold").default(5).notNull(),
-  trackInventory: (0, import_pg_core2.boolean)("track_inventory").default(true).notNull(),
-  allowBackorder: (0, import_pg_core2.boolean)("allow_backorder").default(false).notNull(),
+  stockQuantity: integer("stock_quantity").default(0).notNull(),
+  lowStockThreshold: integer("low_stock_threshold").default(5).notNull(),
+  trackInventory: boolean("track_inventory").default(true).notNull(),
+  allowBackorder: boolean("allow_backorder").default(false).notNull(),
   // Media - stored as JSON arrays
-  images: (0, import_pg_core2.jsonb)("images").default([]).$type(),
-  videos: (0, import_pg_core2.jsonb)("videos").default([]).$type(),
-  thumbnailUrl: (0, import_pg_core2.varchar)("thumbnail_url", { length: 500 }),
+  images: jsonb("images").default([]).$type(),
+  videos: jsonb("videos").default([]).$type(),
+  thumbnailUrl: varchar("thumbnail_url", { length: 500 }),
   // Organization & categorization
-  tags: (0, import_pg_core2.jsonb)("tags").default([]).$type(),
-  specifications: (0, import_pg_core2.jsonb)("specifications").default({}).$type(),
-  features: (0, import_pg_core2.jsonb)("features").default([]).$type(),
+  tags: jsonb("tags").default([]).$type(),
+  specifications: jsonb("specifications").default({}).$type(),
+  features: jsonb("features").default([]).$type(),
   // SEO
-  metaTitle: (0, import_pg_core2.varchar)("meta_title", { length: 255 }),
-  metaDescription: (0, import_pg_core2.varchar)("meta_description", { length: 500 }),
+  metaTitle: varchar("meta_title", { length: 255 }),
+  metaDescription: varchar("meta_description", { length: 500 }),
   // Status & flags
   status: productStatusEnum("status").default("draft").notNull(),
-  isFeatured: (0, import_pg_core2.boolean)("is_featured").default(false).notNull(),
-  isDigital: (0, import_pg_core2.boolean)("is_digital").default(false).notNull(),
-  requiresShipping: (0, import_pg_core2.boolean)("requires_shipping").default(true).notNull(),
+  isFeatured: boolean("is_featured").default(false).notNull(),
+  isDigital: boolean("is_digital").default(false).notNull(),
+  requiresShipping: boolean("requires_shipping").default(true).notNull(),
   // Supplier information
-  supplierId: (0, import_pg_core2.varchar)("supplier_id", { length: 255 }),
-  supplierSku: (0, import_pg_core2.varchar)("supplier_sku", { length: 255 }),
+  supplierId: varchar("supplier_id", { length: 255 }),
+  supplierSku: varchar("supplier_sku", { length: 255 }),
   // Import tracking
-  importedFrom: (0, import_pg_core2.varchar)("imported_from", { length: 255 }),
-  externalUrl: (0, import_pg_core2.varchar)("external_url", { length: 500 }),
+  importedFrom: varchar("imported_from", { length: 255 }),
+  externalUrl: varchar("external_url", { length: 500 }),
   // Timestamps
-  createdAt: (0, import_pg_core2.timestamp)("created_at").defaultNow().notNull(),
-  updatedAt: (0, import_pg_core2.timestamp)("updated_at").defaultNow().notNull()
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
 });
-var productVariants = (0, import_pg_core2.pgTable)("product_variants", {
-  id: (0, import_pg_core2.uuid)("id").primaryKey().defaultRandom(),
-  productId: (0, import_pg_core2.uuid)("product_id").references(() => products.id, { onDelete: "cascade" }).notNull(),
-  sku: (0, import_pg_core2.varchar)("sku", { length: 100 }).notNull().unique(),
-  name: (0, import_pg_core2.varchar)("name", { length: 255 }).notNull(),
-  options: (0, import_pg_core2.jsonb)("options").notNull().$type(),
-  basePrice: (0, import_pg_core2.decimal)("base_price", { precision: 10, scale: 2 }).notNull(),
-  stockQuantity: (0, import_pg_core2.integer)("stock_quantity").default(0).notNull(),
-  imageUrl: (0, import_pg_core2.varchar)("image_url", { length: 500 }),
-  isActive: (0, import_pg_core2.boolean)("is_active").default(true).notNull(),
-  createdAt: (0, import_pg_core2.timestamp)("created_at").defaultNow().notNull(),
-  updatedAt: (0, import_pg_core2.timestamp)("updated_at").defaultNow().notNull()
+var productVariants = pgTable("product_variants", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  productId: uuid("product_id").references(() => products.id, { onDelete: "cascade" }).notNull(),
+  sku: varchar("sku", { length: 100 }).notNull().unique(),
+  name: varchar("name", { length: 255 }).notNull(),
+  options: jsonb("options").notNull().$type(),
+  basePrice: decimal("base_price", { precision: 10, scale: 2 }).notNull(),
+  stockQuantity: integer("stock_quantity").default(0).notNull(),
+  imageUrl: varchar("image_url", { length: 500 }),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
 });
-var productsRelations = (0, import_drizzle_orm2.relations)(products, ({ one, many }) => ({
+var productsRelations = relations(products, ({ one, many }) => ({
   category: one(categories, {
     fields: [products.categoryId],
     references: [categories.id]
   }),
   variants: many(productVariants)
 }));
-var productVariantsRelations = (0, import_drizzle_orm2.relations)(productVariants, ({ one }) => ({
+var productVariantsRelations = relations(productVariants, ({ one }) => ({
   product: one(products, {
     fields: [productVariants.productId],
     references: [products.id]
@@ -452,152 +7096,149 @@ var productVariantsRelations = (0, import_drizzle_orm2.relations)(productVariant
 }));
 
 // ../../packages/database/src/schema/customers.ts
-var import_pg_core3 = require("drizzle-orm/pg-core");
-var import_drizzle_orm3 = require("drizzle-orm");
-var customers = (0, import_pg_core3.pgTable)("customers", {
-  id: (0, import_pg_core3.uuid)("id").primaryKey().defaultRandom(),
-  authUserId: (0, import_pg_core3.varchar)("auth_user_id", { length: 255 }).unique(),
-  email: (0, import_pg_core3.varchar)("email", { length: 255 }).notNull(),
-  firstName: (0, import_pg_core3.varchar)("first_name", { length: 100 }),
-  lastName: (0, import_pg_core3.varchar)("last_name", { length: 100 }),
-  phone: (0, import_pg_core3.varchar)("phone", { length: 50 }),
+var customers = pgTable("customers", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  authUserId: varchar("auth_user_id", { length: 255 }).unique(),
+  email: varchar("email", { length: 255 }).notNull(),
+  firstName: varchar("first_name", { length: 100 }),
+  lastName: varchar("last_name", { length: 100 }),
+  phone: varchar("phone", { length: 50 }),
   // Authentication
-  passwordHash: (0, import_pg_core3.varchar)("password_hash", { length: 255 }),
-  role: (0, import_pg_core3.varchar)("role", { length: 20 }).default("customer").notNull(),
+  passwordHash: varchar("password_hash", { length: 255 }),
+  role: varchar("role", { length: 20 }).default("customer").notNull(),
   // 'customer' | 'admin'
   // Email verification
-  emailVerified: (0, import_pg_core3.boolean)("email_verified").default(false).notNull(),
-  emailVerifiedAt: (0, import_pg_core3.timestamp)("email_verified_at"),
+  emailVerified: boolean("email_verified").default(false).notNull(),
+  emailVerifiedAt: timestamp("email_verified_at"),
   // Default addresses stored as JSON
-  defaultShippingAddress: (0, import_pg_core3.jsonb)("default_shipping_address").$type(),
-  defaultBillingAddress: (0, import_pg_core3.jsonb)("default_billing_address").$type(),
+  defaultShippingAddress: jsonb("default_shipping_address").$type(),
+  defaultBillingAddress: jsonb("default_billing_address").$type(),
+  // Account security
+  accountLocked: boolean("account_locked").default(false).notNull(),
+  accountLockedAt: timestamp("account_locked_at"),
+  accountLockedReason: text("account_locked_reason"),
   // Customer data
-  isGuest: (0, import_pg_core3.boolean)("is_guest").default(false).notNull(),
-  isActive: (0, import_pg_core3.boolean)("is_active").default(true).notNull(),
-  acceptsMarketing: (0, import_pg_core3.boolean)("accepts_marketing").default(false).notNull(),
-  notes: (0, import_pg_core3.text)("notes"),
-  tags: (0, import_pg_core3.varchar)("tags", { length: 255 }).array(),
+  isGuest: boolean("is_guest").default(false).notNull(),
+  isActive: boolean("is_active").default(true).notNull(),
+  acceptsMarketing: boolean("accepts_marketing").default(false).notNull(),
+  notes: text("notes"),
+  tags: varchar("tags", { length: 255 }).array(),
   // Stats (count only, totals calculated)
-  orderCount: (0, import_pg_core3.integer)("order_count").default(0).notNull(),
-  createdAt: (0, import_pg_core3.timestamp)("created_at").defaultNow().notNull(),
-  updatedAt: (0, import_pg_core3.timestamp)("updated_at").defaultNow().notNull()
+  orderCount: integer("order_count").default(0).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
 });
-var addresses = (0, import_pg_core3.pgTable)("addresses", {
-  id: (0, import_pg_core3.uuid)("id").primaryKey().defaultRandom(),
-  customerId: (0, import_pg_core3.uuid)("customer_id").references(() => customers.id, { onDelete: "cascade" }).notNull(),
-  type: (0, import_pg_core3.varchar)("type", { length: 50 }).notNull(),
+var addresses = pgTable("addresses", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  customerId: uuid("customer_id").references(() => customers.id, { onDelete: "cascade" }).notNull(),
+  type: varchar("type", { length: 50 }).notNull(),
   // 'shipping' | 'billing'
-  firstName: (0, import_pg_core3.varchar)("first_name", { length: 100 }).notNull(),
-  lastName: (0, import_pg_core3.varchar)("last_name", { length: 100 }).notNull(),
-  company: (0, import_pg_core3.varchar)("company", { length: 255 }),
-  addressLine1: (0, import_pg_core3.varchar)("address_line1", { length: 255 }).notNull(),
-  addressLine2: (0, import_pg_core3.varchar)("address_line2", { length: 255 }),
-  city: (0, import_pg_core3.varchar)("city", { length: 100 }).notNull(),
-  state: (0, import_pg_core3.varchar)("state", { length: 100 }),
-  postalCode: (0, import_pg_core3.varchar)("postal_code", { length: 20 }),
-  country: (0, import_pg_core3.varchar)("country", { length: 100 }).notNull(),
-  phone: (0, import_pg_core3.varchar)("phone", { length: 50 }),
-  isDefault: (0, import_pg_core3.boolean)("is_default").default(false).notNull(),
-  createdAt: (0, import_pg_core3.timestamp)("created_at").defaultNow().notNull(),
-  updatedAt: (0, import_pg_core3.timestamp)("updated_at").defaultNow().notNull()
+  firstName: varchar("first_name", { length: 100 }).notNull(),
+  lastName: varchar("last_name", { length: 100 }).notNull(),
+  company: varchar("company", { length: 255 }),
+  addressLine1: varchar("address_line1", { length: 255 }).notNull(),
+  addressLine2: varchar("address_line2", { length: 255 }),
+  city: varchar("city", { length: 100 }).notNull(),
+  state: varchar("state", { length: 100 }),
+  postalCode: varchar("postal_code", { length: 20 }),
+  country: varchar("country", { length: 100 }).notNull(),
+  phone: varchar("phone", { length: 50 }),
+  isDefault: boolean("is_default").default(false).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
 });
-var customersRelations = (0, import_drizzle_orm3.relations)(customers, ({ many }) => ({
+var customersRelations = relations(customers, ({ many }) => ({
   addresses: many(addresses)
 }));
-var addressesRelations = (0, import_drizzle_orm3.relations)(addresses, ({ one }) => ({
+var addressesRelations = relations(addresses, ({ one }) => ({
   customer: one(customers, {
     fields: [addresses.customerId],
     references: [customers.id]
   })
 }));
 
-// ../../packages/database/src/schema/orders.ts
-var import_pg_core5 = require("drizzle-orm/pg-core");
-var import_drizzle_orm4 = require("drizzle-orm");
-
 // ../../packages/database/src/schema/promoCodes.ts
-var import_pg_core4 = require("drizzle-orm/pg-core");
-var discountTypeEnum = (0, import_pg_core4.pgEnum)("discount_type", ["percentage", "fixed_amount"]);
-var promoCodes = (0, import_pg_core4.pgTable)("promo_codes", {
-  id: (0, import_pg_core4.uuid)("id").primaryKey().defaultRandom(),
-  code: (0, import_pg_core4.varchar)("code", { length: 50 }).notNull().unique(),
-  description: (0, import_pg_core4.text)("description"),
+var discountTypeEnum = pgEnum("discount_type", ["percentage", "fixed_amount"]);
+var promoCodes = pgTable("promo_codes", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  code: varchar("code", { length: 50 }).notNull().unique(),
+  description: text("description"),
   // Discount type
   discountType: discountTypeEnum("discount_type").notNull(),
-  discountValue: (0, import_pg_core4.decimal)("discount_value", { precision: 10, scale: 2 }).notNull(),
+  discountValue: decimal("discount_value", { precision: 10, scale: 2 }).notNull(),
   // Constraints
-  minimumOrderAmount: (0, import_pg_core4.decimal)("minimum_order_amount", { precision: 10, scale: 2 }),
-  maximumDiscountAmount: (0, import_pg_core4.decimal)("maximum_discount_amount", { precision: 10, scale: 2 }),
-  usageLimit: (0, import_pg_core4.integer)("usage_limit"),
-  usageCount: (0, import_pg_core4.integer)("usage_count").default(0).notNull(),
-  usageLimitPerCustomer: (0, import_pg_core4.integer)("usage_limit_per_customer").default(1).notNull(),
+  minimumOrderAmount: decimal("minimum_order_amount", { precision: 10, scale: 2 }),
+  maximumDiscountAmount: decimal("maximum_discount_amount", { precision: 10, scale: 2 }),
+  usageLimit: integer("usage_limit"),
+  usageCount: integer("usage_count").default(0).notNull(),
+  usageLimitPerCustomer: integer("usage_limit_per_customer").default(1).notNull(),
   // Validity
-  startsAt: (0, import_pg_core4.timestamp)("starts_at"),
-  expiresAt: (0, import_pg_core4.timestamp)("expires_at"),
-  isActive: (0, import_pg_core4.boolean)("is_active").default(true).notNull(),
+  startsAt: timestamp("starts_at"),
+  expiresAt: timestamp("expires_at"),
+  isActive: boolean("is_active").default(true).notNull(),
   // Restrictions (stored as UUID arrays)
-  appliesToProducts: (0, import_pg_core4.uuid)("applies_to_products").array(),
-  appliesToCategories: (0, import_pg_core4.uuid)("applies_to_categories").array(),
-  customerIds: (0, import_pg_core4.uuid)("customer_ids").array(),
-  createdAt: (0, import_pg_core4.timestamp)("created_at").defaultNow().notNull(),
-  updatedAt: (0, import_pg_core4.timestamp)("updated_at").defaultNow().notNull()
+  appliesToProducts: uuid("applies_to_products").array(),
+  appliesToCategories: uuid("applies_to_categories").array(),
+  customerIds: uuid("customer_ids").array(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
 });
 
 // ../../packages/database/src/schema/orders.ts
-var orderStatusEnum = (0, import_pg_core5.pgEnum)("order_status", ["pending", "confirmed", "processing", "shipped", "delivered", "cancelled"]);
-var paymentStatusEnum = (0, import_pg_core5.pgEnum)("payment_status", ["pending", "paid", "refunded", "failed"]);
-var paymentMethodEnum = (0, import_pg_core5.pgEnum)("payment_method", ["cod", "stripe", "paypal", "bank_transfer", "cash"]);
-var orders = (0, import_pg_core5.pgTable)("orders", {
-  id: (0, import_pg_core5.uuid)("id").primaryKey().defaultRandom(),
-  orderNumber: (0, import_pg_core5.varchar)("order_number", { length: 50 }).notNull().unique(),
-  customerId: (0, import_pg_core5.uuid)("customer_id").references(() => customers.id, { onDelete: "set null" }),
+var orderStatusEnum = pgEnum("order_status", ["pending", "confirmed", "processing", "shipped", "delivered", "cancelled"]);
+var paymentStatusEnum = pgEnum("payment_status", ["pending", "paid", "refunded", "failed"]);
+var paymentMethodEnum = pgEnum("payment_method", ["cod", "stripe", "paypal", "bank_transfer", "cash"]);
+var orders = pgTable("orders", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  orderNumber: varchar("order_number", { length: 50 }).notNull().unique(),
+  customerId: uuid("customer_id").references(() => customers.id, { onDelete: "set null" }),
   // Status tracking
   status: orderStatusEnum("status").default("pending").notNull(),
   paymentStatus: paymentStatusEnum("payment_status").default("pending").notNull(),
   // Addresses (snapshot at time of order)
-  shippingAddress: (0, import_pg_core5.jsonb)("shipping_address").notNull().$type(),
-  billingAddress: (0, import_pg_core5.jsonb)("billing_address").notNull().$type(),
+  shippingAddress: jsonb("shipping_address").notNull().$type(),
+  billingAddress: jsonb("billing_address").notNull().$type(),
   // Pricing stored as snapshot (calculated at checkout time)
   // CRITICAL: These are snapshots, not live calculated values
-  currency: (0, import_pg_core5.varchar)("currency", { length: 3 }).default("USD").notNull(),
-  subtotalSnapshot: (0, import_pg_core5.decimal)("subtotal_snapshot", { precision: 10, scale: 2 }).notNull(),
-  taxRateSnapshot: (0, import_pg_core5.decimal)("tax_rate_snapshot", { precision: 5, scale: 4 }).notNull(),
-  taxAmountSnapshot: (0, import_pg_core5.decimal)("tax_amount_snapshot", { precision: 10, scale: 2 }).notNull(),
-  shippingAmountSnapshot: (0, import_pg_core5.decimal)("shipping_amount_snapshot", { precision: 10, scale: 2 }).default("0").notNull(),
-  discountAmountSnapshot: (0, import_pg_core5.decimal)("discount_amount_snapshot", { precision: 10, scale: 2 }).default("0").notNull(),
-  totalSnapshot: (0, import_pg_core5.decimal)("total_snapshot", { precision: 10, scale: 2 }).notNull(),
+  currency: varchar("currency", { length: 3 }).default("USD").notNull(),
+  subtotalSnapshot: decimal("subtotal_snapshot", { precision: 10, scale: 2 }).notNull(),
+  taxRateSnapshot: decimal("tax_rate_snapshot", { precision: 5, scale: 4 }).notNull(),
+  taxAmountSnapshot: decimal("tax_amount_snapshot", { precision: 10, scale: 2 }).notNull(),
+  shippingAmountSnapshot: decimal("shipping_amount_snapshot", { precision: 10, scale: 2 }).default("0").notNull(),
+  discountAmountSnapshot: decimal("discount_amount_snapshot", { precision: 10, scale: 2 }).default("0").notNull(),
+  totalSnapshot: decimal("total_snapshot", { precision: 10, scale: 2 }).notNull(),
   // Promo code used
-  promoCodeId: (0, import_pg_core5.uuid)("promo_code_id").references(() => promoCodes.id, { onDelete: "set null" }),
-  promoCodeSnapshot: (0, import_pg_core5.varchar)("promo_code_snapshot", { length: 50 }),
+  promoCodeId: uuid("promo_code_id").references(() => promoCodes.id, { onDelete: "set null" }),
+  promoCodeSnapshot: varchar("promo_code_snapshot", { length: 50 }),
   // Payment
   paymentMethod: paymentMethodEnum("payment_method").default("cod").notNull(),
   // Shipping
-  shippingMethod: (0, import_pg_core5.varchar)("shipping_method", { length: 100 }),
-  trackingNumber: (0, import_pg_core5.varchar)("tracking_number", { length: 255 }),
-  confirmedAt: (0, import_pg_core5.timestamp)("confirmed_at"),
-  processingAt: (0, import_pg_core5.timestamp)("processing_at"),
-  shippedAt: (0, import_pg_core5.timestamp)("shipped_at"),
-  deliveredAt: (0, import_pg_core5.timestamp)("delivered_at"),
+  shippingMethod: varchar("shipping_method", { length: 100 }),
+  trackingNumber: varchar("tracking_number", { length: 255 }),
+  confirmedAt: timestamp("confirmed_at"),
+  processingAt: timestamp("processing_at"),
+  shippedAt: timestamp("shipped_at"),
+  deliveredAt: timestamp("delivered_at"),
   // Notes
-  customerNotes: (0, import_pg_core5.text)("customer_notes"),
-  adminNotes: (0, import_pg_core5.text)("admin_notes"),
-  createdAt: (0, import_pg_core5.timestamp)("created_at").defaultNow().notNull(),
-  updatedAt: (0, import_pg_core5.timestamp)("updated_at").defaultNow().notNull()
+  customerNotes: text("customer_notes"),
+  adminNotes: text("admin_notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
 });
-var orderItems = (0, import_pg_core5.pgTable)("order_items", {
-  id: (0, import_pg_core5.uuid)("id").primaryKey().defaultRandom(),
-  orderId: (0, import_pg_core5.uuid)("order_id").references(() => orders.id, { onDelete: "cascade" }).notNull(),
-  productId: (0, import_pg_core5.uuid)("product_id").references(() => products.id, { onDelete: "set null" }),
-  variantId: (0, import_pg_core5.uuid)("variant_id").references(() => productVariants.id, { onDelete: "set null" }),
+var orderItems = pgTable("order_items", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  orderId: uuid("order_id").references(() => orders.id, { onDelete: "cascade" }).notNull(),
+  productId: uuid("product_id").references(() => products.id, { onDelete: "set null" }),
+  variantId: uuid("variant_id").references(() => productVariants.id, { onDelete: "set null" }),
   // Snapshot data (in case product changes later)
-  productNameSnapshot: (0, import_pg_core5.varchar)("product_name_snapshot", { length: 255 }).notNull(),
-  skuSnapshot: (0, import_pg_core5.varchar)("sku_snapshot", { length: 100 }).notNull(),
-  variantOptionsSnapshot: (0, import_pg_core5.jsonb)("variant_options_snapshot").$type(),
-  quantity: (0, import_pg_core5.integer)("quantity").notNull(),
-  unitPriceSnapshot: (0, import_pg_core5.decimal)("unit_price_snapshot", { precision: 10, scale: 2 }).notNull(),
-  createdAt: (0, import_pg_core5.timestamp)("created_at").defaultNow().notNull()
+  productNameSnapshot: varchar("product_name_snapshot", { length: 255 }).notNull(),
+  skuSnapshot: varchar("sku_snapshot", { length: 100 }).notNull(),
+  variantOptionsSnapshot: jsonb("variant_options_snapshot").$type(),
+  quantity: integer("quantity").notNull(),
+  unitPriceSnapshot: decimal("unit_price_snapshot", { precision: 10, scale: 2 }).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull()
 });
-var ordersRelations = (0, import_drizzle_orm4.relations)(orders, ({ one, many }) => ({
+var ordersRelations = relations(orders, ({ one, many }) => ({
   customer: one(customers, {
     fields: [orders.customerId],
     references: [customers.id]
@@ -608,7 +7249,7 @@ var ordersRelations = (0, import_drizzle_orm4.relations)(orders, ({ one, many })
   }),
   items: many(orderItems)
 }));
-var orderItemsRelations = (0, import_drizzle_orm4.relations)(orderItems, ({ one }) => ({
+var orderItemsRelations = relations(orderItems, ({ one }) => ({
   order: one(orders, {
     fields: [orderItems.orderId],
     references: [orders.id]
@@ -623,90 +7264,85 @@ var orderItemsRelations = (0, import_drizzle_orm4.relations)(orderItems, ({ one 
   })
 }));
 
-// ../../packages/database/src/schema/quotations.ts
-var import_pg_core7 = require("drizzle-orm/pg-core");
-var import_drizzle_orm5 = require("drizzle-orm");
-
 // ../../packages/database/src/schema/pdfTemplates.ts
-var import_pg_core6 = require("drizzle-orm/pg-core");
-var pdfTemplates = (0, import_pg_core6.pgTable)("pdf_templates", {
-  id: (0, import_pg_core6.uuid)("id").primaryKey().defaultRandom(),
-  name: (0, import_pg_core6.varchar)("name", { length: 100 }).notNull(),
-  isDefault: (0, import_pg_core6.boolean)("is_default").default(false).notNull(),
+var pdfTemplates = pgTable("pdf_templates", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: varchar("name", { length: 100 }).notNull(),
+  isDefault: boolean("is_default").default(false).notNull(),
   // Branding
-  logoUrl: (0, import_pg_core6.varchar)("logo_url", { length: 500 }),
-  primaryColor: (0, import_pg_core6.varchar)("primary_color", { length: 7 }).default("#1a1a2e").notNull(),
-  accentColor: (0, import_pg_core6.varchar)("accent_color", { length: 7 }).default("#0066cc").notNull(),
+  logoUrl: varchar("logo_url", { length: 500 }),
+  primaryColor: varchar("primary_color", { length: 7 }).default("#1a1a2e").notNull(),
+  accentColor: varchar("accent_color", { length: 7 }).default("#0066cc").notNull(),
   // Display options
-  showCompanyLogo: (0, import_pg_core6.boolean)("show_company_logo").default(true).notNull(),
-  showLineItemImages: (0, import_pg_core6.boolean)("show_line_item_images").default(false).notNull(),
-  showLineItemDescription: (0, import_pg_core6.boolean)("show_line_item_description").default(false).notNull(),
-  showSku: (0, import_pg_core6.boolean)("show_sku").default(true).notNull(),
+  showCompanyLogo: boolean("show_company_logo").default(true).notNull(),
+  showLineItemImages: boolean("show_line_item_images").default(false).notNull(),
+  showLineItemDescription: boolean("show_line_item_description").default(false).notNull(),
+  showSku: boolean("show_sku").default(true).notNull(),
   // Custom text
-  headerText: (0, import_pg_core6.text)("header_text"),
-  footerText: (0, import_pg_core6.text)("footer_text"),
-  thankYouMessage: (0, import_pg_core6.text)("thank_you_message"),
+  headerText: text("header_text"),
+  footerText: text("footer_text"),
+  thankYouMessage: text("thank_you_message"),
   // Metadata
-  createdAt: (0, import_pg_core6.timestamp)("created_at").defaultNow().notNull(),
-  updatedAt: (0, import_pg_core6.timestamp)("updated_at").defaultNow().notNull()
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
 });
 
 // ../../packages/database/src/schema/quotations.ts
-var quotationStatusEnum = (0, import_pg_core7.pgEnum)("quotation_status", ["draft", "sent", "accepted", "rejected", "expired"]);
-var quotations = (0, import_pg_core7.pgTable)("quotations", {
-  id: (0, import_pg_core7.uuid)("id").primaryKey().defaultRandom(),
-  quotationNumber: (0, import_pg_core7.varchar)("quotation_number", { length: 50 }).notNull().unique(),
-  customerId: (0, import_pg_core7.uuid)("customer_id").references(() => customers.id, { onDelete: "set null" }),
+var quotationStatusEnum = pgEnum("quotation_status", ["draft", "sent", "accepted", "rejected", "expired"]);
+var quotations = pgTable("quotations", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  quotationNumber: varchar("quotation_number", { length: 50 }).notNull().unique(),
+  customerId: uuid("customer_id").references(() => customers.id, { onDelete: "set null" }),
   // Customer info (for non-registered customers)
-  customerName: (0, import_pg_core7.varchar)("customer_name", { length: 255 }).notNull(),
-  customerEmail: (0, import_pg_core7.varchar)("customer_email", { length: 255 }).notNull(),
-  customerPhone: (0, import_pg_core7.varchar)("customer_phone", { length: 50 }),
-  customerCompany: (0, import_pg_core7.varchar)("customer_company", { length: 255 }),
-  customerAddress: (0, import_pg_core7.jsonb)("customer_address").$type(),
+  customerName: varchar("customer_name", { length: 255 }).notNull(),
+  customerEmail: varchar("customer_email", { length: 255 }).notNull(),
+  customerPhone: varchar("customer_phone", { length: 50 }),
+  customerCompany: varchar("customer_company", { length: 255 }),
+  customerAddress: jsonb("customer_address").$type(),
   // Status
   status: quotationStatusEnum("status").default("draft").notNull(),
   // Validity
-  validUntil: (0, import_pg_core7.timestamp)("valid_until"),
-  validDays: (0, import_pg_core7.integer)("valid_days").default(30),
+  validUntil: timestamp("valid_until"),
+  validDays: integer("valid_days").default(30),
   // Pricing (calculated at generation time)
-  currency: (0, import_pg_core7.varchar)("currency", { length: 3 }).default("USD").notNull(),
-  subtotal: (0, import_pg_core7.decimal)("subtotal", { precision: 10, scale: 2 }).notNull(),
-  taxRate: (0, import_pg_core7.decimal)("tax_rate", { precision: 5, scale: 4 }),
-  taxAmount: (0, import_pg_core7.decimal)("tax_amount", { precision: 10, scale: 2 }),
-  discountType: (0, import_pg_core7.varchar)("discount_type", { length: 20 }),
+  currency: varchar("currency", { length: 3 }).default("USD").notNull(),
+  subtotal: decimal("subtotal", { precision: 10, scale: 2 }).notNull(),
+  taxRate: decimal("tax_rate", { precision: 5, scale: 4 }),
+  taxAmount: decimal("tax_amount", { precision: 10, scale: 2 }),
+  discountType: varchar("discount_type", { length: 20 }),
   // 'percentage' or 'fixed'
-  discountValue: (0, import_pg_core7.decimal)("discount_value", { precision: 10, scale: 2 }),
-  discountAmount: (0, import_pg_core7.decimal)("discount_amount", { precision: 10, scale: 2 }).default("0").notNull(),
-  total: (0, import_pg_core7.decimal)("total", { precision: 10, scale: 2 }).notNull(),
+  discountValue: decimal("discount_value", { precision: 10, scale: 2 }),
+  discountAmount: decimal("discount_amount", { precision: 10, scale: 2 }).default("0").notNull(),
+  total: decimal("total", { precision: 10, scale: 2 }).notNull(),
   // Notes
-  notes: (0, import_pg_core7.text)("notes"),
-  termsAndConditions: (0, import_pg_core7.text)("terms_and_conditions"),
+  notes: text("notes"),
+  termsAndConditions: text("terms_and_conditions"),
   // PDF
-  pdfUrl: (0, import_pg_core7.varchar)("pdf_url", { length: 500 }),
-  pdfTemplateId: (0, import_pg_core7.uuid)("pdf_template_id").references(() => pdfTemplates.id, { onDelete: "set null" }),
+  pdfUrl: varchar("pdf_url", { length: 500 }),
+  pdfTemplateId: uuid("pdf_template_id").references(() => pdfTemplates.id, { onDelete: "set null" }),
   // Converted to order
-  convertedToOrderId: (0, import_pg_core7.uuid)("converted_to_order_id").references(() => orders.id, { onDelete: "set null" }),
+  convertedToOrderId: uuid("converted_to_order_id").references(() => orders.id, { onDelete: "set null" }),
   // Customer acceptance link
-  acceptanceToken: (0, import_pg_core7.varchar)("acceptance_token", { length: 64 }).unique(),
-  tokenExpiresAt: (0, import_pg_core7.timestamp)("token_expires_at"),
-  viewedAt: (0, import_pg_core7.timestamp)("viewed_at"),
-  createdAt: (0, import_pg_core7.timestamp)("created_at").defaultNow().notNull(),
-  updatedAt: (0, import_pg_core7.timestamp)("updated_at").defaultNow().notNull()
+  acceptanceToken: varchar("acceptance_token", { length: 64 }).unique(),
+  tokenExpiresAt: timestamp("token_expires_at"),
+  viewedAt: timestamp("viewed_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
 });
-var quotationItems = (0, import_pg_core7.pgTable)("quotation_items", {
-  id: (0, import_pg_core7.uuid)("id").primaryKey().defaultRandom(),
-  quotationId: (0, import_pg_core7.uuid)("quotation_id").references(() => quotations.id, { onDelete: "cascade" }).notNull(),
-  productId: (0, import_pg_core7.uuid)("product_id").references(() => products.id, { onDelete: "set null" }),
-  variantId: (0, import_pg_core7.uuid)("variant_id").references(() => productVariants.id, { onDelete: "set null" }),
+var quotationItems = pgTable("quotation_items", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  quotationId: uuid("quotation_id").references(() => quotations.id, { onDelete: "cascade" }).notNull(),
+  productId: uuid("product_id").references(() => products.id, { onDelete: "set null" }),
+  variantId: uuid("variant_id").references(() => productVariants.id, { onDelete: "set null" }),
   // Item details (can be custom items not in catalog)
-  name: (0, import_pg_core7.varchar)("name", { length: 255 }).notNull(),
-  description: (0, import_pg_core7.text)("description"),
-  sku: (0, import_pg_core7.varchar)("sku", { length: 100 }),
-  quantity: (0, import_pg_core7.integer)("quantity").notNull(),
-  unitPrice: (0, import_pg_core7.decimal)("unit_price", { precision: 10, scale: 2 }).notNull(),
-  createdAt: (0, import_pg_core7.timestamp)("created_at").defaultNow().notNull()
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
+  sku: varchar("sku", { length: 100 }),
+  quantity: integer("quantity").notNull(),
+  unitPrice: decimal("unit_price", { precision: 10, scale: 2 }).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull()
 });
-var quotationsRelations = (0, import_drizzle_orm5.relations)(quotations, ({ one, many }) => ({
+var quotationsRelations = relations(quotations, ({ one, many }) => ({
   customer: one(customers, {
     fields: [quotations.customerId],
     references: [customers.id]
@@ -721,7 +7357,7 @@ var quotationsRelations = (0, import_drizzle_orm5.relations)(quotations, ({ one,
   }),
   items: many(quotationItems)
 }));
-var quotationItemsRelations = (0, import_drizzle_orm5.relations)(quotationItems, ({ one }) => ({
+var quotationItemsRelations = relations(quotationItems, ({ one }) => ({
   quotation: one(quotations, {
     fields: [quotationItems.quotationId],
     references: [quotations.id]
@@ -735,7 +7371,7 @@ var quotationItemsRelations = (0, import_drizzle_orm5.relations)(quotationItems,
     references: [productVariants.id]
   })
 }));
-var quotationActivityTypeEnum = (0, import_pg_core7.pgEnum)("quotation_activity_type", [
+var quotationActivityTypeEnum = pgEnum("quotation_activity_type", [
   "created",
   "updated",
   "sent",
@@ -749,62 +7385,62 @@ var quotationActivityTypeEnum = (0, import_pg_core7.pgEnum)("quotation_activity_
   "note_added",
   "status_changed"
 ]);
-var quotationActorTypeEnum = (0, import_pg_core7.pgEnum)("quotation_actor_type", [
+var quotationActorTypeEnum = pgEnum("quotation_actor_type", [
   "system",
   "admin",
   "customer"
 ]);
-var quotationActivities = (0, import_pg_core7.pgTable)("quotation_activities", {
-  id: (0, import_pg_core7.uuid)("id").primaryKey().defaultRandom(),
-  quotationId: (0, import_pg_core7.uuid)("quotation_id").references(() => quotations.id, { onDelete: "cascade" }).notNull(),
+var quotationActivities = pgTable("quotation_activities", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  quotationId: uuid("quotation_id").references(() => quotations.id, { onDelete: "cascade" }).notNull(),
   // Activity type
   activityType: quotationActivityTypeEnum("activity_type").notNull(),
-  description: (0, import_pg_core7.text)("description").notNull(),
+  description: text("description").notNull(),
   // Who performed the action
   actorType: quotationActorTypeEnum("actor_type").default("system").notNull(),
-  actorId: (0, import_pg_core7.uuid)("actor_id"),
+  actorId: uuid("actor_id"),
   // admin user id or customer id (optional)
-  actorName: (0, import_pg_core7.varchar)("actor_name", { length: 255 }),
+  actorName: varchar("actor_name", { length: 255 }),
   // Display name
   // Additional metadata (JSON for flexibility)
-  metadata: (0, import_pg_core7.jsonb)("metadata").$type(),
-  createdAt: (0, import_pg_core7.timestamp)("created_at").defaultNow().notNull()
+  metadata: jsonb("metadata").$type(),
+  createdAt: timestamp("created_at").defaultNow().notNull()
 });
-var quotationActivitiesRelations = (0, import_drizzle_orm5.relations)(quotationActivities, ({ one }) => ({
+var quotationActivitiesRelations = relations(quotationActivities, ({ one }) => ({
   quotation: one(quotations, {
     fields: [quotationActivities.quotationId],
     references: [quotations.id]
   })
 }));
-var quotationTemplates = (0, import_pg_core7.pgTable)("quotation_templates", {
-  id: (0, import_pg_core7.uuid)("id").primaryKey().defaultRandom(),
-  name: (0, import_pg_core7.varchar)("name", { length: 255 }).notNull(),
-  description: (0, import_pg_core7.text)("description"),
+var quotationTemplates = pgTable("quotation_templates", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
   // Template items (stored as JSON)
-  items: (0, import_pg_core7.jsonb)("items").$type().notNull().default([]),
+  items: jsonb("items").$type().notNull().default([]),
   // Default pricing settings
-  defaultDiscount: (0, import_pg_core7.decimal)("default_discount", { precision: 10, scale: 2 }),
-  defaultDiscountType: (0, import_pg_core7.varchar)("default_discount_type", { length: 20 }),
-  defaultTaxRate: (0, import_pg_core7.decimal)("default_tax_rate", { precision: 5, scale: 4 }),
-  defaultValidDays: (0, import_pg_core7.integer)("default_valid_days").default(30),
+  defaultDiscount: decimal("default_discount", { precision: 10, scale: 2 }),
+  defaultDiscountType: varchar("default_discount_type", { length: 20 }),
+  defaultTaxRate: decimal("default_tax_rate", { precision: 5, scale: 4 }),
+  defaultValidDays: integer("default_valid_days").default(30),
   // Default terms
-  defaultTerms: (0, import_pg_core7.text)("default_terms"),
-  isActive: (0, import_pg_core7.integer)("is_active").default(1).notNull(),
-  createdAt: (0, import_pg_core7.timestamp)("created_at").defaultNow().notNull(),
-  updatedAt: (0, import_pg_core7.timestamp)("updated_at").defaultNow().notNull()
+  defaultTerms: text("default_terms"),
+  isActive: integer("is_active").default(1).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
 });
-var quotationRevisions = (0, import_pg_core7.pgTable)("quotation_revisions", {
-  id: (0, import_pg_core7.uuid)("id").primaryKey().defaultRandom(),
-  quotationId: (0, import_pg_core7.uuid)("quotation_id").references(() => quotations.id, { onDelete: "cascade" }).notNull(),
-  versionNumber: (0, import_pg_core7.integer)("version_number").notNull(),
-  snapshot: (0, import_pg_core7.jsonb)("snapshot").$type().notNull(),
-  changeDescription: (0, import_pg_core7.text)("change_description"),
-  createdBy: (0, import_pg_core7.uuid)("created_by"),
+var quotationRevisions = pgTable("quotation_revisions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  quotationId: uuid("quotation_id").references(() => quotations.id, { onDelete: "cascade" }).notNull(),
+  versionNumber: integer("version_number").notNull(),
+  snapshot: jsonb("snapshot").$type().notNull(),
+  changeDescription: text("change_description"),
+  createdBy: uuid("created_by"),
   // Admin user ID
-  createdByName: (0, import_pg_core7.varchar)("created_by_name", { length: 255 }),
-  createdAt: (0, import_pg_core7.timestamp)("created_at").defaultNow().notNull()
+  createdByName: varchar("created_by_name", { length: 255 }),
+  createdAt: timestamp("created_at").defaultNow().notNull()
 });
-var quotationRevisionsRelations = (0, import_drizzle_orm5.relations)(quotationRevisions, ({ one }) => ({
+var quotationRevisionsRelations = relations(quotationRevisions, ({ one }) => ({
   quotation: one(quotations, {
     fields: [quotationRevisions.quotationId],
     references: [quotations.id]
@@ -812,74 +7448,70 @@ var quotationRevisionsRelations = (0, import_drizzle_orm5.relations)(quotationRe
 }));
 
 // ../../packages/database/src/schema/blogs.ts
-var import_pg_core8 = require("drizzle-orm/pg-core");
-var blogStatusEnum = (0, import_pg_core8.pgEnum)("blog_status", ["draft", "published", "archived"]);
-var blogs = (0, import_pg_core8.pgTable)("blogs", {
-  id: (0, import_pg_core8.uuid)("id").primaryKey().defaultRandom(),
-  title: (0, import_pg_core8.varchar)("title", { length: 255 }).notNull(),
-  slug: (0, import_pg_core8.varchar)("slug", { length: 255 }).notNull().unique(),
-  content: (0, import_pg_core8.text)("content").notNull(),
-  excerpt: (0, import_pg_core8.varchar)("excerpt", { length: 500 }),
-  featuredImageUrl: (0, import_pg_core8.varchar)("featured_image_url", { length: 500 }),
-  authorId: (0, import_pg_core8.uuid)("author_id"),
-  authorName: (0, import_pg_core8.varchar)("author_name", { length: 255 }),
+var blogStatusEnum = pgEnum("blog_status", ["draft", "published", "archived"]);
+var blogs = pgTable("blogs", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  title: varchar("title", { length: 255 }).notNull(),
+  slug: varchar("slug", { length: 255 }).notNull().unique(),
+  content: text("content").notNull(),
+  excerpt: varchar("excerpt", { length: 500 }),
+  featuredImageUrl: varchar("featured_image_url", { length: 500 }),
+  authorId: uuid("author_id"),
+  authorName: varchar("author_name", { length: 255 }),
   status: blogStatusEnum("status").default("draft").notNull(),
-  publishedAt: (0, import_pg_core8.timestamp)("published_at"),
+  publishedAt: timestamp("published_at"),
   // SEO
-  metaTitle: (0, import_pg_core8.varchar)("meta_title", { length: 255 }),
-  metaDescription: (0, import_pg_core8.varchar)("meta_description", { length: 500 }),
-  tags: (0, import_pg_core8.varchar)("tags", { length: 100 }).array(),
-  createdAt: (0, import_pg_core8.timestamp)("created_at").defaultNow().notNull(),
-  updatedAt: (0, import_pg_core8.timestamp)("updated_at").defaultNow().notNull()
+  metaTitle: varchar("meta_title", { length: 255 }),
+  metaDescription: varchar("meta_description", { length: 500 }),
+  tags: varchar("tags", { length: 100 }).array(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
 });
 
 // ../../packages/database/src/schema/settings.ts
-var import_pg_core9 = require("drizzle-orm/pg-core");
-var settings = (0, import_pg_core9.pgTable)("settings", {
-  id: (0, import_pg_core9.uuid)("id").primaryKey().defaultRandom(),
-  key: (0, import_pg_core9.varchar)("key", { length: 100 }).notNull().unique(),
-  value: (0, import_pg_core9.jsonb)("value").notNull(),
-  description: (0, import_pg_core9.text)("description"),
-  updatedAt: (0, import_pg_core9.timestamp)("updated_at").defaultNow().notNull()
+var settings = pgTable("settings", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  key: varchar("key", { length: 100 }).notNull().unique(),
+  value: jsonb("value").notNull(),
+  description: text("description"),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
 });
-var adminActivityLogs = (0, import_pg_core9.pgTable)("admin_activity_logs", {
-  id: (0, import_pg_core9.uuid)("id").primaryKey().defaultRandom(),
-  adminUserId: (0, import_pg_core9.varchar)("admin_user_id", { length: 255 }).notNull(),
-  action: (0, import_pg_core9.varchar)("action", { length: 100 }).notNull(),
-  entityType: (0, import_pg_core9.varchar)("entity_type", { length: 100 }).notNull(),
-  entityId: (0, import_pg_core9.uuid)("entity_id"),
-  details: (0, import_pg_core9.jsonb)("details"),
-  ipAddress: (0, import_pg_core9.varchar)("ip_address", { length: 50 }),
-  createdAt: (0, import_pg_core9.timestamp)("created_at").defaultNow().notNull()
+var adminActivityLogs = pgTable("admin_activity_logs", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  adminUserId: varchar("admin_user_id", { length: 255 }).notNull(),
+  action: varchar("action", { length: 100 }).notNull(),
+  entityType: varchar("entity_type", { length: 100 }).notNull(),
+  entityId: uuid("entity_id"),
+  details: jsonb("details"),
+  ipAddress: varchar("ip_address", { length: 50 }),
+  createdAt: timestamp("created_at").defaultNow().notNull()
 });
 
 // ../../packages/database/src/schema/carts.ts
-var import_pg_core10 = require("drizzle-orm/pg-core");
-var import_drizzle_orm6 = require("drizzle-orm");
-var carts = (0, import_pg_core10.pgTable)("carts", {
-  id: (0, import_pg_core10.uuid)("id").primaryKey().defaultRandom(),
-  customerId: (0, import_pg_core10.uuid)("customer_id").references(() => customers.id, { onDelete: "cascade" }),
-  sessionId: (0, import_pg_core10.varchar)("session_id", { length: 255 }),
-  createdAt: (0, import_pg_core10.timestamp)("created_at").defaultNow().notNull(),
-  updatedAt: (0, import_pg_core10.timestamp)("updated_at").defaultNow().notNull()
+var carts = pgTable("carts", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  customerId: uuid("customer_id").references(() => customers.id, { onDelete: "cascade" }),
+  sessionId: varchar("session_id", { length: 255 }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
 });
-var cartItems = (0, import_pg_core10.pgTable)("cart_items", {
-  id: (0, import_pg_core10.uuid)("id").primaryKey().defaultRandom(),
-  cartId: (0, import_pg_core10.uuid)("cart_id").references(() => carts.id, { onDelete: "cascade" }).notNull(),
-  productId: (0, import_pg_core10.uuid)("product_id").references(() => products.id, { onDelete: "cascade" }).notNull(),
-  variantId: (0, import_pg_core10.uuid)("variant_id").references(() => productVariants.id, { onDelete: "cascade" }),
-  quantity: (0, import_pg_core10.integer)("quantity").notNull().default(1),
-  createdAt: (0, import_pg_core10.timestamp)("created_at").defaultNow().notNull(),
-  updatedAt: (0, import_pg_core10.timestamp)("updated_at").defaultNow().notNull()
+var cartItems = pgTable("cart_items", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  cartId: uuid("cart_id").references(() => carts.id, { onDelete: "cascade" }).notNull(),
+  productId: uuid("product_id").references(() => products.id, { onDelete: "cascade" }).notNull(),
+  variantId: uuid("variant_id").references(() => productVariants.id, { onDelete: "cascade" }),
+  quantity: integer("quantity").notNull().default(1),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
 });
-var cartPromoCodes = (0, import_pg_core10.pgTable)("cart_promo_codes", {
-  id: (0, import_pg_core10.uuid)("id").primaryKey().defaultRandom(),
-  cartId: (0, import_pg_core10.uuid)("cart_id").references(() => carts.id, { onDelete: "cascade" }).notNull().unique(),
-  promoCodeId: (0, import_pg_core10.uuid)("promo_code_id").notNull(),
-  code: (0, import_pg_core10.varchar)("code", { length: 50 }).notNull(),
-  createdAt: (0, import_pg_core10.timestamp)("created_at").defaultNow().notNull()
+var cartPromoCodes = pgTable("cart_promo_codes", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  cartId: uuid("cart_id").references(() => carts.id, { onDelete: "cascade" }).notNull().unique(),
+  promoCodeId: uuid("promo_code_id").notNull(),
+  code: varchar("code", { length: 50 }).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull()
 });
-var cartsRelations = (0, import_drizzle_orm6.relations)(carts, ({ one, many }) => ({
+var cartsRelations = relations(carts, ({ one, many }) => ({
   customer: one(customers, {
     fields: [carts.customerId],
     references: [customers.id]
@@ -887,7 +7519,7 @@ var cartsRelations = (0, import_drizzle_orm6.relations)(carts, ({ one, many }) =
   items: many(cartItems),
   promoCode: one(cartPromoCodes)
 }));
-var cartItemsRelations = (0, import_drizzle_orm6.relations)(cartItems, ({ one }) => ({
+var cartItemsRelations = relations(cartItems, ({ one }) => ({
   cart: one(carts, {
     fields: [cartItems.cartId],
     references: [carts.id]
@@ -901,7 +7533,7 @@ var cartItemsRelations = (0, import_drizzle_orm6.relations)(cartItems, ({ one })
     references: [productVariants.id]
   })
 }));
-var cartPromoCodesRelations = (0, import_drizzle_orm6.relations)(cartPromoCodes, ({ one }) => ({
+var cartPromoCodesRelations = relations(cartPromoCodes, ({ one }) => ({
   cart: one(carts, {
     fields: [cartPromoCodes.cartId],
     references: [carts.id]
@@ -909,22 +7541,20 @@ var cartPromoCodesRelations = (0, import_drizzle_orm6.relations)(cartPromoCodes,
 }));
 
 // ../../packages/database/src/schema/imports.ts
-var import_pg_core11 = require("drizzle-orm/pg-core");
-var import_drizzle_orm7 = require("drizzle-orm");
-var importSourceEnum = (0, import_pg_core11.pgEnum)("import_source", ["amazon", "aliexpress", "ebay"]);
-var importStatusEnum = (0, import_pg_core11.pgEnum)("import_status", ["pending", "processing", "completed", "failed"]);
-var productImportJobs = (0, import_pg_core11.pgTable)("product_import_jobs", {
-  id: (0, import_pg_core11.uuid)("id").primaryKey().defaultRandom(),
+var importSourceEnum = pgEnum("import_source", ["amazon", "aliexpress", "ebay"]);
+var importStatusEnum = pgEnum("import_status", ["pending", "processing", "completed", "failed"]);
+var productImportJobs = pgTable("product_import_jobs", {
+  id: uuid("id").primaryKey().defaultRandom(),
   source: importSourceEnum("source").notNull(),
-  sourceUrl: (0, import_pg_core11.varchar)("source_url", { length: 500 }).notNull(),
+  sourceUrl: varchar("source_url", { length: 500 }).notNull(),
   status: importStatusEnum("status").default("pending").notNull(),
-  importedProductId: (0, import_pg_core11.uuid)("imported_product_id").references(() => products.id, { onDelete: "set null" }),
-  errorMessage: (0, import_pg_core11.text)("error_message"),
-  rawData: (0, import_pg_core11.jsonb)("raw_data"),
-  createdAt: (0, import_pg_core11.timestamp)("created_at").defaultNow().notNull(),
-  completedAt: (0, import_pg_core11.timestamp)("completed_at")
+  importedProductId: uuid("imported_product_id").references(() => products.id, { onDelete: "set null" }),
+  errorMessage: text("error_message"),
+  rawData: jsonb("raw_data"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  completedAt: timestamp("completed_at")
 });
-var productImportJobsRelations = (0, import_drizzle_orm7.relations)(productImportJobs, ({ one }) => ({
+var productImportJobsRelations = relations(productImportJobs, ({ one }) => ({
   importedProduct: one(products, {
     fields: [productImportJobs.importedProductId],
     references: [products.id]
@@ -932,341 +7562,332 @@ var productImportJobsRelations = (0, import_drizzle_orm7.relations)(productImpor
 }));
 
 // ../../packages/database/src/schema/verificationCodes.ts
-var import_pg_core12 = require("drizzle-orm/pg-core");
-var verificationCodeTypeEnum = (0, import_pg_core12.pgEnum)("verification_code_type", [
+var verificationCodeTypeEnum = pgEnum("verification_code_type", [
   "password_reset",
   "email_verification",
   "account_unlock"
 ]);
-var verificationCodes = (0, import_pg_core12.pgTable)("verification_codes", {
-  id: (0, import_pg_core12.uuid)("id").primaryKey().defaultRandom(),
+var verificationCodes = pgTable("verification_codes", {
+  id: uuid("id").primaryKey().defaultRandom(),
   // Code details
-  email: (0, import_pg_core12.varchar)("email", { length: 255 }).notNull(),
-  code: (0, import_pg_core12.varchar)("code", { length: 6 }).notNull(),
+  email: varchar("email", { length: 255 }).notNull(),
+  code: varchar("code", { length: 6 }).notNull(),
   type: verificationCodeTypeEnum("type").notNull(),
   // Security & tracking
-  attempts: (0, import_pg_core12.integer)("attempts").default(0).notNull(),
-  maxAttempts: (0, import_pg_core12.integer)("max_attempts").default(3).notNull(),
+  attempts: integer("attempts").default(0).notNull(),
+  maxAttempts: integer("max_attempts").default(3).notNull(),
   // Expiration
-  expiresAt: (0, import_pg_core12.timestamp)("expires_at").notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
   // Status tracking
-  isUsed: (0, import_pg_core12.boolean)("is_used").default(false).notNull(),
-  usedAt: (0, import_pg_core12.timestamp)("used_at"),
+  isUsed: boolean("is_used").default(false).notNull(),
+  usedAt: timestamp("used_at"),
   // IP tracking
-  ipAddress: (0, import_pg_core12.varchar)("ip_address", { length: 45 }),
+  ipAddress: varchar("ip_address", { length: 45 }),
   // Timestamps
-  createdAt: (0, import_pg_core12.timestamp)("created_at").defaultNow().notNull()
+  createdAt: timestamp("created_at").defaultNow().notNull()
 }, (table) => ({
-  emailIdx: (0, import_pg_core12.index)("verification_codes_email_idx").on(table.email),
-  expiresAtIdx: (0, import_pg_core12.index)("verification_codes_expires_at_idx").on(table.expiresAt)
+  emailIdx: index("verification_codes_email_idx").on(table.email),
+  expiresAtIdx: index("verification_codes_expires_at_idx").on(table.expiresAt)
 }));
 
 // ../../packages/database/src/schema/sessions.ts
-var import_pg_core13 = require("drizzle-orm/pg-core");
-var sessions = (0, import_pg_core13.pgTable)(
+var sessions = pgTable(
   "sessions",
   {
-    id: (0, import_pg_core13.uuid)("id").primaryKey().defaultRandom(),
-    customerId: (0, import_pg_core13.uuid)("customer_id").notNull().references(() => customers.id, { onDelete: "cascade" }),
+    id: uuid("id").primaryKey().defaultRandom(),
+    customerId: uuid("customer_id").notNull().references(() => customers.id, { onDelete: "cascade" }),
     // Token tracking
-    tokenHash: (0, import_pg_core13.varchar)("token_hash", { length: 255 }).unique().notNull(),
+    tokenHash: varchar("token_hash", { length: 255 }).unique().notNull(),
     // Device information
-    deviceName: (0, import_pg_core13.varchar)("device_name", { length: 100 }),
-    deviceType: (0, import_pg_core13.varchar)("device_type", { length: 50 }),
+    deviceName: varchar("device_name", { length: 100 }),
+    deviceType: varchar("device_type", { length: 50 }),
     // desktop | mobile | tablet
-    deviceBrowser: (0, import_pg_core13.varchar)("device_browser", { length: 50 }),
-    browserVersion: (0, import_pg_core13.varchar)("browser_version", { length: 50 }),
-    osName: (0, import_pg_core13.varchar)("os_name", { length: 50 }),
-    osVersion: (0, import_pg_core13.varchar)("os_version", { length: 50 }),
+    deviceBrowser: varchar("device_browser", { length: 50 }),
+    browserVersion: varchar("browser_version", { length: 50 }),
+    osName: varchar("os_name", { length: 50 }),
+    osVersion: varchar("os_version", { length: 50 }),
     // Network information
-    ipAddress: (0, import_pg_core13.varchar)("ip_address", { length: 45 }).notNull(),
-    ipCountry: (0, import_pg_core13.varchar)("ip_country", { length: 100 }),
-    ipCity: (0, import_pg_core13.varchar)("ip_city", { length: 100 }),
-    ipLatitude: (0, import_pg_core13.decimal)("ip_latitude", { precision: 10, scale: 8 }),
-    ipLongitude: (0, import_pg_core13.decimal)("ip_longitude", { precision: 11, scale: 8 }),
+    ipAddress: varchar("ip_address", { length: 45 }).notNull(),
+    ipCountry: varchar("ip_country", { length: 100 }),
+    ipCity: varchar("ip_city", { length: 100 }),
+    ipLatitude: decimal("ip_latitude", { precision: 10, scale: 8 }),
+    ipLongitude: decimal("ip_longitude", { precision: 11, scale: 8 }),
     // Full user agent
-    userAgent: (0, import_pg_core13.text)("user_agent").notNull(),
+    userAgent: text("user_agent").notNull(),
     // Activity tracking
-    loginAt: (0, import_pg_core13.timestamp)("login_at").notNull().defaultNow(),
-    lastActivityAt: (0, import_pg_core13.timestamp)("last_activity_at").notNull().defaultNow(),
+    loginAt: timestamp("login_at").notNull().defaultNow(),
+    lastActivityAt: timestamp("last_activity_at").notNull().defaultNow(),
     // Session status
-    isActive: (0, import_pg_core13.boolean)("is_active").default(true).notNull(),
-    revokedAt: (0, import_pg_core13.timestamp)("revoked_at"),
-    revokeReason: (0, import_pg_core13.varchar)("revoke_reason", { length: 100 }),
+    isActive: boolean("is_active").default(true).notNull(),
+    revokedAt: timestamp("revoked_at"),
+    revokeReason: varchar("revoke_reason", { length: 100 }),
     // user_action | security | admin_action
     // Timestamps
-    createdAt: (0, import_pg_core13.timestamp)("created_at").notNull().defaultNow(),
-    updatedAt: (0, import_pg_core13.timestamp)("updated_at").notNull().defaultNow()
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow()
   },
   (table) => ({
-    customerIdx: (0, import_pg_core13.index)("sessions_customer_idx").on(table.customerId),
-    activeIdx: (0, import_pg_core13.index)("sessions_active_idx").on(table.isActive),
-    activityIdx: (0, import_pg_core13.index)("sessions_activity_idx").on(table.lastActivityAt),
-    tokenHashIdx: (0, import_pg_core13.index)("sessions_token_hash_idx").on(table.tokenHash)
+    customerIdx: index("sessions_customer_idx").on(table.customerId),
+    activeIdx: index("sessions_active_idx").on(table.isActive),
+    activityIdx: index("sessions_activity_idx").on(table.lastActivityAt),
+    tokenHashIdx: index("sessions_token_hash_idx").on(table.tokenHash)
   })
 );
 
 // ../../packages/database/src/schema/passwordHistory.ts
-var import_pg_core14 = require("drizzle-orm/pg-core");
-var passwordHistory = (0, import_pg_core14.pgTable)(
+var passwordHistory = pgTable(
   "password_history",
   {
-    id: (0, import_pg_core14.uuid)("id").primaryKey().defaultRandom(),
-    customerId: (0, import_pg_core14.uuid)("customer_id").notNull().references(() => customers.id, { onDelete: "cascade" }),
+    id: uuid("id").primaryKey().defaultRandom(),
+    customerId: uuid("customer_id").notNull().references(() => customers.id, { onDelete: "cascade" }),
     // Password hash (stored to prevent reuse)
-    passwordHash: (0, import_pg_core14.varchar)("password_hash", { length: 255 }).notNull(),
+    passwordHash: varchar("password_hash", { length: 255 }).notNull(),
     // Metadata
-    changedAt: (0, import_pg_core14.timestamp)("changed_at").notNull().defaultNow(),
-    ipAddress: (0, import_pg_core14.varchar)("ip_address", { length: 45 }),
-    userAgent: (0, import_pg_core14.varchar)("user_agent", { length: 500 }),
+    changedAt: timestamp("changed_at").notNull().defaultNow(),
+    ipAddress: varchar("ip_address", { length: 45 }),
+    userAgent: varchar("user_agent", { length: 500 }),
     // Source of change
-    changeReason: (0, import_pg_core14.varchar)("change_reason", { length: 50 })
+    changeReason: varchar("change_reason", { length: 50 })
     // user_action | admin_reset | password_reset | forced_change
   },
   (table) => ({
-    customerIdx: (0, import_pg_core14.index)("password_history_customer_idx").on(table.customerId),
-    changedAtIdx: (0, import_pg_core14.index)("password_history_changed_at_idx").on(table.changedAt)
+    customerIdx: index("password_history_customer_idx").on(table.customerId),
+    changedAtIdx: index("password_history_changed_at_idx").on(table.changedAt)
   })
 );
 
 // ../../packages/database/src/schema/loginAttempts.ts
-var import_pg_core15 = require("drizzle-orm/pg-core");
-var loginAttempts = (0, import_pg_core15.pgTable)(
+var loginAttempts = pgTable(
   "login_attempts",
   {
-    id: (0, import_pg_core15.uuid)("id").primaryKey().defaultRandom(),
-    customerId: (0, import_pg_core15.uuid)("customer_id").references(() => customers.id, { onDelete: "cascade" }),
+    id: uuid("id").primaryKey().defaultRandom(),
+    customerId: uuid("customer_id").references(() => customers.id, { onDelete: "cascade" }),
     // Attempt details
-    email: (0, import_pg_core15.varchar)("email", { length: 255 }).notNull(),
-    success: (0, import_pg_core15.boolean)("success").notNull(),
-    failureReason: (0, import_pg_core15.varchar)("failure_reason", { length: 100 }),
+    email: varchar("email", { length: 255 }).notNull(),
+    success: boolean("success").notNull(),
+    failureReason: varchar("failure_reason", { length: 100 }),
     // invalid_credentials | account_locked | email_unverified | account_disabled
     // Device and network information
-    ipAddress: (0, import_pg_core15.varchar)("ip_address", { length: 45 }).notNull(),
-    userAgent: (0, import_pg_core15.varchar)("user_agent", { length: 500 }),
-    deviceType: (0, import_pg_core15.varchar)("device_type", { length: 50 }),
+    ipAddress: varchar("ip_address", { length: 45 }).notNull(),
+    userAgent: varchar("user_agent", { length: 500 }),
+    deviceType: varchar("device_type", { length: 50 }),
     // desktop | mobile | tablet
-    deviceBrowser: (0, import_pg_core15.varchar)("device_browser", { length: 50 }),
+    deviceBrowser: varchar("device_browser", { length: 50 }),
     // Geographic information (optional)
-    ipCountry: (0, import_pg_core15.varchar)("ip_country", { length: 100 }),
-    ipCity: (0, import_pg_core15.varchar)("ip_city", { length: 100 }),
+    ipCountry: varchar("ip_country", { length: 100 }),
+    ipCity: varchar("ip_city", { length: 100 }),
     // Lockout tracking
-    triggeredLockout: (0, import_pg_core15.boolean)("triggered_lockout").default(false).notNull(),
-    consecutiveFailures: (0, import_pg_core15.integer)("consecutive_failures").default(0).notNull(),
+    triggeredLockout: boolean("triggered_lockout").default(false).notNull(),
+    consecutiveFailures: integer("consecutive_failures").default(0).notNull(),
     // Timestamp
-    attemptedAt: (0, import_pg_core15.timestamp)("attempted_at").notNull().defaultNow()
+    attemptedAt: timestamp("attempted_at").notNull().defaultNow()
   },
   (table) => ({
-    customerIdx: (0, import_pg_core15.index)("login_attempts_customer_idx").on(table.customerId),
-    emailIdx: (0, import_pg_core15.index)("login_attempts_email_idx").on(table.email),
-    attemptedAtIdx: (0, import_pg_core15.index)("login_attempts_attempted_at_idx").on(table.attemptedAt),
-    successIdx: (0, import_pg_core15.index)("login_attempts_success_idx").on(table.success)
+    customerIdx: index("login_attempts_customer_idx").on(table.customerId),
+    emailIdx: index("login_attempts_email_idx").on(table.email),
+    attemptedAtIdx: index("login_attempts_attempted_at_idx").on(table.attemptedAt),
+    successIdx: index("login_attempts_success_idx").on(table.success)
   })
 );
 
 // ../../packages/database/src/schema/breachChecks.ts
-var import_pg_core16 = require("drizzle-orm/pg-core");
-var breachChecks = (0, import_pg_core16.pgTable)(
+var breachChecks = pgTable(
   "breach_checks",
   {
-    id: (0, import_pg_core16.uuid)("id").primaryKey().defaultRandom(),
-    customerId: (0, import_pg_core16.uuid)("customer_id").references(() => customers.id, { onDelete: "cascade" }),
+    id: uuid("id").primaryKey().defaultRandom(),
+    customerId: uuid("customer_id").references(() => customers.id, { onDelete: "cascade" }),
     // Password hash prefix (k-anonymity - first 5 chars of SHA-1)
-    passwordHashPrefix: (0, import_pg_core16.varchar)("password_hash_prefix", { length: 5 }).notNull(),
+    passwordHashPrefix: varchar("password_hash_prefix", { length: 5 }).notNull(),
     // Breach status
-    isBreached: (0, import_pg_core16.boolean)("is_breached").notNull(),
-    breachCount: (0, import_pg_core16.integer)("breach_count").default(0).notNull(),
+    isBreached: boolean("is_breached").notNull(),
+    breachCount: integer("breach_count").default(0).notNull(),
     // Number of times seen in breaches
     // Check metadata
-    checkedAt: (0, import_pg_core16.timestamp)("checked_at").notNull().defaultNow(),
-    expiresAt: (0, import_pg_core16.timestamp)("expires_at").notNull(),
+    checkedAt: timestamp("checked_at").notNull().defaultNow(),
+    expiresAt: timestamp("expires_at").notNull(),
     // Cache for 30 days
     // Context
-    checkReason: (0, import_pg_core16.varchar)("check_reason", { length: 50 }),
+    checkReason: varchar("check_reason", { length: 50 }),
     // registration | password_change | password_reset | periodic_check
-    ipAddress: (0, import_pg_core16.varchar)("ip_address", { length: 45 })
+    ipAddress: varchar("ip_address", { length: 45 })
   },
   (table) => ({
-    customerIdx: (0, import_pg_core16.index)("breach_checks_customer_idx").on(table.customerId),
-    prefixIdx: (0, import_pg_core16.index)("breach_checks_prefix_idx").on(table.passwordHashPrefix),
-    expiresAtIdx: (0, import_pg_core16.index)("breach_checks_expires_at_idx").on(table.expiresAt)
+    customerIdx: index("breach_checks_customer_idx").on(table.customerId),
+    prefixIdx: index("breach_checks_prefix_idx").on(table.passwordHashPrefix),
+    expiresAtIdx: index("breach_checks_expires_at_idx").on(table.expiresAt)
   })
 );
 
 // ../../packages/database/src/schema/securityAuditLogs.ts
-var import_pg_core17 = require("drizzle-orm/pg-core");
-var securityAuditLogs = (0, import_pg_core17.pgTable)(
+var securityAuditLogs = pgTable(
   "security_audit_logs",
   {
-    id: (0, import_pg_core17.uuid)("id").primaryKey().defaultRandom(),
-    timestamp: (0, import_pg_core17.timestamp)("timestamp").notNull().defaultNow(),
-    eventType: (0, import_pg_core17.varchar)("event_type", { length: 100 }).notNull(),
+    id: uuid("id").primaryKey().defaultRandom(),
+    timestamp: timestamp("timestamp").notNull().defaultNow(),
+    eventType: varchar("event_type", { length: 100 }).notNull(),
     // Actor (who performed the action)
-    actorType: (0, import_pg_core17.varchar)("actor_type", { length: 20 }).notNull(),
+    actorType: varchar("actor_type", { length: 20 }).notNull(),
     // customer | admin | system
-    actorId: (0, import_pg_core17.uuid)("actor_id"),
-    actorEmail: (0, import_pg_core17.varchar)("actor_email", { length: 255 }),
+    actorId: uuid("actor_id"),
+    actorEmail: varchar("actor_email", { length: 255 }),
     // Target (what was acted upon)
-    targetType: (0, import_pg_core17.varchar)("target_type", { length: 50 }),
-    targetId: (0, import_pg_core17.uuid)("target_id"),
+    targetType: varchar("target_type", { length: 50 }),
+    targetId: uuid("target_id"),
     // Action
-    action: (0, import_pg_core17.varchar)("action", { length: 50 }).notNull(),
-    status: (0, import_pg_core17.varchar)("status", { length: 20 }).notNull(),
+    action: varchar("action", { length: 50 }).notNull(),
+    status: varchar("status", { length: 20 }).notNull(),
     // success | failure | denied
     // Context
-    ipAddress: (0, import_pg_core17.varchar)("ip_address", { length: 45 }),
-    userAgent: (0, import_pg_core17.text)("user_agent"),
-    sessionId: (0, import_pg_core17.uuid)("session_id"),
-    requestId: (0, import_pg_core17.uuid)("request_id"),
+    ipAddress: varchar("ip_address", { length: 45 }),
+    userAgent: text("user_agent"),
+    sessionId: uuid("session_id"),
+    requestId: uuid("request_id"),
     // Event-specific metadata
-    metadata: (0, import_pg_core17.jsonb)("metadata"),
+    metadata: jsonb("metadata"),
     // Timestamp
-    createdAt: (0, import_pg_core17.timestamp)("created_at").notNull().defaultNow()
+    createdAt: timestamp("created_at").notNull().defaultNow()
   },
   (table) => ({
     // Performance indexes for common queries
-    timestampIdx: (0, import_pg_core17.index)("audit_logs_timestamp_idx").on(table.timestamp),
-    eventTypeIdx: (0, import_pg_core17.index)("audit_logs_event_type_idx").on(table.eventType),
-    actorIdx: (0, import_pg_core17.index)("audit_logs_actor_idx").on(table.actorId),
-    ipAddressIdx: (0, import_pg_core17.index)("audit_logs_ip_address_idx").on(table.ipAddress),
-    sessionIdx: (0, import_pg_core17.index)("audit_logs_session_idx").on(table.sessionId)
+    timestampIdx: index("audit_logs_timestamp_idx").on(table.timestamp),
+    eventTypeIdx: index("audit_logs_event_type_idx").on(table.eventType),
+    actorIdx: index("audit_logs_actor_idx").on(table.actorId),
+    ipAddressIdx: index("audit_logs_ip_address_idx").on(table.ipAddress),
+    sessionIdx: index("audit_logs_session_idx").on(table.sessionId)
   })
 );
 
 // ../../packages/database/src/schema/ipReputation.ts
-var import_pg_core18 = require("drizzle-orm/pg-core");
-var ipReputation = (0, import_pg_core18.pgTable)(
+var ipReputation = pgTable(
   "ip_reputation",
   {
-    id: (0, import_pg_core18.uuid)("id").primaryKey().defaultRandom(),
-    ipAddress: (0, import_pg_core18.varchar)("ip_address", { length: 45 }).notNull().unique(),
+    id: uuid("id").primaryKey().defaultRandom(),
+    ipAddress: varchar("ip_address", { length: 45 }).notNull().unique(),
     // Reputation scoring
-    reputationScore: (0, import_pg_core18.integer)("reputation_score").notNull().default(100),
+    reputationScore: integer("reputation_score").notNull().default(100),
     // 0-100, lower = worse
     // Counters
-    failedLoginAttempts: (0, import_pg_core18.integer)("failed_login_attempts").notNull().default(0),
-    successfulLogins: (0, import_pg_core18.integer)("successful_logins").notNull().default(0),
-    rateLimitViolations: (0, import_pg_core18.integer)("rate_limit_violations").notNull().default(0),
-    abuseReports: (0, import_pg_core18.integer)("abuse_reports").notNull().default(0),
+    failedLoginAttempts: integer("failed_login_attempts").notNull().default(0),
+    successfulLogins: integer("successful_logins").notNull().default(0),
+    rateLimitViolations: integer("rate_limit_violations").notNull().default(0),
+    abuseReports: integer("abuse_reports").notNull().default(0),
     // Status
-    isBlocked: (0, import_pg_core18.boolean)("is_blocked").default(false).notNull(),
-    blockReason: (0, import_pg_core18.varchar)("block_reason", { length: 255 }),
-    blockedAt: (0, import_pg_core18.timestamp)("blocked_at"),
-    blockedUntil: (0, import_pg_core18.timestamp)("blocked_until"),
+    isBlocked: boolean("is_blocked").default(false).notNull(),
+    blockReason: varchar("block_reason", { length: 255 }),
+    blockedAt: timestamp("blocked_at"),
+    blockedUntil: timestamp("blocked_until"),
     // Null = permanent block
     // Metadata
-    lastSeenAt: (0, import_pg_core18.timestamp)("last_seen_at").notNull().defaultNow(),
-    firstSeenAt: (0, import_pg_core18.timestamp)("first_seen_at").notNull().defaultNow(),
-    userAgent: (0, import_pg_core18.text)("user_agent"),
-    country: (0, import_pg_core18.varchar)("country", { length: 100 }),
-    notes: (0, import_pg_core18.text)("notes"),
+    lastSeenAt: timestamp("last_seen_at").notNull().defaultNow(),
+    firstSeenAt: timestamp("first_seen_at").notNull().defaultNow(),
+    userAgent: text("user_agent"),
+    country: varchar("country", { length: 100 }),
+    notes: text("notes"),
     // Timestamps
-    createdAt: (0, import_pg_core18.timestamp)("created_at").notNull().defaultNow(),
-    updatedAt: (0, import_pg_core18.timestamp)("updated_at").notNull().defaultNow()
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow()
   },
   (table) => ({
-    ipAddressIdx: (0, import_pg_core18.index)("ip_reputation_ip_address_idx").on(table.ipAddress),
-    isBlockedIdx: (0, import_pg_core18.index)("ip_reputation_is_blocked_idx").on(table.isBlocked),
-    reputationScoreIdx: (0, import_pg_core18.index)("ip_reputation_score_idx").on(table.reputationScore)
+    ipAddressIdx: index("ip_reputation_ip_address_idx").on(table.ipAddress),
+    isBlockedIdx: index("ip_reputation_is_blocked_idx").on(table.isBlocked),
+    reputationScoreIdx: index("ip_reputation_score_idx").on(table.reputationScore)
   })
 );
 
 // ../../packages/database/src/schema/newsletter.ts
-var import_pg_core19 = require("drizzle-orm/pg-core");
-var import_drizzle_orm8 = require("drizzle-orm");
-var newsletterSubscribers = (0, import_pg_core19.pgTable)("newsletter_subscribers", {
-  id: (0, import_pg_core19.uuid)("id").primaryKey().defaultRandom(),
-  email: (0, import_pg_core19.varchar)("email", { length: 255 }).notNull(),
-  name: (0, import_pg_core19.varchar)("name", { length: 100 }),
+var newsletterSubscribers = pgTable("newsletter_subscribers", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  email: varchar("email", { length: 255 }).notNull(),
+  name: varchar("name", { length: 100 }),
   // Link to customer if they have an account
-  customerId: (0, import_pg_core19.uuid)("customer_id").references(() => customers.id, { onDelete: "set null" }),
+  customerId: uuid("customer_id").references(() => customers.id, { onDelete: "set null" }),
   // Status
-  status: (0, import_pg_core19.varchar)("status", { length: 20 }).default("active").notNull(),
+  status: varchar("status", { length: 20 }).default("active").notNull(),
   // 'active' | 'unsubscribed' | 'bounced'
   // Source of subscription
-  source: (0, import_pg_core19.varchar)("source", { length: 50 }).default("footer").notNull(),
+  source: varchar("source", { length: 50 }).default("footer").notNull(),
   // 'footer' | 'checkout' | 'popup' | 'import' | 'admin'
   // Unsubscribe token for secure unsubscribe links
-  unsubscribeToken: (0, import_pg_core19.varchar)("unsubscribe_token", { length: 64 }).notNull(),
+  unsubscribeToken: varchar("unsubscribe_token", { length: 64 }).notNull(),
   // Timestamps
-  subscribedAt: (0, import_pg_core19.timestamp)("subscribed_at").defaultNow().notNull(),
-  unsubscribedAt: (0, import_pg_core19.timestamp)("unsubscribed_at"),
-  createdAt: (0, import_pg_core19.timestamp)("created_at").defaultNow().notNull(),
-  updatedAt: (0, import_pg_core19.timestamp)("updated_at").defaultNow().notNull()
+  subscribedAt: timestamp("subscribed_at").defaultNow().notNull(),
+  unsubscribedAt: timestamp("unsubscribed_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
 }, (table) => [
-  (0, import_pg_core19.uniqueIndex)("newsletter_subscribers_email_idx").on(table.email)
+  uniqueIndex("newsletter_subscribers_email_idx").on(table.email)
 ]);
-var newsletterCampaigns = (0, import_pg_core19.pgTable)("newsletter_campaigns", {
-  id: (0, import_pg_core19.uuid)("id").primaryKey().defaultRandom(),
+var newsletterCampaigns = pgTable("newsletter_campaigns", {
+  id: uuid("id").primaryKey().defaultRandom(),
   // Campaign details
-  name: (0, import_pg_core19.varchar)("name", { length: 255 }).notNull(),
-  subject: (0, import_pg_core19.varchar)("subject", { length: 255 }).notNull(),
-  previewText: (0, import_pg_core19.varchar)("preview_text", { length: 255 }),
+  name: varchar("name", { length: 255 }).notNull(),
+  subject: varchar("subject", { length: 255 }).notNull(),
+  previewText: varchar("preview_text", { length: 255 }),
   // Email preview text
-  content: (0, import_pg_core19.text)("content").notNull(),
+  content: text("content").notNull(),
   // HTML content
   // Status: draft | scheduled | sending | paused | completed | cancelled
-  status: (0, import_pg_core19.varchar)("status", { length: 20 }).default("draft").notNull(),
+  status: varchar("status", { length: 20 }).default("draft").notNull(),
   // Sending configuration
-  dailyLimit: (0, import_pg_core19.integer)("daily_limit").default(100).notNull(),
+  dailyLimit: integer("daily_limit").default(100).notNull(),
   // Max emails per day
-  sendTime: (0, import_pg_core19.varchar)("send_time", { length: 5 }),
+  sendTime: varchar("send_time", { length: 5 }),
   // Preferred send time HH:MM (24h format)
   // Statistics
-  totalRecipients: (0, import_pg_core19.integer)("total_recipients").default(0).notNull(),
-  sentCount: (0, import_pg_core19.integer)("sent_count").default(0).notNull(),
-  failedCount: (0, import_pg_core19.integer)("failed_count").default(0).notNull(),
-  openCount: (0, import_pg_core19.integer)("open_count").default(0).notNull(),
-  clickCount: (0, import_pg_core19.integer)("click_count").default(0).notNull(),
+  totalRecipients: integer("total_recipients").default(0).notNull(),
+  sentCount: integer("sent_count").default(0).notNull(),
+  failedCount: integer("failed_count").default(0).notNull(),
+  openCount: integer("open_count").default(0).notNull(),
+  clickCount: integer("click_count").default(0).notNull(),
   // Timestamps
-  scheduledAt: (0, import_pg_core19.timestamp)("scheduled_at"),
+  scheduledAt: timestamp("scheduled_at"),
   // When to start sending
-  startedAt: (0, import_pg_core19.timestamp)("started_at"),
+  startedAt: timestamp("started_at"),
   // When sending actually started
-  completedAt: (0, import_pg_core19.timestamp)("completed_at"),
+  completedAt: timestamp("completed_at"),
   // When all emails were sent
-  lastSentAt: (0, import_pg_core19.timestamp)("last_sent_at"),
+  lastSentAt: timestamp("last_sent_at"),
   // Last email sent timestamp
   // Created by admin
-  createdBy: (0, import_pg_core19.uuid)("created_by").references(() => customers.id, { onDelete: "set null" }),
-  createdAt: (0, import_pg_core19.timestamp)("created_at").defaultNow().notNull(),
-  updatedAt: (0, import_pg_core19.timestamp)("updated_at").defaultNow().notNull()
+  createdBy: uuid("created_by").references(() => customers.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
 });
-var newsletterSends = (0, import_pg_core19.pgTable)("newsletter_sends", {
-  id: (0, import_pg_core19.uuid)("id").primaryKey().defaultRandom(),
-  campaignId: (0, import_pg_core19.uuid)("campaign_id").references(() => newsletterCampaigns.id, { onDelete: "cascade" }).notNull(),
-  subscriberId: (0, import_pg_core19.uuid)("subscriber_id").references(() => newsletterSubscribers.id, { onDelete: "cascade" }).notNull(),
+var newsletterSends = pgTable("newsletter_sends", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  campaignId: uuid("campaign_id").references(() => newsletterCampaigns.id, { onDelete: "cascade" }).notNull(),
+  subscriberId: uuid("subscriber_id").references(() => newsletterSubscribers.id, { onDelete: "cascade" }).notNull(),
   // Email address at time of send (in case subscriber changes email)
-  email: (0, import_pg_core19.varchar)("email", { length: 255 }).notNull(),
+  email: varchar("email", { length: 255 }).notNull(),
   // Status: pending | sent | failed | bounced
-  status: (0, import_pg_core19.varchar)("status", { length: 20 }).default("pending").notNull(),
+  status: varchar("status", { length: 20 }).default("pending").notNull(),
   // Error tracking
-  errorMessage: (0, import_pg_core19.text)("error_message"),
-  retryCount: (0, import_pg_core19.integer)("retry_count").default(0).notNull(),
+  errorMessage: text("error_message"),
+  retryCount: integer("retry_count").default(0).notNull(),
   // Engagement tracking
-  openedAt: (0, import_pg_core19.timestamp)("opened_at"),
-  clickedAt: (0, import_pg_core19.timestamp)("clicked_at"),
+  openedAt: timestamp("opened_at"),
+  clickedAt: timestamp("clicked_at"),
   // Timestamps
-  scheduledFor: (0, import_pg_core19.timestamp)("scheduled_for"),
+  scheduledFor: timestamp("scheduled_for"),
   // When this email should be sent
-  sentAt: (0, import_pg_core19.timestamp)("sent_at"),
-  createdAt: (0, import_pg_core19.timestamp)("created_at").defaultNow().notNull()
+  sentAt: timestamp("sent_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull()
 });
-var newsletterSubscribersRelations = (0, import_drizzle_orm8.relations)(newsletterSubscribers, ({ one, many }) => ({
+var newsletterSubscribersRelations = relations(newsletterSubscribers, ({ one, many }) => ({
   customer: one(customers, {
     fields: [newsletterSubscribers.customerId],
     references: [customers.id]
   }),
   sends: many(newsletterSends)
 }));
-var newsletterCampaignsRelations = (0, import_drizzle_orm8.relations)(newsletterCampaigns, ({ one, many }) => ({
+var newsletterCampaignsRelations = relations(newsletterCampaigns, ({ one, many }) => ({
   createdByCustomer: one(customers, {
     fields: [newsletterCampaigns.createdBy],
     references: [customers.id]
   }),
   sends: many(newsletterSends)
 }));
-var newsletterSendsRelations = (0, import_drizzle_orm8.relations)(newsletterSends, ({ one }) => ({
+var newsletterSendsRelations = relations(newsletterSends, ({ one }) => ({
   campaign: one(newsletterCampaigns, {
     fields: [newsletterSends.campaignId],
     references: [newsletterCampaigns.id]
@@ -1279,8 +7900,8 @@ var newsletterSendsRelations = (0, import_drizzle_orm8.relations)(newsletterSend
 
 // ../../packages/database/src/client.ts
 function createDb(connectionString) {
-  const sql3 = (0, import_serverless.neon)(connectionString);
-  return (0, import_neon_http.drizzle)(sql3, { schema: schema_exports });
+  const sql3 = (0, import_serverless2.neon)(connectionString);
+  return drizzle(sql3, { schema: schema_exports });
 }
 var dbInstance = null;
 function getDb() {
@@ -1295,11 +7916,7 @@ function getDb() {
 }
 var db = getDb();
 
-// ../../packages/database/src/index.ts
-var import_drizzle_orm9 = require("drizzle-orm");
-
 // src/services/session.service.ts
-var import_drizzle_orm10 = require("drizzle-orm");
 var import_bcryptjs = __toESM(require("bcryptjs"));
 var import_ua_parser_js = require("ua-parser-js");
 var SessionService = class {
@@ -1341,6 +7958,9 @@ var SessionService = class {
       loginAt: /* @__PURE__ */ new Date(),
       lastActivityAt: /* @__PURE__ */ new Date()
     }).returning();
+    if (!session) {
+      throw new Error("Failed to create session");
+    }
     logger.info("Session created", {
       sessionId: session.id,
       customerId,
@@ -1354,14 +7974,14 @@ var SessionService = class {
    */
   async setTokenHash(sessionId, token) {
     const tokenHash = await import_bcryptjs.default.hash(token, 10);
-    await db.update(sessions).set({ tokenHash, updatedAt: /* @__PURE__ */ new Date() }).where((0, import_drizzle_orm10.eq)(sessions.id, sessionId));
+    await db.update(sessions).set({ tokenHash, updatedAt: /* @__PURE__ */ new Date() }).where(eq(sessions.id, sessionId));
     logger.debug("Token hash set for session", { sessionId });
   }
   /**
    * Validate session is active
    */
   async validateSession(sessionId) {
-    const [session] = await db.select().from(sessions).where((0, import_drizzle_orm10.and)((0, import_drizzle_orm10.eq)(sessions.id, sessionId), (0, import_drizzle_orm10.eq)(sessions.isActive, true))).limit(1);
+    const [session] = await db.select().from(sessions).where(and(eq(sessions.id, sessionId), eq(sessions.isActive, true))).limit(1);
     if (!session) {
       return null;
     }
@@ -1386,13 +8006,13 @@ var SessionService = class {
    * Update last activity timestamp (async, non-blocking)
    */
   async updateActivity(sessionId) {
-    await db.update(sessions).set({ lastActivityAt: /* @__PURE__ */ new Date(), updatedAt: /* @__PURE__ */ new Date() }).where((0, import_drizzle_orm10.eq)(sessions.id, sessionId));
+    await db.update(sessions).set({ lastActivityAt: /* @__PURE__ */ new Date(), updatedAt: /* @__PURE__ */ new Date() }).where(eq(sessions.id, sessionId));
   }
   /**
    * Get all active sessions for customer
    */
   async getActiveSessions(customerId) {
-    const sessionList = await db.select().from(sessions).where((0, import_drizzle_orm10.and)((0, import_drizzle_orm10.eq)(sessions.customerId, customerId), (0, import_drizzle_orm10.eq)(sessions.isActive, true))).orderBy((0, import_drizzle_orm10.desc)(sessions.lastActivityAt));
+    const sessionList = await db.select().from(sessions).where(and(eq(sessions.customerId, customerId), eq(sessions.isActive, true))).orderBy(desc(sessions.lastActivityAt));
     return sessionList.map((session) => ({
       id: session.id,
       customerId: session.customerId,
@@ -1419,7 +8039,7 @@ var SessionService = class {
       revokedAt: /* @__PURE__ */ new Date(),
       revokeReason: reason,
       updatedAt: /* @__PURE__ */ new Date()
-    }).where((0, import_drizzle_orm10.eq)(sessions.id, sessionId));
+    }).where(eq(sessions.id, sessionId));
     logger.info("Session revoked", { sessionId, reason });
   }
   /**
@@ -1432,10 +8052,10 @@ var SessionService = class {
       revokeReason: "user_action",
       updatedAt: /* @__PURE__ */ new Date()
     }).where(
-      (0, import_drizzle_orm10.and)(
-        (0, import_drizzle_orm10.eq)(sessions.customerId, customerId),
-        (0, import_drizzle_orm10.eq)(sessions.isActive, true),
-        (0, import_drizzle_orm10.ne)(sessions.id, currentSessionId)
+      and(
+        eq(sessions.customerId, customerId),
+        eq(sessions.isActive, true),
+        ne(sessions.id, currentSessionId)
       )
     );
     const count2 = result.rowCount || 0;
@@ -1451,7 +8071,7 @@ var SessionService = class {
       revokedAt: /* @__PURE__ */ new Date(),
       revokeReason: "user_action",
       updatedAt: /* @__PURE__ */ new Date()
-    }).where((0, import_drizzle_orm10.and)((0, import_drizzle_orm10.eq)(sessions.customerId, customerId), (0, import_drizzle_orm10.eq)(sessions.isActive, true)));
+    }).where(and(eq(sessions.customerId, customerId), eq(sessions.isActive, true)));
     const count2 = result.rowCount || 0;
     logger.info("All sessions revoked", { customerId, count: count2 });
     return count2;
@@ -1464,13 +8084,13 @@ var SessionService = class {
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1e3);
     const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1e3);
     const result = await db.delete(sessions).where(
-      (0, import_drizzle_orm10.or)(
+      or(
         // Revoked sessions older than 30 days
-        (0, import_drizzle_orm10.and)((0, import_drizzle_orm10.eq)(sessions.isActive, false), (0, import_drizzle_orm10.lt)(sessions.revokedAt, thirtyDaysAgo)),
+        and(eq(sessions.isActive, false), lt(sessions.revokedAt, thirtyDaysAgo)),
         // Inactive sessions older than 7 days
-        (0, import_drizzle_orm10.and)((0, import_drizzle_orm10.eq)(sessions.isActive, false), (0, import_drizzle_orm10.lt)(sessions.lastActivityAt, sevenDaysAgo)),
+        and(eq(sessions.isActive, false), lt(sessions.lastActivityAt, sevenDaysAgo)),
         // Very old sessions (90+ days)
-        (0, import_drizzle_orm10.lt)(sessions.createdAt, ninetyDaysAgo)
+        lt(sessions.createdAt, ninetyDaysAgo)
       )
     );
     const count2 = result.rowCount || 0;
@@ -1517,7 +8137,7 @@ function optionalAuth(req, _res, next) {
       };
     }
     const sessionId = req.headers["x-session-id"];
-    if (sessionId && (0, import_uuid.validate)(sessionId)) {
+    if (sessionId && (0, import_uuid2.validate)(sessionId)) {
       req.sessionId = sessionId;
     }
     next();
@@ -1741,51 +8361,70 @@ var strictOptions = {
 };
 var richContentOptions = {
   whiteList: {
-    p: [],
+    // Text formatting
+    p: ["style", "class"],
     br: [],
     b: [],
     i: [],
     u: [],
     strong: [],
     em: [],
-    a: ["href", "title", "target"],
-    ul: [],
-    ol: [],
-    li: [],
-    h1: [],
-    h2: [],
-    h3: [],
-    h4: [],
-    h5: [],
-    h6: [],
-    blockquote: [],
-    code: [],
-    pre: [],
-    img: ["src", "alt", "title"],
-    span: ["class"],
-    div: ["class"],
-    hr: [],
-    table: [],
-    thead: [],
-    tbody: [],
-    tr: [],
-    th: [],
-    td: []
+    span: ["style", "class"],
+    // Links
+    a: ["href", "title", "target", "style", "class"],
+    // Lists
+    ul: ["style", "class"],
+    ol: ["style", "class"],
+    li: ["style", "class"],
+    // Headings
+    h1: ["style", "class"],
+    h2: ["style", "class"],
+    h3: ["style", "class"],
+    h4: ["style", "class"],
+    h5: ["style", "class"],
+    h6: ["style", "class"],
+    // Block elements
+    blockquote: ["style", "class"],
+    code: ["class"],
+    pre: ["style", "class"],
+    div: ["style", "class", "id"],
+    // Media
+    img: ["src", "alt", "title", "width", "height", "style", "class"],
+    // Layout
+    hr: ["style"],
+    // Tables
+    table: ["style", "class", "border", "cellpadding", "cellspacing", "width", "align"],
+    thead: ["style"],
+    tbody: ["style"],
+    tfoot: ["style"],
+    tr: ["style", "class"],
+    th: ["style", "class", "colspan", "rowspan", "align", "valign"],
+    td: ["style", "class", "colspan", "rowspan", "align", "valign", "width", "height"],
+    caption: ["style"]
   },
   stripIgnoreTag: false,
-  stripIgnoreTagBody: ["script"]
+  stripIgnoreTagBody: ["script"],
+  onIgnoreTagAttr: function(tag, name, value, isWhiteAttr) {
+    if (name.startsWith("data-")) {
+      return `${name}="${(0, import_xss.escapeAttrValue)(value)}"`;
+    }
+  }
 };
-var sanitize = (obj, options = strictOptions) => {
+var rawHtmlFields = ["content"];
+var sanitize = (obj, options = strictOptions, fieldName) => {
   if (typeof obj === "string") {
+    if (fieldName && rawHtmlFields.includes(fieldName)) {
+      return obj;
+    }
     return (0, import_xss.default)(obj, options);
   }
   if (Array.isArray(obj)) {
-    return obj.map((item) => sanitize(item, options));
+    return obj.map((item) => sanitize(item, options, fieldName));
   }
   if (obj && typeof obj === "object") {
     const sanitized = {};
     for (const key in obj) {
-      sanitized[key] = sanitize(obj[key], options);
+      sanitized[key] = sanitize(obj[key], options, key);
     }
     return sanitized;
   }
@@ -1814,10 +8453,10 @@ var sanitizeRichContent = (html) => {
 };
 
 // src/middleware/request-id.ts
-var import_uuid2 = require("uuid");
+var import_uuid3 = require("uuid");
 function requestIdMiddleware(req, res, next) {
   const existingId = req.get("X-Request-ID");
-  const requestId = existingId || (0, import_uuid2.v4)();
+  const requestId = existingId || (0, import_uuid3.v4)();
   req.id = requestId;
   res.setHeader("X-Request-ID", requestId);
   next();
@@ -1833,9 +8472,9 @@ var import_bcryptjs3 = __toESM(require("bcryptjs"));
 
 // src/utils/helpers.ts
 var import_slugify = __toESM(require("slugify"));
-var import_uuid3 = require("uuid");
-function generateSlug(text15) {
-  return (0, import_slugify.default)(text15, {
+var import_uuid4 = require("uuid");
+function generateSlug(text2) {
+  return (0, import_slugify.default)(text2, {
     lower: true,
     strict: true,
     trim: true
@@ -1875,11 +8514,11 @@ var PricingService = class {
       return this.emptyCartCalculation();
     }
     const productIds = items.map((item) => item.productId);
-    const productData = await this.db.select().from(products).where((0, import_drizzle_orm9.inArray)(products.id, productIds));
+    const productData = await this.db.select().from(products).where(inArray(products.id, productIds));
     const variantIds = items.filter((item) => item.variantId).map((item) => item.variantId);
     let variantData = [];
     if (variantIds.length > 0) {
-      variantData = await this.db.select().from(productVariants).where((0, import_drizzle_orm9.inArray)(productVariants.id, variantIds));
+      variantData = await this.db.select().from(productVariants).where(inArray(productVariants.id, variantIds));
     }
     const calculatedItems = items.map((item) => {
       const product = productData.find((p) => p.id === item.productId);
@@ -2003,7 +8642,7 @@ var PricingService = class {
    * Validate a promo code
    */
   async validatePromoCode(code, subtotal) {
-    const [promoCodeData] = await this.db.select().from(promoCodes).where((0, import_drizzle_orm9.eq)(promoCodes.code, code.toUpperCase()));
+    const [promoCodeData] = await this.db.select().from(promoCodes).where(eq(promoCodes.code, code.toUpperCase()));
     if (!promoCodeData) {
       return void 0;
     }
@@ -2100,7 +8739,7 @@ var PricingService = class {
    * enable and configure tax rates.
    */
   async getTaxRate() {
-    const [taxSetting] = await this.db.select().from(settings).where((0, import_drizzle_orm9.eq)(settings.key, "tax"));
+    const [taxSetting] = await this.db.select().from(settings).where(eq(settings.key, "tax"));
     if (taxSetting && taxSetting.value && typeof taxSetting.value === "object") {
       const taxValue = taxSetting.value;
       if (taxValue.tax_enabled && typeof taxValue.tax_rate === "number") {
@@ -2169,33 +8808,33 @@ var PDFService = class {
     if (!html) {
       return "";
     }
-    let text15 = html;
-    text15 = text15.replace(/<br\s*\/?>/gi, "\n");
-    text15 = text15.replace(/<\/p>/gi, "\n\n");
-    text15 = text15.replace(/<p[^>]*>/gi, "");
-    text15 = text15.replace(/<\/?strong>/gi, "");
-    text15 = text15.replace(/<\/?b>/gi, "");
-    text15 = text15.replace(/<\/?em>/gi, "");
-    text15 = text15.replace(/<\/?i>/gi, "");
-    text15 = text15.replace(/<\/?u>/gi, "");
-    text15 = text15.replace(/<li[^>]*>/gi, "\u2022 ");
-    text15 = text15.replace(/<\/li>/gi, "\n");
-    text15 = text15.replace(/<\/?[ou]l[^>]*>/gi, "\n");
-    text15 = text15.replace(/<h[1-6][^>]*>/gi, "\n");
-    text15 = text15.replace(/<\/h[1-6]>/gi, "\n");
-    text15 = text15.replace(/<\/?div[^>]*>/gi, "\n");
-    text15 = text15.replace(/<\/?span[^>]*>/gi, "");
-    text15 = text15.replace(/<[^>]+>/g, "");
-    text15 = text15.replace(/&nbsp;/gi, " ");
-    text15 = text15.replace(/&amp;/gi, "&");
-    text15 = text15.replace(/&lt;/gi, "<");
-    text15 = text15.replace(/&gt;/gi, ">");
-    text15 = text15.replace(/&quot;/gi, '"');
-    text15 = text15.replace(/&#39;/gi, "'");
-    text15 = text15.replace(/&apos;/gi, "'");
-    text15 = text15.replace(/\n{3,}/g, "\n\n");
-    text15 = text15.split("\n").map((line) => line.trim()).join("\n").trim();
-    return text15;
+    let text2 = html;
+    text2 = text2.replace(/<br\s*\/?>/gi, "\n");
+    text2 = text2.replace(/<\/p>/gi, "\n\n");
+    text2 = text2.replace(/<p[^>]*>/gi, "");
+    text2 = text2.replace(/<\/?strong>/gi, "");
+    text2 = text2.replace(/<\/?b>/gi, "");
+    text2 = text2.replace(/<\/?em>/gi, "");
+    text2 = text2.replace(/<\/?i>/gi, "");
+    text2 = text2.replace(/<\/?u>/gi, "");
+    text2 = text2.replace(/<li[^>]*>/gi, "\u2022 ");
+    text2 = text2.replace(/<\/li>/gi, "\n");
+    text2 = text2.replace(/<\/?[ou]l[^>]*>/gi, "\n");
+    text2 = text2.replace(/<h[1-6][^>]*>/gi, "\n");
+    text2 = text2.replace(/<\/h[1-6]>/gi, "\n");
+    text2 = text2.replace(/<\/?div[^>]*>/gi, "\n");
+    text2 = text2.replace(/<\/?span[^>]*>/gi, "");
+    text2 = text2.replace(/<[^>]+>/g, "");
+    text2 = text2.replace(/&nbsp;/gi, " ");
+    text2 = text2.replace(/&amp;/gi, "&");
+    text2 = text2.replace(/&lt;/gi, "<");
+    text2 = text2.replace(/&gt;/gi, ">");
+    text2 = text2.replace(/&quot;/gi, '"');
+    text2 = text2.replace(/&#39;/gi, "'");
+    text2 = text2.replace(/&apos;/gi, "'");
+    text2 = text2.replace(/\n{3,}/g, "\n\n");
+    text2 = text2.split("\n").map((line2) => line2.trim()).join("\n").trim();
+    return text2;
   }
   /**
    * Apply template configuration
@@ -2309,7 +8948,9 @@ var PDFService = class {
     doc.fontSize(10).fillColor(this.textColor);
     doc.text(`#: ${data.quotationNumber}`, 400, 80, { align: "right" });
     doc.text(`Date: ${data.createdAt.toLocaleDateString()}`, { align: "right" });
-    doc.text(`Valid Until: ${data.validUntil.toLocaleDateString()}`, { align: "right" });
+    if (data.validUntil) {
+      doc.text(`Valid Until: ${data.validUntil.toLocaleDateString()}`, { align: "right" });
+    }
     doc.fontSize(9).fillColor("#666666");
     if (data.companyAddress) {
       doc.text(data.companyAddress, 50, 80);
@@ -2361,9 +9002,9 @@ var PDFService = class {
     }
     let y = tableTop + 30;
     doc.fillColor(this.textColor);
-    items.forEach((item, index8) => {
+    items.forEach((item, index2) => {
       const rowHeight = showDescription && item.description ? 40 : 25;
-      if (index8 % 2 === 0) {
+      if (index2 % 2 === 0) {
         doc.rect(tableLeft, y - 5, 495, rowHeight).fill(this.lightGray);
         doc.fillColor(this.textColor);
       }
@@ -2377,7 +9018,17 @@ var PDFService = class {
       if (productName.length > maxNameLength) {
         productName = productName.substring(0, maxNameLength - 3) + "...";
       }
-      doc.text(productName, tableLeft + 10, y, { width: showSku ? 190 : 270 });
+      if (item.productUrl) {
+        doc.fillColor(this.accentColor);
+        doc.text(productName, tableLeft + 10, y, {
+          width: showSku ? 190 : 270,
+          link: item.productUrl,
+          underline: true
+        });
+        doc.fillColor(this.textColor);
+      } else {
+        doc.text(productName, tableLeft + 10, y, { width: showSku ? 190 : 270 });
+      }
       if (showSku) {
         doc.text(item.sku || "-", tableLeft + 210, y, { width: 70 });
       }
@@ -2386,8 +9037,8 @@ var PDFService = class {
       doc.text(`$${item.lineTotal.toFixed(2)}`, tableLeft + 420, y, { width: 70 });
       if (showDescription && item.description) {
         doc.fontSize(8).fillColor("#666666");
-        const desc5 = item.description.length > 80 ? item.description.substring(0, 77) + "..." : item.description;
-        doc.text(desc5, tableLeft + 10, y + 12, { width: 270 });
+        const desc2 = item.description.length > 80 ? item.description.substring(0, 77) + "..." : item.description;
+        doc.text(desc2, tableLeft + 10, y + 12, { width: 270 });
         doc.fillColor(this.textColor);
       }
       y += rowHeight;
@@ -2539,8 +9190,8 @@ var ExportService = class {
    * Get export filename
    */
   getFilename(prefix, format) {
-    const date = (/* @__PURE__ */ new Date()).toISOString().split("T")[0];
-    return `${prefix}-export-${date}.${format}`;
+    const date2 = (/* @__PURE__ */ new Date()).toISOString().split("T")[0];
+    return `${prefix}-export-${date2}.${format}`;
   }
   // ===========================================
   // Predefined Export Configurations
@@ -2780,14 +9431,14 @@ var ImportService = class {
     const headers = this.parseCSVLine(headerLine);
     const data = [];
     for (let i = 1; i < lines.length; i++) {
-      const line = lines[i];
-      if (!line) {
+      const line2 = lines[i];
+      if (!line2) {
         continue;
       }
-      const values = this.parseCSVLine(line);
+      const values = this.parseCSVLine(line2);
       const row = {};
-      headers.forEach((header, index8) => {
-        row[header.trim()] = values[index8]?.trim() || "";
+      headers.forEach((header, index2) => {
+        row[header.trim()] = values[index2]?.trim() || "";
       });
       data.push(row);
     }
@@ -2796,24 +9447,24 @@ var ImportService = class {
   /**
    * Parse a single CSV line handling quoted values
    */
-  parseCSVLine(line) {
+  parseCSVLine(line2) {
     const result = [];
     let current = "";
     let inQuotes = false;
-    for (let i = 0; i < line.length; i++) {
-      const char = line[i];
-      if (char === '"') {
-        if (inQuotes && line[i + 1] === '"') {
+    for (let i = 0; i < line2.length; i++) {
+      const char2 = line2[i];
+      if (char2 === '"') {
+        if (inQuotes && line2[i + 1] === '"') {
           current += '"';
           i++;
         } else {
           inQuotes = !inQuotes;
         }
-      } else if (char === "," && !inQuotes) {
+      } else if (char2 === "," && !inQuotes) {
         result.push(current);
         current = "";
       } else {
-        current += char;
+        current += char2;
       }
     }
     result.push(current);
@@ -3397,8 +10048,8 @@ var SearchService = class {
       } catch {
         await client.createIndex(PRODUCTS_INDEX, { primaryKey: "id" });
       }
-      const index8 = client.index(PRODUCTS_INDEX);
-      await index8.updateSearchableAttributes([
+      const index2 = client.index(PRODUCTS_INDEX);
+      await index2.updateSearchableAttributes([
         "name",
         "description",
         "shortDescription",
@@ -3407,7 +10058,7 @@ var SearchService = class {
         "categoryName",
         "tags"
       ]);
-      await index8.updateFilterableAttributes([
+      await index2.updateFilterableAttributes([
         "categoryId",
         "categorySlug",
         "inStock",
@@ -3416,13 +10067,13 @@ var SearchService = class {
         "brand",
         "tags"
       ]);
-      await index8.updateSortableAttributes([
+      await index2.updateSortableAttributes([
         "name",
         "basePrice",
         "createdAt",
         "stockQuantity"
       ]);
-      await index8.updateRankingRules([
+      await index2.updateRankingRules([
         "words",
         "typo",
         "proximity",
@@ -3430,7 +10081,7 @@ var SearchService = class {
         "sort",
         "exactness"
       ]);
-      await index8.updateTypoTolerance({
+      await index2.updateTypoTolerance({
         enabled: true,
         minWordSizeForTypos: {
           oneTypo: 4,
@@ -3455,8 +10106,8 @@ var SearchService = class {
    */
   async indexProduct(product) {
     try {
-      const index8 = this.getProductsIndex();
-      await index8.addDocuments([product]);
+      const index2 = this.getProductsIndex();
+      await index2.addDocuments([product]);
     } catch (error) {
       console.error("Failed to index product:", error);
     }
@@ -3466,8 +10117,8 @@ var SearchService = class {
    */
   async indexProducts(productDocs) {
     try {
-      const index8 = this.getProductsIndex();
-      await index8.addDocuments(productDocs);
+      const index2 = this.getProductsIndex();
+      await index2.addDocuments(productDocs);
     } catch (error) {
       console.error("Failed to index products:", error);
     }
@@ -3477,8 +10128,8 @@ var SearchService = class {
    */
   async updateProduct(product) {
     try {
-      const index8 = this.getProductsIndex();
-      await index8.updateDocuments([product]);
+      const index2 = this.getProductsIndex();
+      await index2.updateDocuments([product]);
     } catch (error) {
       console.error("Failed to update product in index:", error);
     }
@@ -3488,8 +10139,8 @@ var SearchService = class {
    */
   async removeProduct(productId) {
     try {
-      const index8 = this.getProductsIndex();
-      await index8.deleteDocument(productId);
+      const index2 = this.getProductsIndex();
+      await index2.deleteDocument(productId);
     } catch (error) {
       console.error("Failed to remove product from index:", error);
     }
@@ -3532,8 +10183,8 @@ var SearchService = class {
       searchParams.facets = facets;
     }
     try {
-      const index8 = this.getProductsIndex();
-      const response = await index8.search(query, searchParams);
+      const index2 = this.getProductsIndex();
+      const response = await index2.search(query, searchParams);
       return {
         hits: response.hits,
         query: response.query,
@@ -3556,7 +10207,7 @@ var SearchService = class {
     let indexed = 0;
     let errors = 0;
     try {
-      const productList = await db2.select().from(products).where((0, import_drizzle_orm9.eq)(products.status, "active"));
+      const productList = await db2.select().from(products).where(eq(products.status, "active"));
       const categoryList = await db2.select().from(categories);
       const categoryMap = new Map(categoryList.map((c) => [c.id, c]));
       const documents = productList.map((product) => {
@@ -3585,9 +10236,9 @@ var SearchService = class {
         };
       });
       if (documents.length > 0) {
-        const index8 = this.getProductsIndex();
-        await index8.deleteAllDocuments();
-        await index8.addDocuments(documents);
+        const index2 = this.getProductsIndex();
+        await index2.deleteAllDocuments();
+        await index2.addDocuments(documents);
         indexed = documents.length;
       }
       console.log(`Synced ${indexed} products to Meilisearch`);
@@ -3602,8 +10253,8 @@ var SearchService = class {
    */
   async getIndexStats() {
     try {
-      const index8 = this.getProductsIndex();
-      const stats = await index8.getStats();
+      const index2 = this.getProductsIndex();
+      const stats = await index2.getStats();
       return {
         numberOfDocuments: stats.numberOfDocuments,
         isIndexing: stats.isIndexing
@@ -3615,9 +10266,6 @@ var SearchService = class {
   }
 };
 var searchService = new SearchService();
-
-// src/services/verification-code.service.ts
-var import_drizzle_orm11 = require("drizzle-orm");
 
 // src/utils/crypto.ts
 var import_crypto = __toESM(require("crypto"));
@@ -3664,13 +10312,13 @@ var VerificationCodeService = class {
     const db2 = getDb();
     const now = /* @__PURE__ */ new Date();
     const [record] = await db2.select().from(verificationCodes).where(
-      (0, import_drizzle_orm11.and)(
-        (0, import_drizzle_orm11.eq)(verificationCodes.email, email.toLowerCase()),
-        (0, import_drizzle_orm11.eq)(verificationCodes.type, type),
-        (0, import_drizzle_orm11.eq)(verificationCodes.isUsed, false),
-        (0, import_drizzle_orm11.gte)(verificationCodes.expiresAt, now)
+      and(
+        eq(verificationCodes.email, email.toLowerCase()),
+        eq(verificationCodes.type, type),
+        eq(verificationCodes.isUsed, false),
+        gte(verificationCodes.expiresAt, now)
       )
-    ).orderBy((0, import_drizzle_orm11.desc)(verificationCodes.createdAt)).limit(1);
+    ).orderBy(desc(verificationCodes.createdAt)).limit(1);
     if (!record) {
       logger.warn("Verification code not found or expired", { email, type });
       throw new BadRequestError("Invalid or expired verification code");
@@ -3679,7 +10327,7 @@ var VerificationCodeService = class {
       logger.warn("Max verification attempts exceeded", { email, type, attempts: record.attempts });
       throw new TooManyRequestsError("Maximum verification attempts exceeded. Please request a new code.");
     }
-    await db2.update(verificationCodes).set({ attempts: record.attempts + 1 }).where((0, import_drizzle_orm11.eq)(verificationCodes.id, record.id));
+    await db2.update(verificationCodes).set({ attempts: record.attempts + 1 }).where(eq(verificationCodes.id, record.id));
     if (record.code !== code) {
       logger.warn("Invalid verification code attempt", { email, type, attempts: record.attempts + 1 });
       throw new BadRequestError("Invalid verification code");
@@ -3687,7 +10335,7 @@ var VerificationCodeService = class {
     await db2.update(verificationCodes).set({
       isUsed: true,
       usedAt: now
-    }).where((0, import_drizzle_orm11.eq)(verificationCodes.id, record.id));
+    }).where(eq(verificationCodes.id, record.id));
     logger.info("Verification code validated successfully", { email, type });
     return true;
   }
@@ -3701,13 +10349,13 @@ var VerificationCodeService = class {
     const db2 = getDb();
     const now = /* @__PURE__ */ new Date();
     const [record] = await db2.select().from(verificationCodes).where(
-      (0, import_drizzle_orm11.and)(
-        (0, import_drizzle_orm11.eq)(verificationCodes.email, email.toLowerCase()),
-        (0, import_drizzle_orm11.eq)(verificationCodes.type, type),
-        (0, import_drizzle_orm11.eq)(verificationCodes.isUsed, false),
-        (0, import_drizzle_orm11.gte)(verificationCodes.expiresAt, now)
+      and(
+        eq(verificationCodes.email, email.toLowerCase()),
+        eq(verificationCodes.type, type),
+        eq(verificationCodes.isUsed, false),
+        gte(verificationCodes.expiresAt, now)
       )
-    ).orderBy((0, import_drizzle_orm11.desc)(verificationCodes.createdAt)).limit(1);
+    ).orderBy(desc(verificationCodes.createdAt)).limit(1);
     if (!record) {
       logger.warn("Verification code not found or expired", { email, type });
       throw new BadRequestError("Invalid or expired verification code");
@@ -3716,7 +10364,7 @@ var VerificationCodeService = class {
       logger.warn("Max verification attempts exceeded", { email, type, attempts: record.attempts });
       throw new TooManyRequestsError("Maximum verification attempts exceeded. Please request a new code.");
     }
-    await db2.update(verificationCodes).set({ attempts: record.attempts + 1 }).where((0, import_drizzle_orm11.eq)(verificationCodes.id, record.id));
+    await db2.update(verificationCodes).set({ attempts: record.attempts + 1 }).where(eq(verificationCodes.id, record.id));
     if (record.code !== code) {
       logger.warn("Invalid verification code attempt", { email, type, attempts: record.attempts + 1 });
       throw new BadRequestError("Invalid verification code");
@@ -3732,18 +10380,18 @@ var VerificationCodeService = class {
     const db2 = getDb();
     const now = /* @__PURE__ */ new Date();
     const [record] = await db2.select().from(verificationCodes).where(
-      (0, import_drizzle_orm11.and)(
-        (0, import_drizzle_orm11.eq)(verificationCodes.email, email.toLowerCase()),
-        (0, import_drizzle_orm11.eq)(verificationCodes.type, type),
-        (0, import_drizzle_orm11.eq)(verificationCodes.isUsed, false),
-        (0, import_drizzle_orm11.gte)(verificationCodes.expiresAt, now)
+      and(
+        eq(verificationCodes.email, email.toLowerCase()),
+        eq(verificationCodes.type, type),
+        eq(verificationCodes.isUsed, false),
+        gte(verificationCodes.expiresAt, now)
       )
-    ).orderBy((0, import_drizzle_orm11.desc)(verificationCodes.createdAt)).limit(1);
+    ).orderBy(desc(verificationCodes.createdAt)).limit(1);
     if (record) {
       await db2.update(verificationCodes).set({
         isUsed: true,
         usedAt: now
-      }).where((0, import_drizzle_orm11.eq)(verificationCodes.id, record.id));
+      }).where(eq(verificationCodes.id, record.id));
       logger.info("Verification code marked as used", { email, type });
     }
   }
@@ -3754,10 +10402,10 @@ var VerificationCodeService = class {
     const db2 = getDb();
     const now = /* @__PURE__ */ new Date();
     const result = await db2.update(verificationCodes).set({ isUsed: true, usedAt: now }).where(
-      (0, import_drizzle_orm11.and)(
-        (0, import_drizzle_orm11.eq)(verificationCodes.email, email.toLowerCase()),
-        (0, import_drizzle_orm11.eq)(verificationCodes.type, type),
-        (0, import_drizzle_orm11.eq)(verificationCodes.isUsed, false)
+      and(
+        eq(verificationCodes.email, email.toLowerCase()),
+        eq(verificationCodes.type, type),
+        eq(verificationCodes.isUsed, false)
       )
     ).returning({ id: verificationCodes.id });
     if (result.length > 0) {
@@ -3777,11 +10425,11 @@ var VerificationCodeService = class {
     const now = /* @__PURE__ */ new Date();
     const cutoffDate = new Date(now.getTime() - 24 * 60 * 60 * 1e3);
     const deleted = await db2.delete(verificationCodes).where(
-      (0, import_drizzle_orm11.or)(
-        (0, import_drizzle_orm11.lte)(verificationCodes.expiresAt, cutoffDate),
-        (0, import_drizzle_orm11.and)(
-          (0, import_drizzle_orm11.eq)(verificationCodes.isUsed, true),
-          (0, import_drizzle_orm11.lte)(verificationCodes.usedAt, cutoffDate)
+      or(
+        lte(verificationCodes.expiresAt, cutoffDate),
+        and(
+          eq(verificationCodes.isUsed, true),
+          lte(verificationCodes.usedAt, cutoffDate)
         )
       )
     ).returning({ id: verificationCodes.id });
@@ -3794,7 +10442,6 @@ var VerificationCodeService = class {
 var verificationCodeService = new VerificationCodeService();
 
 // src/services/ip-reputation.service.ts
-var import_drizzle_orm12 = require("drizzle-orm");
 var IpReputationService = class {
   /**
    * Track an IP action and update reputation
@@ -3843,7 +10490,7 @@ var IpReputationService = class {
           abuseReports: updates.abuseReports
         });
       }
-      await db.update(ipReputation).set(updates).where((0, import_drizzle_orm12.eq)(ipReputation.ipAddress, ip));
+      await db.update(ipReputation).set(updates).where(eq(ipReputation.ipAddress, ip));
     } catch (error) {
       logger.error("Failed to track IP", {
         ip,
@@ -3861,7 +10508,7 @@ var IpReputationService = class {
    */
   async getReputation(ip) {
     try {
-      const results = await db.select().from(ipReputation).where((0, import_drizzle_orm12.eq)(ipReputation.ipAddress, ip)).limit(1);
+      const results = await db.select().from(ipReputation).where(eq(ipReputation.ipAddress, ip)).limit(1);
       return results[0] || null;
     } catch (error) {
       logger.error("Failed to get IP reputation", {
@@ -3913,7 +10560,7 @@ var IpReputationService = class {
         blockedAt: /* @__PURE__ */ new Date(),
         blockedUntil,
         updatedAt: /* @__PURE__ */ new Date()
-      }).where((0, import_drizzle_orm12.eq)(ipReputation.ipAddress, ip));
+      }).where(eq(ipReputation.ipAddress, ip));
       logger.info("IP blocked", {
         ip,
         reason,
@@ -3942,7 +10589,7 @@ var IpReputationService = class {
         blockedAt: null,
         blockedUntil: null,
         updatedAt: /* @__PURE__ */ new Date()
-      }).where((0, import_drizzle_orm12.eq)(ipReputation.ipAddress, ip));
+      }).where(eq(ipReputation.ipAddress, ip));
       logger.info("IP unblocked", { ip });
     } catch (error) {
       logger.error("Failed to unblock IP", {
@@ -3998,9 +10645,9 @@ var IpReputationService = class {
     try {
       const now = /* @__PURE__ */ new Date();
       const expiredBlocks = await db.select().from(ipReputation).where(
-        (0, import_drizzle_orm12.and)(
-          (0, import_drizzle_orm12.eq)(ipReputation.isBlocked, true),
-          (0, import_drizzle_orm12.lt)(ipReputation.blockedUntil, now)
+        and(
+          eq(ipReputation.isBlocked, true),
+          lt(ipReputation.blockedUntil, now)
         )
       );
       let unblockedCount = 0;
@@ -4010,14 +10657,14 @@ var IpReputationService = class {
           unblockedCount++;
         }
       }
-      const ipsToImprove = await db.select().from(ipReputation).where((0, import_drizzle_orm12.lt)(ipReputation.reputationScore, 100));
+      const ipsToImprove = await db.select().from(ipReputation).where(lt(ipReputation.reputationScore, 100));
       let improvedCount = 0;
       for (const record of ipsToImprove) {
         const newScore = Math.min(100, (record.reputationScore || 0) + 10);
         await db.update(ipReputation).set({
           reputationScore: newScore,
           updatedAt: /* @__PURE__ */ new Date()
-        }).where((0, import_drizzle_orm12.eq)(ipReputation.ipAddress, record.ipAddress));
+        }).where(eq(ipReputation.ipAddress, record.ipAddress));
         improvedCount++;
       }
       logger.info("IP reputation cleanup completed", {
@@ -4068,19 +10715,16 @@ var IpReputationService = class {
     try {
       const conditions = [];
       if (filters.isBlocked !== void 0) {
-        conditions.push((0, import_drizzle_orm12.eq)(ipReputation.isBlocked, filters.isBlocked));
+        conditions.push(eq(ipReputation.isBlocked, filters.isBlocked));
       }
       if (filters.minScore !== void 0) {
-        conditions.push((0, import_drizzle_orm12.gte)(ipReputation.reputationScore, filters.minScore));
+        conditions.push(gte(ipReputation.reputationScore, filters.minScore));
       }
       if (filters.maxScore !== void 0) {
-        conditions.push((0, import_drizzle_orm12.lte)(ipReputation.reputationScore, filters.maxScore));
+        conditions.push(lte(ipReputation.reputationScore, filters.maxScore));
       }
-      let query = db.select().from(ipReputation).limit(filters.limit || 50).offset(filters.offset || 0);
-      if (conditions.length > 0) {
-        query = query.where((0, import_drizzle_orm12.and)(...conditions));
-      }
-      const results = await query;
+      const baseQuery = db.select().from(ipReputation);
+      const results = conditions.length > 0 ? await baseQuery.where(and(...conditions)).limit(filters.limit || 50).offset(filters.offset || 0) : await baseQuery.limit(filters.limit || 50).offset(filters.offset || 0);
       return results;
     } catch (error) {
       logger.error("Failed to query IP reputations", {
@@ -4119,6 +10763,9 @@ var IpReputationService = class {
         updatedAt: /* @__PURE__ */ new Date()
       };
       const [created] = await db.insert(ipReputation).values(newRecord).returning();
+      if (!created) {
+        throw new Error("Failed to create IP reputation record");
+      }
       return created;
     } catch (error) {
       logger.error("Failed to get or create IP", {
@@ -4139,7 +10786,8 @@ var IpReputationService = class {
   getClientIp(req) {
     const forwardedFor = req.get("x-forwarded-for");
     if (forwardedFor) {
-      return forwardedFor.split(",")[0].trim();
+      const firstIp = forwardedFor.split(",")[0];
+      return firstIp?.trim() || "unknown";
     }
     return req.ip || req.socket.remoteAddress || "unknown";
   }
@@ -4159,34 +10807,37 @@ var CartService = class {
   async mergeSessionCart(sessionId, customerId) {
     const db2 = getDb();
     try {
-      const [sessionCart] = await db2.select().from(carts).where((0, import_drizzle_orm9.eq)(carts.sessionId, sessionId));
+      const [sessionCart] = await db2.select().from(carts).where(eq(carts.sessionId, sessionId));
       if (!sessionCart) {
         logger.debug("No session cart to merge", { sessionId, customerId });
         return 0;
       }
-      let [customerCart] = await db2.select().from(carts).where((0, import_drizzle_orm9.eq)(carts.customerId, customerId));
+      let [customerCart] = await db2.select().from(carts).where(eq(carts.customerId, customerId));
       if (!customerCart) {
         [customerCart] = await db2.insert(carts).values({ customerId }).returning();
+        if (!customerCart) {
+          throw new Error("Failed to create customer cart");
+        }
       }
-      const sessionItems = await db2.select().from(cartItems).where((0, import_drizzle_orm9.eq)(cartItems.cartId, sessionCart.id));
+      const sessionItems = await db2.select().from(cartItems).where(eq(cartItems.cartId, sessionCart.id));
       if (sessionItems.length === 0) {
-        await db2.delete(carts).where((0, import_drizzle_orm9.eq)(carts.id, sessionCart.id));
+        await db2.delete(carts).where(eq(carts.id, sessionCart.id));
         return 0;
       }
       let mergedCount = 0;
       for (const item of sessionItems) {
         const [existingItem] = await db2.select().from(cartItems).where(
-          (0, import_drizzle_orm9.and)(
-            (0, import_drizzle_orm9.eq)(cartItems.cartId, customerCart.id),
-            (0, import_drizzle_orm9.eq)(cartItems.productId, item.productId),
-            item.variantId ? (0, import_drizzle_orm9.eq)(cartItems.variantId, item.variantId) : (0, import_drizzle_orm9.isNull)(cartItems.variantId)
+          and(
+            eq(cartItems.cartId, customerCart.id),
+            eq(cartItems.productId, item.productId),
+            item.variantId ? eq(cartItems.variantId, item.variantId) : isNull(cartItems.variantId)
           )
         );
         if (existingItem) {
           await db2.update(cartItems).set({
             quantity: existingItem.quantity + item.quantity,
             updatedAt: /* @__PURE__ */ new Date()
-          }).where((0, import_drizzle_orm9.eq)(cartItems.id, existingItem.id));
+          }).where(eq(cartItems.id, existingItem.id));
           logger.debug("Merged cart item quantities", {
             productId: item.productId,
             variantId: item.variantId,
@@ -4198,7 +10849,7 @@ var CartService = class {
           await db2.update(cartItems).set({
             cartId: customerCart.id,
             updatedAt: /* @__PURE__ */ new Date()
-          }).where((0, import_drizzle_orm9.eq)(cartItems.id, item.id));
+          }).where(eq(cartItems.id, item.id));
           logger.debug("Transferred cart item to customer", {
             cartItemId: item.id,
             productId: item.productId
@@ -4206,7 +10857,7 @@ var CartService = class {
         }
         mergedCount++;
       }
-      await db2.delete(carts).where((0, import_drizzle_orm9.eq)(carts.id, sessionCart.id));
+      await db2.delete(carts).where(eq(carts.id, sessionCart.id));
       logger.info("Cart merge completed", {
         sessionId,
         customerId,
@@ -4594,11 +11245,11 @@ var NotificationService = class {
         currency: currency || "USD"
       }).format(amount);
     };
-    const formatDate = (date) => {
-      if (!date) {
+    const formatDate = (date2) => {
+      if (!date2) {
         return "No expiration";
       }
-      return new Date(date).toLocaleDateString("en-US", {
+      return new Date(date2).toLocaleDateString("en-US", {
         year: "numeric",
         month: "long",
         day: "numeric"
@@ -4727,9 +11378,9 @@ var NotificationService = class {
    * Notifies user of successful password change with timestamp and IP
    */
   async sendPasswordChangedConfirmation(data) {
-    const { email, firstName, timestamp: timestamp20, ipAddress } = data;
+    const { email, firstName, timestamp: timestamp2, ipAddress } = data;
     const companyName = process.env["COMPANY_NAME"] || "Lab404 Electronics";
-    const formattedTimestamp = timestamp20.toLocaleString("en-US", {
+    const formattedTimestamp = timestamp2.toLocaleString("en-US", {
       month: "long",
       day: "numeric",
       year: "numeric",
@@ -4857,8 +11508,8 @@ var NotificationService = class {
   async sendQuotationExpiryReminder(customerEmail, customerName, quotationNumber, daysUntilExpiry, expiryDate, acceptanceToken) {
     const companyName = process.env["COMPANY_NAME"] || "Lab404 Electronics";
     const websiteUrl = process.env["WEBSITE_URL"] || "https://lab404electronics.com";
-    const formatDate = (date) => {
-      return new Date(date).toLocaleDateString("en-US", {
+    const formatDate = (date2) => {
+      return new Date(date2).toLocaleDateString("en-US", {
         year: "numeric",
         month: "long",
         day: "numeric"
@@ -4943,10 +11594,12 @@ var HIBPService = class {
       const body = await response.text();
       const lines = body.split("\n");
       let breachCount = 0;
-      for (const line of lines) {
-        const [suffix, count2] = line.split(":");
-        if (suffix.trim() === hashSuffix) {
-          breachCount = parseInt(count2.trim(), 10);
+      for (const line2 of lines) {
+        const parts = line2.split(":");
+        const suffix = parts[0];
+        const count2 = parts[1];
+        if (suffix && suffix.trim() === hashSuffix) {
+          breachCount = parseInt(count2?.trim() || "0", 10);
           break;
         }
       }
@@ -4974,11 +11627,16 @@ var HIBPService = class {
   static async getCachedResult(customerId, hashPrefix) {
     try {
       const db2 = getDb();
-      const cached = await db2.select().from(breachChecks).where((0, import_drizzle_orm9.eq)(breachChecks.customerId, customerId)).where((0, import_drizzle_orm9.eq)(breachChecks.passwordHashPrefix, hashPrefix)).limit(1);
-      if (cached.length === 0) {
+      const cached = await db2.select().from(breachChecks).where(
+        and(
+          eq(breachChecks.customerId, customerId),
+          eq(breachChecks.passwordHashPrefix, hashPrefix)
+        )
+      ).limit(1);
+      const check = cached[0];
+      if (!check) {
         return null;
       }
-      const check = cached[0];
       if (/* @__PURE__ */ new Date() > check.expiresAt) {
         return null;
       }
@@ -5023,7 +11681,7 @@ var HIBPService = class {
   static async cleanupExpiredCache() {
     const db2 = getDb();
     try {
-      const result = await db2.delete(breachChecks).where((0, import_drizzle_orm9.eq)(breachChecks.expiresAt, /* @__PURE__ */ new Date()));
+      const result = await db2.delete(breachChecks).where(eq(breachChecks.expiresAt, /* @__PURE__ */ new Date()));
       return result.rowCount || 0;
     } catch (error) {
       console.error("Failed to cleanup expired breach checks:", error);
@@ -5053,7 +11711,7 @@ var PasswordSecurityService = class {
         warning: result.feedback.warning || "",
         suggestions: result.feedback.suggestions || []
       },
-      crackTime: result.crack_times_display.offline_slow_hashing_1e4_per_second
+      crackTime: String(result.crack_times_display.offline_slow_hashing_1e4_per_second)
     };
   }
   /**
@@ -5066,7 +11724,7 @@ var PasswordSecurityService = class {
   static async checkPasswordHistory(customerId, password) {
     try {
       const db2 = getDb();
-      const history = await db2.select().from(passwordHistory).where((0, import_drizzle_orm9.eq)(passwordHistory.customerId, customerId)).orderBy((0, import_drizzle_orm9.desc)(passwordHistory.changedAt)).limit(this.HISTORY_LIMIT);
+      const history = await db2.select().from(passwordHistory).where(eq(passwordHistory.customerId, customerId)).orderBy(desc(passwordHistory.changedAt)).limit(this.HISTORY_LIMIT);
       for (const entry of history) {
         const matches = await import_bcryptjs2.default.compare(password, entry.passwordHash);
         if (matches) {
@@ -5088,11 +11746,11 @@ var PasswordSecurityService = class {
     try {
       const db2 = getDb();
       await db2.insert(passwordHistory).values(data);
-      const allHistory = await db2.select().from(passwordHistory).where((0, import_drizzle_orm9.eq)(passwordHistory.customerId, data.customerId)).orderBy((0, import_drizzle_orm9.desc)(passwordHistory.changedAt));
+      const allHistory = await db2.select().from(passwordHistory).where(eq(passwordHistory.customerId, data.customerId)).orderBy(desc(passwordHistory.changedAt));
       if (allHistory.length > this.HISTORY_LIMIT) {
         const idsToDelete = allHistory.slice(this.HISTORY_LIMIT).map((entry) => entry.id);
-        if (idsToDelete.length > 0) {
-          await db2.delete(passwordHistory).where((0, import_drizzle_orm9.eq)(passwordHistory.id, idsToDelete[0]));
+        if (idsToDelete.length > 0 && idsToDelete[0]) {
+          await db2.delete(passwordHistory).where(eq(passwordHistory.id, idsToDelete[0]));
         }
       }
     } catch (error) {
@@ -5195,7 +11853,6 @@ var PasswordSecurityService = class {
 };
 
 // src/services/audit-log.service.ts
-var import_drizzle_orm13 = require("drizzle-orm");
 var AuditLogService = class {
   /**
    * Log a security event
@@ -5260,31 +11917,28 @@ var AuditLogService = class {
       const db2 = getDb();
       const conditions = [];
       if (filters.actorId) {
-        conditions.push((0, import_drizzle_orm13.eq)(securityAuditLogs.actorId, filters.actorId));
+        conditions.push(eq(securityAuditLogs.actorId, filters.actorId));
       }
       if (filters.eventTypes && filters.eventTypes.length > 0) {
-        conditions.push((0, import_drizzle_orm13.inArray)(securityAuditLogs.eventType, filters.eventTypes));
+        conditions.push(inArray(securityAuditLogs.eventType, filters.eventTypes));
       }
       if (filters.status) {
-        conditions.push((0, import_drizzle_orm13.eq)(securityAuditLogs.status, filters.status));
+        conditions.push(eq(securityAuditLogs.status, filters.status));
       }
       if (filters.ipAddress) {
-        conditions.push((0, import_drizzle_orm13.eq)(securityAuditLogs.ipAddress, filters.ipAddress));
+        conditions.push(eq(securityAuditLogs.ipAddress, filters.ipAddress));
       }
       if (filters.sessionId) {
-        conditions.push((0, import_drizzle_orm13.eq)(securityAuditLogs.sessionId, filters.sessionId));
+        conditions.push(eq(securityAuditLogs.sessionId, filters.sessionId));
       }
       if (filters.startDate) {
-        conditions.push((0, import_drizzle_orm13.gte)(securityAuditLogs.timestamp, filters.startDate));
+        conditions.push(gte(securityAuditLogs.timestamp, filters.startDate));
       }
       if (filters.endDate) {
-        conditions.push((0, import_drizzle_orm13.lte)(securityAuditLogs.timestamp, filters.endDate));
+        conditions.push(lte(securityAuditLogs.timestamp, filters.endDate));
       }
-      let query = db2.select().from(securityAuditLogs).orderBy((0, import_drizzle_orm13.desc)(securityAuditLogs.timestamp)).limit(filters.limit || 50).offset(filters.offset || 0);
-      if (conditions.length > 0) {
-        query = query.where((0, import_drizzle_orm13.and)(...conditions));
-      }
-      const results = await query;
+      const baseQuery = db2.select().from(securityAuditLogs);
+      const results = conditions.length > 0 ? await baseQuery.where(and(...conditions)).orderBy(desc(securityAuditLogs.timestamp)).limit(filters.limit || 50).offset(filters.offset || 0) : await baseQuery.orderBy(desc(securityAuditLogs.timestamp)).limit(filters.limit || 50).offset(filters.offset || 0);
       return results;
     } catch (error) {
       logger.error("Failed to query audit logs", {
@@ -5303,7 +11957,7 @@ var AuditLogService = class {
   async getById(id) {
     try {
       const db2 = getDb();
-      const results = await db2.select().from(securityAuditLogs).where((0, import_drizzle_orm13.eq)(securityAuditLogs.id, id)).limit(1);
+      const results = await db2.select().from(securityAuditLogs).where(eq(securityAuditLogs.id, id)).limit(1);
       return results[0] || null;
     } catch (error) {
       logger.error("Failed to get audit log by ID", {
@@ -5384,7 +12038,7 @@ ${rows.join("\n")}`;
       const retentionDays = 90;
       const cutoffDate = /* @__PURE__ */ new Date();
       cutoffDate.setDate(cutoffDate.getDate() - retentionDays);
-      const deletedLogs = await db2.delete(securityAuditLogs).where((0, import_drizzle_orm13.lte)(securityAuditLogs.timestamp, cutoffDate)).returning({ id: securityAuditLogs.id });
+      const deletedLogs = await db2.delete(securityAuditLogs).where(lte(securityAuditLogs.timestamp, cutoffDate)).returning({ id: securityAuditLogs.id });
       logger.info("Audit log cleanup completed", {
         deletedCount: deletedLogs.length,
         cutoffDate: cutoffDate.toISOString()
@@ -5408,19 +12062,16 @@ ${rows.join("\n")}`;
       const db2 = getDb();
       const conditions = [];
       if (filters?.startDate) {
-        conditions.push((0, import_drizzle_orm13.gte)(securityAuditLogs.timestamp, filters.startDate));
+        conditions.push(gte(securityAuditLogs.timestamp, filters.startDate));
       }
       if (filters?.endDate) {
-        conditions.push((0, import_drizzle_orm13.lte)(securityAuditLogs.timestamp, filters.endDate));
+        conditions.push(lte(securityAuditLogs.timestamp, filters.endDate));
       }
       if (filters?.actorId) {
-        conditions.push((0, import_drizzle_orm13.eq)(securityAuditLogs.actorId, filters.actorId));
+        conditions.push(eq(securityAuditLogs.actorId, filters.actorId));
       }
-      let logsQuery = db2.select().from(securityAuditLogs);
-      if (conditions.length > 0) {
-        logsQuery = logsQuery.where((0, import_drizzle_orm13.and)(...conditions));
-      }
-      const logs = await logsQuery;
+      const baseLogsQuery = db2.select().from(securityAuditLogs);
+      const logs = conditions.length > 0 ? await baseLogsQuery.where(and(...conditions)) : await baseLogsQuery;
       const stats = {
         totalLogs: logs.length,
         successCount: logs.filter((log) => log.status === "success").length,
@@ -5453,7 +12104,8 @@ ${rows.join("\n")}`;
   getClientIp(req) {
     const forwardedFor = req.get("x-forwarded-for");
     if (forwardedFor) {
-      return forwardedFor.split(",")[0].trim();
+      const firstIp = forwardedFor.split(",")[0];
+      return firstIp?.trim() || "unknown";
     }
     return req.ip || req.socket.remoteAddress || "unknown";
   }
@@ -5543,14 +12195,19 @@ var LoginAttemptService = class {
    */
   static async checkLockoutStatus(email) {
     const db2 = getDb();
-    const recentAttempts = await db2.select().from(loginAttempts).where((0, import_drizzle_orm9.eq)(loginAttempts.email, email)).where((0, import_drizzle_orm9.eq)(loginAttempts.triggeredLockout, true)).orderBy((0, import_drizzle_orm9.desc)(loginAttempts.attemptedAt)).limit(1);
-    if (recentAttempts.length === 0) {
+    const recentAttempts = await db2.select().from(loginAttempts).where(
+      and(
+        eq(loginAttempts.email, email),
+        eq(loginAttempts.triggeredLockout, true)
+      )
+    ).orderBy(desc(loginAttempts.attemptedAt)).limit(1);
+    const lastLockout = recentAttempts[0];
+    if (!lastLockout) {
       return {
         isLocked: false,
         consecutiveFailures: await this.getRecentFailures(email)
       };
     }
-    const lastLockout = recentAttempts[0];
     const lockoutEndTime = new Date(
       lastLockout.attemptedAt.getTime() + this.LOCKOUT_DURATION_MS
     );
@@ -5579,11 +12236,11 @@ var LoginAttemptService = class {
     const db2 = getDb();
     const windowStart = new Date(Date.now() - this.ATTEMPT_WINDOW_MS);
     const recentAttempts = await db2.select().from(loginAttempts).where(
-      (0, import_drizzle_orm9.and)(
-        (0, import_drizzle_orm9.eq)(loginAttempts.email, email),
-        (0, import_drizzle_orm9.gte)(loginAttempts.attemptedAt, windowStart)
+      and(
+        eq(loginAttempts.email, email),
+        gte(loginAttempts.attemptedAt, windowStart)
       )
-    ).orderBy((0, import_drizzle_orm9.desc)(loginAttempts.attemptedAt));
+    ).orderBy(desc(loginAttempts.attemptedAt));
     let failures = 0;
     for (const attempt of recentAttempts) {
       if (attempt.success) {
@@ -5600,14 +12257,15 @@ var LoginAttemptService = class {
    */
   static async clearFailedAttempts(email) {
     const db2 = getDb();
-    const customer = await db2.select().from(customers).where((0, import_drizzle_orm9.eq)(customers.email, email)).limit(1);
-    if (customer.length > 0 && customer[0].accountLocked) {
+    const customer = await db2.select().from(customers).where(eq(customers.email, email)).limit(1);
+    const foundCustomer = customer[0];
+    if (foundCustomer && foundCustomer.accountLocked) {
       await db2.update(customers).set({
         accountLocked: false,
         accountLockedAt: null,
         accountLockedReason: null,
         updatedAt: /* @__PURE__ */ new Date()
-      }).where((0, import_drizzle_orm9.eq)(customers.id, customer[0].id));
+      }).where(eq(customers.id, foundCustomer.id));
     }
   }
   /**
@@ -5617,13 +12275,13 @@ var LoginAttemptService = class {
    */
   static async lockAccount(customerId) {
     const db2 = getDb();
-    const [customer] = await db2.select({ email: customers.email }).from(customers).where((0, import_drizzle_orm9.eq)(customers.id, customerId)).limit(1);
+    const [customer] = await db2.select({ email: customers.email }).from(customers).where(eq(customers.id, customerId)).limit(1);
     await db2.update(customers).set({
       accountLocked: true,
       accountLockedAt: /* @__PURE__ */ new Date(),
       accountLockedReason: "Too many failed login attempts",
       updatedAt: /* @__PURE__ */ new Date()
-    }).where((0, import_drizzle_orm9.eq)(customers.id, customerId));
+    }).where(eq(customers.id, customerId));
     if (customer) {
       await auditLogService.log({
         eventType: "account.locked" /* ACCOUNT_LOCKED */,
@@ -5648,7 +12306,7 @@ var LoginAttemptService = class {
    */
   static async getAttemptHistory(customerId, limit = 50) {
     const db2 = getDb();
-    return await db2.select().from(loginAttempts).where((0, import_drizzle_orm9.eq)(loginAttempts.customerId, customerId)).orderBy((0, import_drizzle_orm9.desc)(loginAttempts.attemptedAt)).limit(limit);
+    return await db2.select().from(loginAttempts).where(eq(loginAttempts.customerId, customerId)).orderBy(desc(loginAttempts.attemptedAt)).limit(limit);
   }
   /**
    * Admin: Unlock a customer account
@@ -5657,13 +12315,13 @@ var LoginAttemptService = class {
    */
   static async unlockAccount(customerId) {
     const db2 = getDb();
-    const [customer] = await db2.select({ email: customers.email }).from(customers).where((0, import_drizzle_orm9.eq)(customers.id, customerId)).limit(1);
+    const [customer] = await db2.select({ email: customers.email }).from(customers).where(eq(customers.id, customerId)).limit(1);
     await db2.update(customers).set({
       accountLocked: false,
       accountLockedAt: null,
       accountLockedReason: null,
       updatedAt: /* @__PURE__ */ new Date()
-    }).where((0, import_drizzle_orm9.eq)(customers.id, customerId));
+    }).where(eq(customers.id, customerId));
     if (customer) {
       await auditLogService.log({
         eventType: "account.unlocked" /* ACCOUNT_UNLOCKED */,
@@ -5781,7 +12439,7 @@ authRoutes.post(
     try {
       const { email, password, firstName, lastName, acceptsMarketing } = req.body;
       const db2 = getDb();
-      const [existing] = await db2.select().from(customers).where((0, import_drizzle_orm9.eq)(customers.email, email.toLowerCase()));
+      const [existing] = await db2.select().from(customers).where(eq(customers.email, email.toLowerCase()));
       if (existing && !existing.isGuest) {
         throw new ConflictError("Email already registered");
       }
@@ -5797,7 +12455,7 @@ authRoutes.post(
           authUserId: `local_${existing.id}`,
           // Local auth
           updatedAt: /* @__PURE__ */ new Date()
-        }).where((0, import_drizzle_orm9.eq)(customers.id, existing.id)).returning();
+        }).where(eq(customers.id, existing.id)).returning();
         customer = updated;
       } else {
         const [created] = await db2.insert(customers).values({
@@ -5812,7 +12470,7 @@ authRoutes.post(
         }).returning();
         customer = created;
         if (customer) {
-          await db2.update(customers).set({ authUserId: `local_${customer.id}` }).where((0, import_drizzle_orm9.eq)(customers.id, customer.id));
+          await db2.update(customers).set({ authUserId: `local_${customer.id}` }).where(eq(customers.id, customer.id));
         }
       }
       if (!customer) {
@@ -5920,7 +12578,7 @@ authRoutes.post(
           `Account temporarily locked due to too many failed login attempts. Please try again in ${remainingTime}.`
         );
       }
-      const [customer] = await db2.select().from(customers).where((0, import_drizzle_orm9.eq)(customers.email, normalizedEmail));
+      const [customer] = await db2.select().from(customers).where(eq(customers.email, normalizedEmail));
       if (!customer || customer.isGuest) {
         await LoginAttemptService.recordAttempt(
           normalizedEmail,
@@ -6119,7 +12777,7 @@ authRoutes.get("/me", requireAuth, async (req, res, next) => {
     if (!req.user?.customerId) {
       throw new NotFoundError("Customer not found");
     }
-    const [customer] = await db2.select().from(customers).where((0, import_drizzle_orm9.eq)(customers.id, req.user.customerId));
+    const [customer] = await db2.select().from(customers).where(eq(customers.id, req.user.customerId));
     if (!customer) {
       throw new NotFoundError("Customer not found");
     }
@@ -6176,7 +12834,7 @@ authRoutes.post(
     try {
       const { email, password } = req.body;
       const db2 = getDb();
-      const [customer] = await db2.select().from(customers).where((0, import_drizzle_orm9.eq)(customers.email, email.toLowerCase()));
+      const [customer] = await db2.select().from(customers).where(eq(customers.email, email.toLowerCase()));
       if (!customer || customer.isGuest) {
         throw new UnauthorizedError("Invalid email or password");
       }
@@ -6243,7 +12901,7 @@ authRoutes.post(
     try {
       const { email } = req.body;
       const db2 = getDb();
-      const [customer] = await db2.select().from(customers).where((0, import_drizzle_orm9.eq)(customers.email, email.toLowerCase())).limit(1);
+      const [customer] = await db2.select().from(customers).where(eq(customers.email, email.toLowerCase())).limit(1);
       if (customer && customer.isActive && !customer.isGuest && customer.passwordHash) {
         const code = await verificationCodeService.createCode({
           email: customer.email,
@@ -6307,13 +12965,13 @@ authRoutes.post(
       const db2 = getDb();
       const now = /* @__PURE__ */ new Date();
       const [record] = await db2.select().from(verificationCodes).where(
-        (0, import_drizzle_orm9.and)(
-          (0, import_drizzle_orm9.eq)(verificationCodes.email, email.toLowerCase()),
-          (0, import_drizzle_orm9.eq)(verificationCodes.type, "password_reset"),
-          (0, import_drizzle_orm9.eq)(verificationCodes.isUsed, false),
-          (0, import_drizzle_orm9.gte)(verificationCodes.expiresAt, now)
+        and(
+          eq(verificationCodes.email, email.toLowerCase()),
+          eq(verificationCodes.type, "password_reset"),
+          eq(verificationCodes.isUsed, false),
+          gte(verificationCodes.expiresAt, now)
         )
-      ).orderBy((0, import_drizzle_orm9.desc)(verificationCodes.createdAt)).limit(1);
+      ).orderBy(desc(verificationCodes.createdAt)).limit(1);
       if (!record) {
         logger.warn("Verification code not found or expired", { email, type: "password_reset" });
         throw new BadRequestError("Invalid or expired verification code");
@@ -6322,7 +12980,7 @@ authRoutes.post(
         logger.warn("Max verification attempts exceeded", { email, type: "password_reset", attempts: record.attempts });
         throw new BadRequestError("Maximum verification attempts exceeded. Please request a new code.");
       }
-      await db2.update(verificationCodes).set({ attempts: record.attempts + 1 }).where((0, import_drizzle_orm9.eq)(verificationCodes.id, record.id));
+      await db2.update(verificationCodes).set({ attempts: record.attempts + 1 }).where(eq(verificationCodes.id, record.id));
       if (record.code !== code) {
         logger.warn("Invalid verification code attempt", { email, type: "password_reset", attempts: record.attempts + 1 });
         throw new BadRequestError("Invalid verification code");
@@ -6356,7 +13014,7 @@ authRoutes.post(
       if (!isValid) {
         throw new BadRequestError("Invalid or expired verification code");
       }
-      const [customer] = await db2.select().from(customers).where((0, import_drizzle_orm9.eq)(customers.email, normalizedEmail)).limit(1);
+      const [customer] = await db2.select().from(customers).where(eq(customers.email, normalizedEmail)).limit(1);
       if (!customer) {
         logger.error("Customer not found after valid code validation", {
           email: normalizedEmail
@@ -6393,7 +13051,7 @@ authRoutes.post(
       await db2.update(customers).set({
         passwordHash,
         updatedAt: /* @__PURE__ */ new Date()
-      }).where((0, import_drizzle_orm9.eq)(customers.id, customer.id));
+      }).where(eq(customers.id, customer.id));
       await PasswordSecurityService.recordPasswordChange({
         customerId: customer.id,
         passwordHash,
@@ -6484,7 +13142,7 @@ authRoutes.post(
       if (!isValid) {
         return sendError(res, 400, "INVALID_CODE", "Invalid or expired verification code.");
       }
-      const [customer] = await db2.select().from(customers).where((0, import_drizzle_orm9.eq)(customers.email, normalizedEmail)).limit(1);
+      const [customer] = await db2.select().from(customers).where(eq(customers.email, normalizedEmail)).limit(1);
       if (!customer || customer.isGuest) {
         return sendError(res, 400, "INVALID_CODE", "Invalid verification code.");
       }
@@ -6495,7 +13153,7 @@ authRoutes.post(
         emailVerified: true,
         emailVerifiedAt: /* @__PURE__ */ new Date(),
         updatedAt: /* @__PURE__ */ new Date()
-      }).where((0, import_drizzle_orm9.eq)(customers.id, customer.id));
+      }).where(eq(customers.id, customer.id));
       await verificationCodeService.invalidateCodes(
         normalizedEmail,
         "email_verification"
@@ -6560,7 +13218,7 @@ authRoutes.post(
       const { email } = req.body;
       const normalizedEmail = email.toLowerCase().trim();
       const db2 = getDb();
-      const [customer] = await db2.select().from(customers).where((0, import_drizzle_orm9.eq)(customers.email, normalizedEmail)).limit(1);
+      const [customer] = await db2.select().from(customers).where(eq(customers.email, normalizedEmail)).limit(1);
       if (customer && !customer.isGuest && !customer.emailVerified) {
         await verificationCodeService.invalidateCodes(
           normalizedEmail,
@@ -6649,7 +13307,7 @@ sessionsRoutes.get(
       const customerId = req.user?.customerId;
       const currentSessionId = req.user?.sessionId;
       if (!customerId) {
-        return sendError(res, "Customer ID not found", 400);
+        return sendError(res, 400, "BAD_REQUEST", "Customer ID not found");
       }
       const sessions2 = await sessionService.getActiveSessions(customerId);
       const sessionsWithCurrent = sessions2.map((session) => ({
@@ -6673,12 +13331,12 @@ sessionsRoutes.delete(
       const { sessionId } = req.params;
       const customerId = req.user?.customerId;
       if (!customerId) {
-        return sendError(res, "Customer ID not found", 400);
+        return sendError(res, 400, "BAD_REQUEST", "Customer ID not found");
       }
       const sessions2 = await sessionService.getActiveSessions(customerId);
       const session = sessions2.find((s) => s.id === sessionId);
       if (!session) {
-        return sendError(res, "Session not found or already revoked", 404);
+        return sendError(res, 404, "NOT_FOUND", "Session not found or already revoked");
       }
       await sessionService.revokeSession(sessionId, "user_action");
       logger.info("Session revoked via API", {
@@ -6700,7 +13358,7 @@ sessionsRoutes.post(
       const customerId = req.user?.customerId;
       const currentSessionId = req.user?.sessionId;
       if (!customerId || !currentSessionId) {
-        return sendError(res, "Session information not found", 400);
+        return sendError(res, 400, "BAD_REQUEST", "Session information not found");
       }
       const count2 = await sessionService.revokeOtherSessions(customerId, currentSessionId);
       logger.info("Other sessions revoked", { customerId, count: count2 });
@@ -6720,7 +13378,7 @@ sessionsRoutes.post(
     try {
       const customerId = req.user?.customerId;
       if (!customerId) {
-        return sendError(res, "Customer ID not found", 400);
+        return sendError(res, 400, "BAD_REQUEST", "Customer ID not found");
       }
       const count2 = await sessionService.revokeAllSessions(customerId);
       res.clearCookie("auth_token");
@@ -6820,7 +13478,7 @@ productsRoutes.get("/", validateQuery(productFiltersSchema), async (req, res, ne
     const { page, limit, offset } = parsePaginationParams(req.query);
     const filters = req.query;
     const conditions = [];
-    conditions.push((0, import_drizzle_orm9.eq)(products.status, "active"));
+    conditions.push(eq(products.status, "active"));
     const search = filters["search"];
     const categoryId = filters["categoryId"];
     const categorySlug = filters["categorySlug"] || filters["category"];
@@ -6833,42 +13491,42 @@ productsRoutes.get("/", validateQuery(productFiltersSchema), async (req, res, ne
     const sortOrder = filters["sortOrder"] || "desc";
     if (search) {
       conditions.push(
-        (0, import_drizzle_orm9.or)(
-          (0, import_drizzle_orm9.ilike)(products.name, `%${search}%`),
-          (0, import_drizzle_orm9.ilike)(products.sku, `%${search}%`)
+        or(
+          ilike(products.name, `%${search}%`),
+          ilike(products.sku, `%${search}%`)
         )
       );
     }
     if (categoryId) {
-      conditions.push((0, import_drizzle_orm9.eq)(products.categoryId, categoryId));
+      conditions.push(eq(products.categoryId, categoryId));
     }
     if (categorySlug) {
-      const [cat] = await db2.select({ id: categories.id }).from(categories).where((0, import_drizzle_orm9.eq)(categories.slug, categorySlug));
+      const [cat] = await db2.select({ id: categories.id }).from(categories).where(eq(categories.slug, categorySlug));
       if (cat) {
-        conditions.push((0, import_drizzle_orm9.eq)(products.categoryId, cat.id));
+        conditions.push(eq(products.categoryId, cat.id));
       }
     }
     if (brand) {
-      conditions.push((0, import_drizzle_orm9.eq)(products.brand, brand));
+      conditions.push(eq(products.brand, brand));
     }
     if (minPrice) {
-      conditions.push((0, import_drizzle_orm9.gte)(products.basePrice, minPrice));
+      conditions.push(gte(products.basePrice, minPrice));
     }
     if (maxPrice) {
-      conditions.push((0, import_drizzle_orm9.lte)(products.basePrice, maxPrice));
+      conditions.push(lte(products.basePrice, maxPrice));
     }
     if (inStock === "true") {
       conditions.push(
-        (0, import_drizzle_orm9.or)(
-          import_drizzle_orm9.sql`${products.stockQuantity} > 0`,
-          (0, import_drizzle_orm9.eq)(products.allowBackorder, true)
+        or(
+          sql`${products.stockQuantity} > 0`,
+          eq(products.allowBackorder, true)
         )
       );
     }
     if (isFeatured === "true") {
-      conditions.push((0, import_drizzle_orm9.eq)(products.isFeatured, true));
+      conditions.push(eq(products.isFeatured, true));
     }
-    const countResult = await db2.select({ count: import_drizzle_orm9.sql`count(*)` }).from(products).where((0, import_drizzle_orm9.and)(...conditions));
+    const countResult = await db2.select({ count: sql`count(*)` }).from(products).where(and(...conditions));
     const count2 = countResult[0]?.count ?? 0;
     const sortColumnMap = {
       name: products.name,
@@ -6893,7 +13551,7 @@ productsRoutes.get("/", validateQuery(productFiltersSchema), async (req, res, ne
       categoryId: products.categoryId,
       categoryName: categories.name,
       categorySlug: categories.slug
-    }).from(products).leftJoin(categories, (0, import_drizzle_orm9.eq)(products.categoryId, categories.id)).where((0, import_drizzle_orm9.and)(...conditions)).orderBy(sortOrder === "desc" ? (0, import_drizzle_orm9.desc)(sortColumn) : (0, import_drizzle_orm9.asc)(sortColumn)).limit(limit).offset(offset);
+    }).from(products).leftJoin(categories, eq(products.categoryId, categories.id)).where(and(...conditions)).orderBy(sortOrder === "desc" ? desc(sortColumn) : asc(sortColumn)).limit(limit).offset(offset);
     const productsWithStock = productList.map((p) => ({
       ...p,
       basePrice: Number(p.basePrice),
@@ -6924,7 +13582,7 @@ productsRoutes.get("/featured", async (req, res, next) => {
       basePrice: products.basePrice,
       compareAtPrice: products.compareAtPrice,
       stockQuantity: products.stockQuantity
-    }).from(products).where((0, import_drizzle_orm9.and)((0, import_drizzle_orm9.eq)(products.status, "active"), (0, import_drizzle_orm9.eq)(products.isFeatured, true))).orderBy((0, import_drizzle_orm9.desc)(products.createdAt)).limit(limit);
+    }).from(products).where(and(eq(products.status, "active"), eq(products.isFeatured, true))).orderBy(desc(products.createdAt)).limit(limit);
     const productsWithStock = productList.map((p) => ({
       ...p,
       basePrice: Number(p.basePrice),
@@ -6943,14 +13601,14 @@ productsRoutes.get("/:productId/variants", async (req, res, next) => {
     if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(productId)) {
       return next();
     }
-    const [product] = await db2.select({ id: products.id, name: products.name }).from(products).where((0, import_drizzle_orm9.eq)(products.id, productId));
+    const [product] = await db2.select({ id: products.id, name: products.name }).from(products).where(eq(products.id, productId));
     if (!product) {
       throw new NotFoundError("Product not found");
     }
-    const variants = await db2.select().from(productVariants).where((0, import_drizzle_orm9.and)(
-      (0, import_drizzle_orm9.eq)(productVariants.productId, productId),
-      (0, import_drizzle_orm9.eq)(productVariants.isActive, true)
-    )).orderBy((0, import_drizzle_orm9.asc)(productVariants.name));
+    const variants = await db2.select().from(productVariants).where(and(
+      eq(productVariants.productId, productId),
+      eq(productVariants.isActive, true)
+    )).orderBy(asc(productVariants.name));
     sendSuccess(res, variants.map((v) => ({
       ...v,
       basePrice: Number(v.basePrice)
@@ -6963,13 +13621,13 @@ productsRoutes.get("/:slug", async (req, res, next) => {
   try {
     const db2 = getDb();
     const slug = req.params["slug"];
-    const [product] = await db2.select().from(products).where((0, import_drizzle_orm9.eq)(products.slug, slug));
+    const [product] = await db2.select().from(products).where(eq(products.slug, slug));
     if (!product || product.status !== "active") {
       throw new NotFoundError("Product not found");
     }
     let category;
     if (product.categoryId) {
-      [category] = await db2.select({ id: categories.id, name: categories.name, slug: categories.slug }).from(categories).where((0, import_drizzle_orm9.eq)(categories.id, product.categoryId));
+      [category] = await db2.select({ id: categories.id, name: categories.name, slug: categories.slug }).from(categories).where(eq(categories.id, product.categoryId));
     }
     sendSuccess(res, {
       ...product,
@@ -6987,13 +13645,13 @@ productsRoutes.get("/admin/:id", requireAuth, requireAdmin, async (req, res, nex
   try {
     const db2 = getDb();
     const id = req.params["id"];
-    const [product] = await db2.select().from(products).where((0, import_drizzle_orm9.eq)(products.id, id));
+    const [product] = await db2.select().from(products).where(eq(products.id, id));
     if (!product) {
       throw new NotFoundError("Product not found");
     }
     let category;
     if (product.categoryId) {
-      [category] = await db2.select({ id: categories.id, name: categories.name, slug: categories.slug }).from(categories).where((0, import_drizzle_orm9.eq)(categories.id, product.categoryId));
+      [category] = await db2.select({ id: categories.id, name: categories.name, slug: categories.slug }).from(categories).where(eq(categories.id, product.categoryId));
     }
     sendSuccess(res, {
       ...product,
@@ -7018,12 +13676,12 @@ productsRoutes.post(
       const db2 = getDb();
       const data = req.body;
       const sku = data.sku || generateSku();
-      const [existingSku] = await db2.select({ id: products.id }).from(products).where((0, import_drizzle_orm9.eq)(products.sku, sku));
+      const [existingSku] = await db2.select({ id: products.id }).from(products).where(eq(products.sku, sku));
       if (existingSku) {
         throw new ConflictError("SKU already exists");
       }
       let slug = data.slug || generateSlug(data.name);
-      const [existingSlug] = await db2.select({ id: products.id }).from(products).where((0, import_drizzle_orm9.eq)(products.slug, slug));
+      const [existingSlug] = await db2.select({ id: products.id }).from(products).where(eq(products.slug, slug));
       if (existingSlug) {
         slug = `${slug}-${Date.now()}`;
       }
@@ -7047,7 +13705,7 @@ productsRoutes.post(
           let categoryName = "";
           let categorySlugValue = "";
           if (product.categoryId) {
-            const [cat] = await db2.select({ name: categories.name, slug: categories.slug }).from(categories).where((0, import_drizzle_orm9.eq)(categories.id, product.categoryId));
+            const [cat] = await db2.select({ name: categories.name, slug: categories.slug }).from(categories).where(eq(categories.id, product.categoryId));
             if (cat) {
               categoryName = cat.name;
               categorySlugValue = cat.slug;
@@ -7101,7 +13759,7 @@ productsRoutes.put(
       const db2 = getDb();
       const id = req.params["id"];
       const data = req.body;
-      const [existing] = await db2.select().from(products).where((0, import_drizzle_orm9.eq)(products.id, id));
+      const [existing] = await db2.select().from(products).where(eq(products.id, id));
       if (!existing) {
         throw new NotFoundError("Product not found");
       }
@@ -7127,7 +13785,7 @@ productsRoutes.put(
       if (data.thumbnailUrl !== void 0) {
         updateData["thumbnailUrl"] = data.thumbnailUrl || null;
       }
-      const updateResult = await db2.update(products).set(updateData).where((0, import_drizzle_orm9.eq)(products.id, id)).returning();
+      const updateResult = await db2.update(products).set(updateData).where(eq(products.id, id)).returning();
       const product = updateResult[0];
       if (!product) {
         throw new NotFoundError("Product not found");
@@ -7137,7 +13795,7 @@ productsRoutes.put(
           let categoryName = "";
           let categorySlugValue = "";
           if (product.categoryId) {
-            const [cat] = await db2.select({ name: categories.name, slug: categories.slug }).from(categories).where((0, import_drizzle_orm9.eq)(categories.id, product.categoryId));
+            const [cat] = await db2.select({ name: categories.name, slug: categories.slug }).from(categories).where(eq(categories.id, product.categoryId));
             if (cat) {
               categoryName = cat.name;
               categorySlugValue = cat.slug;
@@ -7185,11 +13843,11 @@ productsRoutes.delete("/:id", requireAuth, requireAdmin, async (req, res, next) 
   try {
     const db2 = getDb();
     const id = req.params["id"];
-    const [existing] = await db2.select({ id: products.id }).from(products).where((0, import_drizzle_orm9.eq)(products.id, id));
+    const [existing] = await db2.select({ id: products.id }).from(products).where(eq(products.id, id));
     if (!existing) {
       throw new NotFoundError("Product not found");
     }
-    await db2.delete(products).where((0, import_drizzle_orm9.eq)(products.id, id));
+    await db2.delete(products).where(eq(products.id, id));
     try {
       if (await searchService.isAvailable()) {
         await searchService.removeProduct(id);
@@ -7220,7 +13878,7 @@ var updateCategorySchema = createCategorySchema.partial();
 categoriesRoutes.get("/", async (_req, res, next) => {
   try {
     const db2 = getDb();
-    const categoryList = await db2.select().from(categories).where((0, import_drizzle_orm9.eq)(categories.isActive, true)).orderBy(categories.sortOrder);
+    const categoryList = await db2.select().from(categories).where(eq(categories.isActive, true)).orderBy(categories.sortOrder);
     const rootCategories = categoryList.filter((c) => !c.parentId);
     const categoryMap = new Map(categoryList.map((c) => [c.id, { ...c, children: [] }]));
     for (const category of categoryList) {
@@ -7241,14 +13899,14 @@ categoriesRoutes.get("/:slug", async (req, res, next) => {
   try {
     const db2 = getDb();
     const slug = req.params["slug"];
-    const categoryResult = await db2.select().from(categories).where((0, import_drizzle_orm9.eq)(categories.slug, slug));
+    const categoryResult = await db2.select().from(categories).where(eq(categories.slug, slug));
     const category = categoryResult[0];
     if (!category || !category.isActive) {
       throw new NotFoundError("Category not found");
     }
-    const countResult = await db2.select({ count: import_drizzle_orm9.sql`count(*)` }).from(products).where((0, import_drizzle_orm9.eq)(products.categoryId, category.id));
+    const countResult = await db2.select({ count: sql`count(*)` }).from(products).where(eq(products.categoryId, category.id));
     const count2 = countResult[0]?.count ?? 0;
-    const subcategories = await db2.select().from(categories).where((0, import_drizzle_orm9.eq)(categories.parentId, category.id));
+    const subcategories = await db2.select().from(categories).where(eq(categories.parentId, category.id));
     sendSuccess(res, {
       ...category,
       productCount: Number(count2),
@@ -7268,7 +13926,7 @@ categoriesRoutes.post(
       const db2 = getDb();
       const data = req.body;
       let slug = data.slug || generateSlug(data.name);
-      const existingSlugResult = await db2.select({ id: categories.id }).from(categories).where((0, import_drizzle_orm9.eq)(categories.slug, slug));
+      const existingSlugResult = await db2.select({ id: categories.id }).from(categories).where(eq(categories.slug, slug));
       const existingSlug = existingSlugResult[0];
       if (existingSlug) {
         slug = `${slug}-${Date.now()}`;
@@ -7294,7 +13952,7 @@ categoriesRoutes.put(
       const db2 = getDb();
       const id = req.params["id"];
       const data = req.body;
-      const existingResult = await db2.select().from(categories).where((0, import_drizzle_orm9.eq)(categories.id, id));
+      const existingResult = await db2.select().from(categories).where(eq(categories.id, id));
       const existing = existingResult[0];
       if (!existing) {
         throw new NotFoundError("Category not found");
@@ -7302,7 +13960,7 @@ categoriesRoutes.put(
       const categoryResult = await db2.update(categories).set({
         ...data,
         updatedAt: /* @__PURE__ */ new Date()
-      }).where((0, import_drizzle_orm9.eq)(categories.id, id)).returning();
+      }).where(eq(categories.id, id)).returning();
       const category = categoryResult[0];
       sendSuccess(res, category);
     } catch (error) {
@@ -7314,14 +13972,14 @@ categoriesRoutes.delete("/:id", requireAuth, requireAdmin, async (req, res, next
   try {
     const db2 = getDb();
     const id = req.params["id"];
-    const existingResult = await db2.select({ id: categories.id }).from(categories).where((0, import_drizzle_orm9.eq)(categories.id, id));
+    const existingResult = await db2.select({ id: categories.id }).from(categories).where(eq(categories.id, id));
     const existing = existingResult[0];
     if (!existing) {
       throw new NotFoundError("Category not found");
     }
-    await db2.update(products).set({ categoryId: null }).where((0, import_drizzle_orm9.eq)(products.categoryId, id));
-    await db2.update(categories).set({ parentId: null }).where((0, import_drizzle_orm9.eq)(categories.parentId, id));
-    await db2.delete(categories).where((0, import_drizzle_orm9.eq)(categories.id, id));
+    await db2.update(products).set({ categoryId: null }).where(eq(products.categoryId, id));
+    await db2.update(categories).set({ parentId: null }).where(eq(categories.parentId, id));
+    await db2.delete(categories).where(eq(categories.id, id));
     sendNoContent(res);
   } catch (error) {
     next(error);
@@ -7331,7 +13989,7 @@ categoriesRoutes.delete("/:id", requireAuth, requireAdmin, async (req, res, next
 // src/routes/cart.routes.ts
 var import_express5 = require("express");
 var import_zod7 = require("zod");
-var import_uuid4 = require("uuid");
+var import_uuid5 = require("uuid");
 var cartRoutes = (0, import_express5.Router)();
 cartRoutes.use(optionalAuth);
 var addToCartSchema = import_zod7.z.object({
@@ -7355,14 +14013,14 @@ async function getOrCreateCart(userId, sessionId) {
   const db2 = getDb();
   let cart;
   if (userId) {
-    const [existing] = await db2.select().from(carts).where((0, import_drizzle_orm9.eq)(carts.customerId, userId));
+    const [existing] = await db2.select().from(carts).where(eq(carts.customerId, userId));
     cart = existing;
   } else if (sessionId) {
-    const [existing] = await db2.select().from(carts).where((0, import_drizzle_orm9.eq)(carts.sessionId, sessionId));
+    const [existing] = await db2.select().from(carts).where(eq(carts.sessionId, sessionId));
     cart = existing;
   }
   if (!cart) {
-    const newSessionId = sessionId || (0, import_uuid4.v4)();
+    const newSessionId = sessionId || (0, import_uuid5.v4)();
     const [created] = await db2.insert(carts).values({
       customerId: userId,
       sessionId: userId ? void 0 : newSessionId
@@ -7376,7 +14034,7 @@ async function getOrCreateCart(userId, sessionId) {
 }
 async function getCartItems(cartId) {
   const db2 = getDb();
-  return db2.select().from(cartItems).where((0, import_drizzle_orm9.eq)(cartItems.cartId, cartId));
+  return db2.select().from(cartItems).where(eq(cartItems.cartId, cartId));
 }
 cartRoutes.get("/", async (req, res, next) => {
   try {
@@ -7436,7 +14094,7 @@ cartRoutes.get("/calculate", async (req, res, next) => {
       });
     }
     const db2 = getDb();
-    const [promoCode] = await db2.select().from(cartPromoCodes).where((0, import_drizzle_orm9.eq)(cartPromoCodes.cartId, cart.id));
+    const [promoCode] = await db2.select().from(cartPromoCodes).where(eq(cartPromoCodes.cartId, cart.id));
     const cartInput = items.map((item) => ({
       id: item.id,
       // Pass actual cart item ID to pricing service
@@ -7457,24 +14115,24 @@ cartRoutes.post("/items", validateBody(addToCartSchema), async (req, res, next) 
   try {
     const db2 = getDb();
     const userId = req.user?.customerId;
-    const sessionId = req.sessionId || req.headers["x-session-id"] || (0, import_uuid4.v4)();
+    const sessionId = req.sessionId || req.headers["x-session-id"] || (0, import_uuid5.v4)();
     const { productId, variantId, quantity } = req.body;
-    const [product] = await db2.select().from(products).where((0, import_drizzle_orm9.eq)(products.id, productId));
+    const [product] = await db2.select().from(products).where(eq(products.id, productId));
     if (!product || product.status !== "active") {
       throw new NotFoundError("Product not found");
     }
     if (variantId) {
-      const [variant] = await db2.select().from(productVariants).where((0, import_drizzle_orm9.eq)(productVariants.id, variantId));
+      const [variant] = await db2.select().from(productVariants).where(eq(productVariants.id, variantId));
       if (!variant || !variant.isActive) {
         throw new NotFoundError("Variant not found");
       }
     }
     const cart = await getOrCreateCart(userId, sessionId);
     const [existingItem] = await db2.select().from(cartItems).where(
-      (0, import_drizzle_orm9.and)(
-        (0, import_drizzle_orm9.eq)(cartItems.cartId, cart.id),
-        (0, import_drizzle_orm9.eq)(cartItems.productId, productId),
-        variantId ? (0, import_drizzle_orm9.eq)(cartItems.variantId, variantId) : (0, import_drizzle_orm9.isNull)(cartItems.variantId)
+      and(
+        eq(cartItems.cartId, cart.id),
+        eq(cartItems.productId, productId),
+        variantId ? eq(cartItems.variantId, variantId) : isNull(cartItems.variantId)
       )
     );
     let cartItem;
@@ -7482,7 +14140,7 @@ cartRoutes.post("/items", validateBody(addToCartSchema), async (req, res, next) 
       [cartItem] = await db2.update(cartItems).set({
         quantity: existingItem.quantity + quantity,
         updatedAt: /* @__PURE__ */ new Date()
-      }).where((0, import_drizzle_orm9.eq)(cartItems.id, existingItem.id)).returning();
+      }).where(eq(cartItems.id, existingItem.id)).returning();
     } else {
       const [created] = await db2.insert(cartItems).values({
         cartId: cart.id,
@@ -7518,9 +14176,9 @@ cartRoutes.put("/items/:id", validateBody(updateCartItemSchema), async (req, res
       throw new NotFoundError("Cart item not found");
     }
     const cart = await getOrCreateCart(userId, sessionId);
-    const [cartItem] = await db2.select().from(cartItems).where((0, import_drizzle_orm9.and)(
-      (0, import_drizzle_orm9.eq)(cartItems.id, id),
-      (0, import_drizzle_orm9.eq)(cartItems.cartId, cart.id)
+    const [cartItem] = await db2.select().from(cartItems).where(and(
+      eq(cartItems.id, id),
+      eq(cartItems.cartId, cart.id)
     ));
     if (!cartItem) {
       logger.warn("Cart item not found for update", {
@@ -7535,7 +14193,7 @@ cartRoutes.put("/items/:id", validateBody(updateCartItemSchema), async (req, res
     const [updated] = await db2.update(cartItems).set({
       quantity,
       updatedAt: /* @__PURE__ */ new Date()
-    }).where((0, import_drizzle_orm9.eq)(cartItems.id, id)).returning();
+    }).where(eq(cartItems.id, id)).returning();
     sendSuccess(res, updated);
   } catch (error) {
     next(error);
@@ -7551,9 +14209,9 @@ cartRoutes.delete("/items/:id", async (req, res, next) => {
       throw new NotFoundError("Cart item not found");
     }
     const cart = await getOrCreateCart(userId, sessionId);
-    const [cartItem] = await db2.select().from(cartItems).where((0, import_drizzle_orm9.and)(
-      (0, import_drizzle_orm9.eq)(cartItems.id, id),
-      (0, import_drizzle_orm9.eq)(cartItems.cartId, cart.id)
+    const [cartItem] = await db2.select().from(cartItems).where(and(
+      eq(cartItems.id, id),
+      eq(cartItems.cartId, cart.id)
     ));
     if (!cartItem) {
       logger.warn("Cart item not found for deletion", {
@@ -7564,7 +14222,7 @@ cartRoutes.delete("/items/:id", async (req, res, next) => {
       });
       throw new NotFoundError("Cart item not found");
     }
-    await db2.delete(cartItems).where((0, import_drizzle_orm9.eq)(cartItems.id, id));
+    await db2.delete(cartItems).where(eq(cartItems.id, id));
     logger.info("Cart item deleted", {
       cartItemId: id,
       productId: cartItem.productId,
@@ -7604,7 +14262,7 @@ cartRoutes.post("/apply-promo", validateBody(applyPromoSchema), async (req, res,
         "This promo code does not apply to any items in your cart. It may only be valid for specific products or categories."
       );
     }
-    await db2.delete(cartPromoCodes).where((0, import_drizzle_orm9.eq)(cartPromoCodes.cartId, cart.id));
+    await db2.delete(cartPromoCodes).where(eq(cartPromoCodes.cartId, cart.id));
     await db2.insert(cartPromoCodes).values({
       cartId: cart.id,
       promoCodeId: calculation.promoCodeId,
@@ -7624,7 +14282,7 @@ cartRoutes.delete("/promo", async (req, res, next) => {
       throw new BadRequestError("Cart not found");
     }
     const cart = await getOrCreateCart(userId, sessionId);
-    await db2.delete(cartPromoCodes).where((0, import_drizzle_orm9.eq)(cartPromoCodes.cartId, cart.id));
+    await db2.delete(cartPromoCodes).where(eq(cartPromoCodes.cartId, cart.id));
     sendNoContent(res);
   } catch (error) {
     next(error);
@@ -7639,8 +14297,8 @@ cartRoutes.post("/clear", async (req, res, next) => {
       return sendSuccess(res, { success: true, itemsRemoved: 0 });
     }
     const cart = await getOrCreateCart(userId, sessionId);
-    const deleted = await db2.delete(cartItems).where((0, import_drizzle_orm9.eq)(cartItems.cartId, cart.id)).returning();
-    await db2.delete(cartPromoCodes).where((0, import_drizzle_orm9.eq)(cartPromoCodes.cartId, cart.id));
+    const deleted = await db2.delete(cartItems).where(eq(cartItems.cartId, cart.id)).returning();
+    await db2.delete(cartPromoCodes).where(eq(cartPromoCodes.cartId, cart.id));
     logger.info("Cart cleared", {
       cartId: cart.id,
       itemsRemoved: deleted.length,
@@ -7952,7 +14610,7 @@ var EmailTemplatesService = class {
   /**
    * Escape HTML to prevent XSS in email templates
    */
-  escapeHtml(text15) {
+  escapeHtml(text2) {
     const map = {
       "&": "&amp;",
       "<": "&lt;",
@@ -7960,7 +14618,7 @@ var EmailTemplatesService = class {
       '"': "&quot;",
       "'": "&#039;"
     };
-    return text15.replace(/[&<>"']/g, (char) => map[char] || char);
+    return text2.replace(/[&<>"']/g, (char2) => map[char2] || char2);
   }
 };
 var emailTemplatesService = new EmailTemplatesService();
@@ -8019,18 +14677,18 @@ ordersRoutes.post(
       }
       let cart;
       if (userId) {
-        [cart] = await db2.select().from(carts).where((0, import_drizzle_orm9.eq)(carts.customerId, userId));
+        [cart] = await db2.select().from(carts).where(eq(carts.customerId, userId));
       } else if (sessionId) {
-        [cart] = await db2.select().from(carts).where((0, import_drizzle_orm9.eq)(carts.sessionId, sessionId));
+        [cart] = await db2.select().from(carts).where(eq(carts.sessionId, sessionId));
       }
       if (!cart) {
         throw new BadRequestError("Cart not found");
       }
-      const items = await db2.select().from(cartItems).where((0, import_drizzle_orm9.eq)(cartItems.cartId, cart.id));
+      const items = await db2.select().from(cartItems).where(eq(cartItems.cartId, cart.id));
       if (items.length === 0) {
         throw new BadRequestError("Cart is empty");
       }
-      const [promoCode] = await db2.select().from(cartPromoCodes).where((0, import_drizzle_orm9.eq)(cartPromoCodes.cartId, cart.id));
+      const [promoCode] = await db2.select().from(cartPromoCodes).where(eq(cartPromoCodes.cartId, cart.id));
       const cartInput = items.map((item) => ({
         productId: item.productId,
         variantId: item.variantId || void 0,
@@ -8042,7 +14700,7 @@ ordersRoutes.post(
       );
       let customer;
       if (userId) {
-        [customer] = await db2.select().from(customers).where((0, import_drizzle_orm9.eq)(customers.id, userId));
+        [customer] = await db2.select().from(customers).where(eq(customers.id, userId));
       } else {
         [customer] = await db2.insert(customers).values({
           email: data.customerEmail.toLowerCase(),
@@ -8052,7 +14710,7 @@ ordersRoutes.post(
           isGuest: true
         }).returning();
       }
-      const countResult = await db2.select({ count: import_drizzle_orm9.sql`count(*)` }).from(orders);
+      const countResult = await db2.select({ count: sql`count(*)` }).from(orders);
       const count2 = countResult[0]?.count ?? 0;
       const orderNumber = generateOrderNumber(Number(count2) + 1);
       const billingAddress = data.sameAsShipping ? data.shippingAddress : data.billingAddress || data.shippingAddress;
@@ -8083,14 +14741,14 @@ ordersRoutes.post(
         throw new BadRequestError("Failed to create order");
       }
       for (const item of items) {
-        const productResult = await db2.select().from(products).where((0, import_drizzle_orm9.eq)(products.id, item.productId));
+        const productResult = await db2.select().from(products).where(eq(products.id, item.productId));
         const product = productResult[0];
         if (!product) {
           throw new BadRequestError(`Product not found: ${item.productId}`);
         }
         let variant;
         if (item.variantId) {
-          const variantResult = await db2.select().from(productVariants).where((0, import_drizzle_orm9.eq)(productVariants.id, item.variantId));
+          const variantResult = await db2.select().from(productVariants).where(eq(productVariants.id, item.variantId));
           variant = variantResult[0];
         }
         const unitPrice = variant ? Number(variant.basePrice) : Number(product.basePrice);
@@ -8108,25 +14766,25 @@ ordersRoutes.post(
       for (const item of items) {
         if (item.variantId) {
           await db2.update(productVariants).set({
-            stockQuantity: import_drizzle_orm9.sql`${productVariants.stockQuantity} - ${item.quantity}`,
+            stockQuantity: sql`${productVariants.stockQuantity} - ${item.quantity}`,
             updatedAt: /* @__PURE__ */ new Date()
-          }).where((0, import_drizzle_orm9.eq)(productVariants.id, item.variantId));
+          }).where(eq(productVariants.id, item.variantId));
         } else {
-          const [product] = await db2.select({ trackInventory: products.trackInventory }).from(products).where((0, import_drizzle_orm9.eq)(products.id, item.productId));
+          const [product] = await db2.select({ trackInventory: products.trackInventory }).from(products).where(eq(products.id, item.productId));
           if (product?.trackInventory) {
             await db2.update(products).set({
-              stockQuantity: import_drizzle_orm9.sql`${products.stockQuantity} - ${item.quantity}`,
+              stockQuantity: sql`${products.stockQuantity} - ${item.quantity}`,
               updatedAt: /* @__PURE__ */ new Date()
-            }).where((0, import_drizzle_orm9.eq)(products.id, item.productId));
+            }).where(eq(products.id, item.productId));
           }
         }
       }
       if (totals.promoCodeId) {
-        await db2.update(promoCodes).set({ usageCount: import_drizzle_orm9.sql`${promoCodes.usageCount} + 1` }).where((0, import_drizzle_orm9.eq)(promoCodes.id, totals.promoCodeId));
+        await db2.update(promoCodes).set({ usageCount: sql`${promoCodes.usageCount} + 1` }).where(eq(promoCodes.id, totals.promoCodeId));
       }
-      await db2.update(customers).set({ orderCount: import_drizzle_orm9.sql`${customers.orderCount} + 1` }).where((0, import_drizzle_orm9.eq)(customers.id, customer.id));
-      await db2.delete(cartItems).where((0, import_drizzle_orm9.eq)(cartItems.cartId, cart.id));
-      await db2.delete(cartPromoCodes).where((0, import_drizzle_orm9.eq)(cartPromoCodes.cartId, cart.id));
+      await db2.update(customers).set({ orderCount: sql`${customers.orderCount} + 1` }).where(eq(customers.id, customer.id));
+      await db2.delete(cartItems).where(eq(cartItems.cartId, cart.id));
+      await db2.delete(cartPromoCodes).where(eq(cartPromoCodes.cartId, cart.id));
       sendCreated(res, {
         orderId: order.id,
         orderNumber: order.orderNumber,
@@ -8136,7 +14794,7 @@ ordersRoutes.post(
       });
       try {
         const orderWithItems = await db2.query.orders.findFirst({
-          where: (0, import_drizzle_orm9.eq)(orders.id, order.id),
+          where: eq(orders.id, order.id),
           with: {
             items: true
           }
@@ -8145,13 +14803,14 @@ ordersRoutes.post(
           logger.warn("Order not found for email notification", { orderId: order.id });
           return;
         }
-        const [storeSettings] = await db2.select().from(settings).where((0, import_drizzle_orm9.eq)(settings.key, "store"));
+        const [storeSettings] = await db2.select().from(settings).where(eq(settings.key, "store"));
         const storeConfig = storeSettings?.value || {};
+        const customerEmail = data["customerEmail"];
         const emailData = {
           orderNumber: order.orderNumber,
           customerName: `${order.shippingAddress.firstName} ${order.shippingAddress.lastName}`,
-          customerEmail: order.shippingAddress.email || data.customerEmail,
-          shippingAddress: order.shippingAddress,
+          customerEmail,
+          shippingAddress: { ...order.shippingAddress, email: customerEmail, phone: order.shippingAddress.phone || "" },
           items: orderWithItems.items.map((item) => ({
             productName: item.productNameSnapshot,
             sku: item.skuSnapshot,
@@ -8231,11 +14890,11 @@ ordersRoutes.get("/track/:orderNumber", async (req, res, next) => {
   try {
     const db2 = getDb();
     const orderNumber = req.params["orderNumber"];
-    const [order] = await db2.select().from(orders).where((0, import_drizzle_orm9.eq)(orders.orderNumber, orderNumber));
+    const [order] = await db2.select().from(orders).where(eq(orders.orderNumber, orderNumber));
     if (!order) {
       throw new NotFoundError("Order not found");
     }
-    const items = await db2.select().from(orderItems).where((0, import_drizzle_orm9.eq)(orderItems.orderId, order.id));
+    const items = await db2.select().from(orderItems).where(eq(orderItems.orderId, order.id));
     const timeline = [
       { status: "pending", timestamp: order.createdAt.toISOString(), description: "Order placed" }
     ];
@@ -8284,7 +14943,7 @@ ordersRoutes.get("/", requireAuth, async (req, res, next) => {
       throw new ForbiddenError("Customer not found");
     }
     const { page, limit, offset } = parsePaginationParams(req.query);
-    const countResult = await db2.select({ count: import_drizzle_orm9.sql`count(*)` }).from(orders).where((0, import_drizzle_orm9.eq)(orders.customerId, customerId));
+    const countResult = await db2.select({ count: sql`count(*)` }).from(orders).where(eq(orders.customerId, customerId));
     const count2 = countResult[0]?.count ?? 0;
     const orderList = await db2.select({
       id: orders.id,
@@ -8293,7 +14952,7 @@ ordersRoutes.get("/", requireAuth, async (req, res, next) => {
       paymentStatus: orders.paymentStatus,
       totalSnapshot: orders.totalSnapshot,
       createdAt: orders.createdAt
-    }).from(orders).where((0, import_drizzle_orm9.eq)(orders.customerId, customerId)).orderBy((0, import_drizzle_orm9.desc)(orders.createdAt)).limit(limit).offset(offset);
+    }).from(orders).where(eq(orders.customerId, customerId)).orderBy(desc(orders.createdAt)).limit(limit).offset(offset);
     const ordersWithTotals = orderList.map((o) => ({
       ...o,
       totalSnapshot: Number(o.totalSnapshot)
@@ -8309,14 +14968,14 @@ ordersRoutes.get("/:id", requireAuth, async (req, res, next) => {
     const id = req.params["id"];
     const customerId = req.user?.customerId;
     const isAdmin = req.user?.role === "admin";
-    const [order] = await db2.select().from(orders).where((0, import_drizzle_orm9.eq)(orders.id, id));
+    const [order] = await db2.select().from(orders).where(eq(orders.id, id));
     if (!order) {
       throw new NotFoundError("Order not found");
     }
     if (!isAdmin && order.customerId !== customerId) {
       throw new ForbiddenError("Access denied");
     }
-    const items = await db2.select().from(orderItems).where((0, import_drizzle_orm9.eq)(orderItems.orderId, order.id));
+    const items = await db2.select().from(orderItems).where(eq(orderItems.orderId, order.id));
     let customer = null;
     if (order.customerId) {
       const [customerData] = await db2.select({
@@ -8324,7 +14983,7 @@ ordersRoutes.get("/:id", requireAuth, async (req, res, next) => {
         email: customers.email,
         firstName: customers.firstName,
         lastName: customers.lastName
-      }).from(customers).where((0, import_drizzle_orm9.eq)(customers.id, order.customerId));
+      }).from(customers).where(eq(customers.id, order.customerId));
       customer = customerData || null;
     }
     sendSuccess(res, {
@@ -8392,25 +15051,25 @@ ordersRoutes.get(
       const filters = req.query;
       const conditions = [];
       if (filters["status"]) {
-        conditions.push((0, import_drizzle_orm9.eq)(orders.status, filters["status"]));
+        conditions.push(eq(orders.status, filters["status"]));
       }
       if (filters["paymentStatus"]) {
-        conditions.push((0, import_drizzle_orm9.eq)(orders.paymentStatus, filters["paymentStatus"]));
+        conditions.push(eq(orders.paymentStatus, filters["paymentStatus"]));
       }
       if (filters["search"]) {
         const searchTerm = `%${filters["search"]}%`;
         conditions.push(
-          (0, import_drizzle_orm9.or)(
-            (0, import_drizzle_orm9.ilike)(orders.orderNumber, searchTerm),
-            (0, import_drizzle_orm9.ilike)(customers.email, searchTerm),
-            (0, import_drizzle_orm9.ilike)(customers.firstName, searchTerm),
-            (0, import_drizzle_orm9.ilike)(customers.lastName, searchTerm),
-            import_drizzle_orm9.sql`CONCAT(${customers.firstName}, ' ', ${customers.lastName}) ILIKE ${searchTerm}`
+          or(
+            ilike(orders.orderNumber, searchTerm),
+            ilike(customers.email, searchTerm),
+            ilike(customers.firstName, searchTerm),
+            ilike(customers.lastName, searchTerm),
+            sql`CONCAT(${customers.firstName}, ' ', ${customers.lastName}) ILIKE ${searchTerm}`
           )
         );
       }
-      const whereClause = conditions.length > 0 ? (0, import_drizzle_orm9.and)(...conditions) : void 0;
-      const countQuery = filters["search"] ? db2.select({ count: import_drizzle_orm9.sql`count(*)` }).from(orders).leftJoin(customers, (0, import_drizzle_orm9.eq)(orders.customerId, customers.id)).where(whereClause) : db2.select({ count: import_drizzle_orm9.sql`count(*)` }).from(orders).where(whereClause);
+      const whereClause = conditions.length > 0 ? and(...conditions) : void 0;
+      const countQuery = filters["search"] ? db2.select({ count: sql`count(*)` }).from(orders).leftJoin(customers, eq(orders.customerId, customers.id)).where(whereClause) : db2.select({ count: sql`count(*)` }).from(orders).where(whereClause);
       const countResult = await countQuery;
       const count2 = countResult[0]?.count ?? 0;
       const orderList = await db2.select({
@@ -8430,7 +15089,7 @@ ordersRoutes.get(
           firstName: customers.firstName,
           lastName: customers.lastName
         }
-      }).from(orders).leftJoin(customers, (0, import_drizzle_orm9.eq)(orders.customerId, customers.id)).where(whereClause).orderBy((0, import_drizzle_orm9.desc)(orders.createdAt)).limit(limit).offset(offset);
+      }).from(orders).leftJoin(customers, eq(orders.customerId, customers.id)).where(whereClause).orderBy(desc(orders.createdAt)).limit(limit).offset(offset);
       const formattedOrders = orderList.map((o) => ({
         ...o,
         total: Number(o.totalSnapshot),
@@ -8452,7 +15111,7 @@ ordersRoutes.put(
       const db2 = getDb();
       const id = req.params["id"];
       const data = req.body;
-      const [existing] = await db2.select().from(orders).where((0, import_drizzle_orm9.eq)(orders.id, id));
+      const [existing] = await db2.select().from(orders).where(eq(orders.id, id));
       if (!existing) {
         throw new NotFoundError("Order not found");
       }
@@ -8473,16 +15132,16 @@ ordersRoutes.put(
         }
       }
       if (data.status === "cancelled" && existing.status !== "cancelled") {
-        const orderItemsList = await db2.select().from(orderItems).where((0, import_drizzle_orm9.eq)(orderItems.orderId, id));
+        const orderItemsList = await db2.select().from(orderItems).where(eq(orderItems.orderId, id));
         for (const item of orderItemsList) {
           if (item.variantId) {
             await db2.update(productVariants).set({
-              stockQuantity: import_drizzle_orm9.sql`${productVariants.stockQuantity} + ${item.quantity}`
-            }).where((0, import_drizzle_orm9.eq)(productVariants.id, item.variantId));
+              stockQuantity: sql`${productVariants.stockQuantity} + ${item.quantity}`
+            }).where(eq(productVariants.id, item.variantId));
           } else if (item.productId) {
             await db2.update(products).set({
-              stockQuantity: import_drizzle_orm9.sql`${products.stockQuantity} + ${item.quantity}`
-            }).where((0, import_drizzle_orm9.eq)(products.id, item.productId));
+              stockQuantity: sql`${products.stockQuantity} + ${item.quantity}`
+            }).where(eq(products.id, item.productId));
           }
         }
       }
@@ -8502,7 +15161,7 @@ ordersRoutes.put(
       if (data.status === "delivered" && existing.status !== "delivered") {
         updateData["deliveredAt"] = /* @__PURE__ */ new Date();
       }
-      const orderResult = await db2.update(orders).set(updateData).where((0, import_drizzle_orm9.eq)(orders.id, id)).returning();
+      const orderResult = await db2.update(orders).set(updateData).where(eq(orders.id, id)).returning();
       const order = orderResult[0];
       sendSuccess(res, order);
     } catch (error) {
@@ -8518,14 +15177,14 @@ ordersRoutes.get(
     try {
       const db2 = getDb();
       const id = req.params["id"];
-      const [order] = await db2.select().from(orders).where((0, import_drizzle_orm9.eq)(orders.id, id));
+      const [order] = await db2.select().from(orders).where(eq(orders.id, id));
       if (!order) {
         throw new NotFoundError("Order not found");
       }
-      const items = await db2.select().from(orderItems).where((0, import_drizzle_orm9.eq)(orderItems.orderId, order.id));
+      const items = await db2.select().from(orderItems).where(eq(orderItems.orderId, order.id));
       let customer = null;
       if (order.customerId) {
-        const [customerData] = await db2.select().from(customers).where((0, import_drizzle_orm9.eq)(customers.id, order.customerId));
+        const [customerData] = await db2.select().from(customers).where(eq(customers.id, order.customerId));
         customer = customerData || null;
       }
       const shippingAddress = order.shippingAddress;
@@ -8620,13 +15279,13 @@ ordersRoutes.post(
       const data = req.body;
       let customer;
       if (data.customerId) {
-        const [existingCustomer] = await db2.select().from(customers).where((0, import_drizzle_orm9.eq)(customers.id, data.customerId));
+        const [existingCustomer] = await db2.select().from(customers).where(eq(customers.id, data.customerId));
         if (!existingCustomer) {
           throw new BadRequestError("Customer not found");
         }
         customer = existingCustomer;
       } else if (data.customerEmail) {
-        const [existingCustomer] = await db2.select().from(customers).where((0, import_drizzle_orm9.eq)(customers.email, data.customerEmail.toLowerCase()));
+        const [existingCustomer] = await db2.select().from(customers).where(eq(customers.email, data.customerEmail.toLowerCase()));
         if (existingCustomer) {
           customer = existingCustomer;
         } else {
@@ -8665,7 +15324,7 @@ ordersRoutes.post(
         const newTax = discountedSubtotal * totals.taxRate;
         finalTotal = discountedSubtotal + newTax + totals.shippingAmount;
       }
-      const countResult = await db2.select({ count: import_drizzle_orm9.sql`count(*)` }).from(orders);
+      const countResult = await db2.select({ count: sql`count(*)` }).from(orders);
       const count2 = countResult[0]?.count ?? 0;
       const orderNumber = generateOrderNumber(Number(count2) + 1);
       const billingAddress = data.sameAsShipping ? data.shippingAddress : data.billingAddress || data.shippingAddress;
@@ -8693,13 +15352,13 @@ ordersRoutes.post(
         throw new BadRequestError("Failed to create order");
       }
       for (const item of data.items) {
-        const [product] = await db2.select().from(products).where((0, import_drizzle_orm9.eq)(products.id, item.productId));
+        const [product] = await db2.select().from(products).where(eq(products.id, item.productId));
         if (!product) {
           throw new BadRequestError(`Product not found: ${item.productId}`);
         }
         let variant;
         if (item.variantId) {
-          const [variantResult] = await db2.select().from(productVariants).where((0, import_drizzle_orm9.eq)(productVariants.id, item.variantId));
+          const [variantResult] = await db2.select().from(productVariants).where(eq(productVariants.id, item.variantId));
           variant = variantResult;
         }
         const unitPrice = variant ? Number(variant.basePrice) : Number(product.basePrice);
@@ -8715,9 +15374,9 @@ ordersRoutes.post(
         });
       }
       if (totals.promoCodeId) {
-        await db2.update(promoCodes).set({ usageCount: import_drizzle_orm9.sql`${promoCodes.usageCount} + 1` }).where((0, import_drizzle_orm9.eq)(promoCodes.id, totals.promoCodeId));
+        await db2.update(promoCodes).set({ usageCount: sql`${promoCodes.usageCount} + 1` }).where(eq(promoCodes.id, totals.promoCodeId));
       }
-      await db2.update(customers).set({ orderCount: import_drizzle_orm9.sql`${customers.orderCount} + 1` }).where((0, import_drizzle_orm9.eq)(customers.id, customer.id));
+      await db2.update(customers).set({ orderCount: sql`${customers.orderCount} + 1` }).where(eq(customers.id, customer.id));
       sendCreated(res, {
         id: order.id,
         orderNumber: order.orderNumber,
@@ -8739,15 +15398,15 @@ ordersRoutes.delete(
     try {
       const db2 = getDb();
       const id = req.params["id"];
-      const [order] = await db2.select().from(orders).where((0, import_drizzle_orm9.eq)(orders.id, id));
+      const [order] = await db2.select().from(orders).where(eq(orders.id, id));
       if (!order) {
         throw new NotFoundError("Order not found");
       }
       if (order.status !== "cancelled") {
         throw new BadRequestError("Only cancelled orders can be deleted");
       }
-      await db2.delete(orderItems).where((0, import_drizzle_orm9.eq)(orderItems.orderId, id));
-      await db2.delete(orders).where((0, import_drizzle_orm9.eq)(orders.id, id));
+      await db2.delete(orderItems).where(eq(orderItems.orderId, id));
+      await db2.delete(orders).where(eq(orders.id, id));
       sendSuccess(res, { message: "Order deleted successfully" });
     } catch (error) {
       next(error);
@@ -8876,11 +15535,11 @@ customersRoutes.get("/me", requireAuth, async (req, res, next) => {
       phone: customers.phone,
       orderCount: customers.orderCount,
       createdAt: customers.createdAt
-    }).from(customers).where((0, import_drizzle_orm9.eq)(customers.id, customerId));
+    }).from(customers).where(eq(customers.id, customerId));
     if (!customer) {
       throw new NotFoundError("Customer not found");
     }
-    const customerAddresses = await db2.select().from(addresses).where((0, import_drizzle_orm9.eq)(addresses.customerId, customerId));
+    const customerAddresses = await db2.select().from(addresses).where(eq(addresses.customerId, customerId));
     sendSuccess(res, {
       ...customer,
       addresses: customerAddresses
@@ -8904,7 +15563,7 @@ customersRoutes.put(
       const customerResult = await db2.update(customers).set({
         ...data,
         updatedAt: /* @__PURE__ */ new Date()
-      }).where((0, import_drizzle_orm9.eq)(customers.id, customerId)).returning({
+      }).where(eq(customers.id, customerId)).returning({
         id: customers.id,
         email: customers.email,
         firstName: customers.firstName,
@@ -8930,7 +15589,7 @@ customersRoutes.put(
       if (!customerId) {
         throw new ForbiddenError("Customer not found");
       }
-      const [customer] = await db2.select().from(customers).where((0, import_drizzle_orm9.eq)(customers.id, customerId));
+      const [customer] = await db2.select().from(customers).where(eq(customers.id, customerId));
       if (!customer || !customer.passwordHash) {
         throw new NotFoundError("Customer not found");
       }
@@ -8951,7 +15610,7 @@ customersRoutes.put(
       await db2.update(customers).set({
         passwordHash: newPasswordHash,
         updatedAt: /* @__PURE__ */ new Date()
-      }).where((0, import_drizzle_orm9.eq)(customers.id, customerId));
+      }).where(eq(customers.id, customerId));
       await PasswordSecurityService.recordPasswordChange({
         customerId,
         passwordHash: newPasswordHash,
@@ -9003,7 +15662,7 @@ customersRoutes.get("/me/addresses", requireAuth, async (req, res, next) => {
     if (!customerId) {
       throw new ForbiddenError("Customer not found");
     }
-    const customerAddresses = await db2.select().from(addresses).where((0, import_drizzle_orm9.eq)(addresses.customerId, customerId));
+    const customerAddresses = await db2.select().from(addresses).where(eq(addresses.customerId, customerId));
     sendSuccess(res, customerAddresses);
   } catch (error) {
     next(error);
@@ -9023,9 +15682,9 @@ customersRoutes.post(
       }
       if (data.isDefault) {
         await db2.update(addresses).set({ isDefault: false }).where(
-          (0, import_drizzle_orm9.and)(
-            (0, import_drizzle_orm9.eq)(addresses.customerId, customerId),
-            (0, import_drizzle_orm9.eq)(addresses.type, data.type)
+          and(
+            eq(addresses.customerId, customerId),
+            eq(addresses.type, data.type)
           )
         );
       }
@@ -9054,9 +15713,9 @@ customersRoutes.put(
         throw new ForbiddenError("Customer not found");
       }
       const [existing] = await db2.select().from(addresses).where(
-        (0, import_drizzle_orm9.and)(
-          (0, import_drizzle_orm9.eq)(addresses.id, id),
-          (0, import_drizzle_orm9.eq)(addresses.customerId, customerId)
+        and(
+          eq(addresses.id, id),
+          eq(addresses.customerId, customerId)
         )
       );
       if (!existing) {
@@ -9064,16 +15723,16 @@ customersRoutes.put(
       }
       if (data.isDefault) {
         await db2.update(addresses).set({ isDefault: false }).where(
-          (0, import_drizzle_orm9.and)(
-            (0, import_drizzle_orm9.eq)(addresses.customerId, customerId),
-            (0, import_drizzle_orm9.eq)(addresses.type, data.type || existing.type)
+          and(
+            eq(addresses.customerId, customerId),
+            eq(addresses.type, data.type || existing.type)
           )
         );
       }
       const addressResult = await db2.update(addresses).set({
         ...data,
         updatedAt: /* @__PURE__ */ new Date()
-      }).where((0, import_drizzle_orm9.eq)(addresses.id, id)).returning();
+      }).where(eq(addresses.id, id)).returning();
       const address = addressResult[0];
       sendSuccess(res, address);
     } catch (error) {
@@ -9090,15 +15749,15 @@ customersRoutes.delete("/me/addresses/:id", requireAuth, async (req, res, next) 
       throw new ForbiddenError("Customer not found");
     }
     const [existing] = await db2.select({ id: addresses.id }).from(addresses).where(
-      (0, import_drizzle_orm9.and)(
-        (0, import_drizzle_orm9.eq)(addresses.id, id),
-        (0, import_drizzle_orm9.eq)(addresses.customerId, customerId)
+      and(
+        eq(addresses.id, id),
+        eq(addresses.customerId, customerId)
       )
     );
     if (!existing) {
       throw new NotFoundError("Address not found");
     }
-    await db2.delete(addresses).where((0, import_drizzle_orm9.eq)(addresses.id, id));
+    await db2.delete(addresses).where(eq(addresses.id, id));
     sendNoContent(res);
   } catch (error) {
     next(error);
@@ -9118,18 +15777,18 @@ customersRoutes.get(
       const conditions = [];
       if (search) {
         conditions.push(
-          (0, import_drizzle_orm9.or)(
-            (0, import_drizzle_orm9.like)(customers.email, `%${search}%`),
-            (0, import_drizzle_orm9.like)(customers.firstName, `%${search}%`),
-            (0, import_drizzle_orm9.like)(customers.lastName, `%${search}%`)
+          or(
+            like(customers.email, `%${search}%`),
+            like(customers.firstName, `%${search}%`),
+            like(customers.lastName, `%${search}%`)
           )
         );
       }
       if (isGuest !== void 0) {
-        conditions.push((0, import_drizzle_orm9.eq)(customers.isGuest, isGuest === "true"));
+        conditions.push(eq(customers.isGuest, isGuest === "true"));
       }
-      const whereClause = conditions.length > 0 ? (0, import_drizzle_orm9.and)(...conditions) : void 0;
-      const countResult = await db2.select({ count: import_drizzle_orm9.sql`count(*)` }).from(customers).where(whereClause);
+      const whereClause = conditions.length > 0 ? and(...conditions) : void 0;
+      const countResult = await db2.select({ count: sql`count(*)` }).from(customers).where(whereClause);
       const count2 = countResult[0]?.count ?? 0;
       const customerList = await db2.select({
         id: customers.id,
@@ -9139,13 +15798,13 @@ customersRoutes.get(
         phone: customers.phone,
         isGuest: customers.isGuest,
         isActive: customers.isActive,
-        orderCount: import_drizzle_orm9.sql`COUNT(${orders.id})`.as("order_count"),
-        paidOrders: import_drizzle_orm9.sql`COUNT(CASE WHEN ${orders.paymentStatus} = 'paid' THEN 1 END)`.as("paid_orders"),
-        unpaidOrders: import_drizzle_orm9.sql`COUNT(CASE WHEN ${orders.paymentStatus} != 'paid' AND ${orders.id} IS NOT NULL THEN 1 END)`.as("unpaid_orders"),
-        totalSpent: import_drizzle_orm9.sql`COALESCE(SUM(CASE WHEN ${orders.paymentStatus} = 'paid' THEN ${orders.totalSnapshot} ELSE 0 END), 0)`.as("total_spent"),
-        debt: import_drizzle_orm9.sql`COALESCE(SUM(CASE WHEN ${orders.paymentStatus} != 'paid' THEN ${orders.totalSnapshot} ELSE 0 END), 0)`.as("debt"),
+        orderCount: sql`COUNT(${orders.id})`.as("order_count"),
+        paidOrders: sql`COUNT(CASE WHEN ${orders.paymentStatus} = 'paid' THEN 1 END)`.as("paid_orders"),
+        unpaidOrders: sql`COUNT(CASE WHEN ${orders.paymentStatus} != 'paid' AND ${orders.id} IS NOT NULL THEN 1 END)`.as("unpaid_orders"),
+        totalSpent: sql`COALESCE(SUM(CASE WHEN ${orders.paymentStatus} = 'paid' THEN ${orders.totalSnapshot} ELSE 0 END), 0)`.as("total_spent"),
+        debt: sql`COALESCE(SUM(CASE WHEN ${orders.paymentStatus} != 'paid' THEN ${orders.totalSnapshot} ELSE 0 END), 0)`.as("debt"),
         createdAt: customers.createdAt
-      }).from(customers).leftJoin(orders, (0, import_drizzle_orm9.eq)(orders.customerId, customers.id)).where(whereClause).groupBy(
+      }).from(customers).leftJoin(orders, eq(orders.customerId, customers.id)).where(whereClause).groupBy(
         customers.id,
         customers.email,
         customers.firstName,
@@ -9154,7 +15813,7 @@ customersRoutes.get(
         customers.isGuest,
         customers.isActive,
         customers.createdAt
-      ).orderBy((0, import_drizzle_orm9.desc)(customers.createdAt)).limit(limit).offset(offset);
+      ).orderBy(desc(customers.createdAt)).limit(limit).offset(offset);
       const formattedList = customerList.map((c) => ({
         ...c,
         totalOrders: c.orderCount,
@@ -9179,7 +15838,7 @@ customersRoutes.post(
     try {
       const db2 = getDb();
       const data = req.body;
-      const [existingCustomer] = await db2.select({ id: customers.id }).from(customers).where((0, import_drizzle_orm9.eq)(customers.email, data.email));
+      const [existingCustomer] = await db2.select({ id: customers.id }).from(customers).where(eq(customers.email, data.email));
       if (existingCustomer) {
         throw new BadRequestError("A customer with this email already exists");
       }
@@ -9205,11 +15864,11 @@ customersRoutes.get("/:id", requireAuth, requireAdmin, async (req, res, next) =>
   try {
     const db2 = getDb();
     const id = req.params["id"];
-    const [customer] = await db2.select().from(customers).where((0, import_drizzle_orm9.eq)(customers.id, id));
+    const [customer] = await db2.select().from(customers).where(eq(customers.id, id));
     if (!customer) {
       throw new NotFoundError("Customer not found");
     }
-    const customerAddresses = await db2.select().from(addresses).where((0, import_drizzle_orm9.eq)(addresses.customerId, id));
+    const customerAddresses = await db2.select().from(addresses).where(eq(addresses.customerId, id));
     const recentOrders = await db2.select({
       id: orders.id,
       orderNumber: orders.orderNumber,
@@ -9217,30 +15876,30 @@ customersRoutes.get("/:id", requireAuth, requireAdmin, async (req, res, next) =>
       paymentStatus: orders.paymentStatus,
       totalSnapshot: orders.totalSnapshot,
       createdAt: orders.createdAt
-    }).from(orders).where((0, import_drizzle_orm9.eq)(orders.customerId, id)).orderBy((0, import_drizzle_orm9.desc)(orders.createdAt)).limit(10);
+    }).from(orders).where(eq(orders.customerId, id)).orderBy(desc(orders.createdAt)).limit(10);
     const totalSpentResult = await db2.select({
-      totalSpent: import_drizzle_orm9.sql`COALESCE(SUM(CAST(${orders.totalSnapshot} AS DECIMAL)), 0)`
+      totalSpent: sql`COALESCE(SUM(CAST(${orders.totalSnapshot} AS DECIMAL)), 0)`
     }).from(orders).where(
-      (0, import_drizzle_orm9.and)(
-        (0, import_drizzle_orm9.eq)(orders.customerId, id),
-        (0, import_drizzle_orm9.eq)(orders.paymentStatus, "paid")
+      and(
+        eq(orders.customerId, id),
+        eq(orders.paymentStatus, "paid")
       )
     );
     const totalSpent = Number(totalSpentResult[0]?.totalSpent ?? 0);
     const debtResult = await db2.select({
-      debt: import_drizzle_orm9.sql`COALESCE(SUM(CAST(${orders.totalSnapshot} AS DECIMAL)), 0)`
+      debt: sql`COALESCE(SUM(CAST(${orders.totalSnapshot} AS DECIMAL)), 0)`
     }).from(orders).where(
-      (0, import_drizzle_orm9.and)(
-        (0, import_drizzle_orm9.eq)(orders.customerId, id),
-        import_drizzle_orm9.sql`${orders.paymentStatus} != 'paid'`
+      and(
+        eq(orders.customerId, id),
+        sql`${orders.paymentStatus} != 'paid'`
       )
     );
     const debt = Number(debtResult[0]?.debt ?? 0);
     const orderCountsResult = await db2.select({
-      totalOrders: import_drizzle_orm9.sql`COUNT(*)`,
-      paidOrders: import_drizzle_orm9.sql`COUNT(CASE WHEN ${orders.paymentStatus} = 'paid' THEN 1 END)`,
-      unpaidOrders: import_drizzle_orm9.sql`COUNT(CASE WHEN ${orders.paymentStatus} != 'paid' THEN 1 END)`
-    }).from(orders).where((0, import_drizzle_orm9.eq)(orders.customerId, id));
+      totalOrders: sql`COUNT(*)`,
+      paidOrders: sql`COUNT(CASE WHEN ${orders.paymentStatus} = 'paid' THEN 1 END)`,
+      unpaidOrders: sql`COUNT(CASE WHEN ${orders.paymentStatus} != 'paid' THEN 1 END)`
+    }).from(orders).where(eq(orders.customerId, id));
     const totalOrders = Number(orderCountsResult[0]?.totalOrders ?? 0);
     const paidOrders = Number(orderCountsResult[0]?.paidOrders ?? 0);
     const unpaidOrders = Number(orderCountsResult[0]?.unpaidOrders ?? 0);
@@ -9273,15 +15932,15 @@ customersRoutes.put(
       const db2 = getDb();
       const id = req.params["id"];
       const data = req.body;
-      const [existing] = await db2.select({ id: customers.id }).from(customers).where((0, import_drizzle_orm9.eq)(customers.id, id));
+      const [existing] = await db2.select({ id: customers.id }).from(customers).where(eq(customers.id, id));
       if (!existing) {
         throw new NotFoundError("Customer not found");
       }
       if (data.email) {
         const [emailExists] = await db2.select({ id: customers.id }).from(customers).where(
-          (0, import_drizzle_orm9.and)(
-            (0, import_drizzle_orm9.eq)(customers.email, data.email),
-            import_drizzle_orm9.sql`${customers.id} != ${id}`
+          and(
+            eq(customers.email, data.email),
+            sql`${customers.id} != ${id}`
           )
         );
         if (emailExists) {
@@ -9291,7 +15950,7 @@ customersRoutes.put(
       const customerResult = await db2.update(customers).set({
         ...data,
         updatedAt: /* @__PURE__ */ new Date()
-      }).where((0, import_drizzle_orm9.eq)(customers.id, id)).returning();
+      }).where(eq(customers.id, id)).returning();
       const customer = customerResult[0];
       sendSuccess(res, {
         ...customer,
@@ -9307,14 +15966,14 @@ customersRoutes.delete("/:id", requireAuth, requireAdmin, async (req, res, next)
   try {
     const db2 = getDb();
     const id = req.params["id"];
-    const [existing] = await db2.select({ id: customers.id }).from(customers).where((0, import_drizzle_orm9.eq)(customers.id, id));
+    const [existing] = await db2.select({ id: customers.id }).from(customers).where(eq(customers.id, id));
     if (!existing) {
       throw new NotFoundError("Customer not found");
     }
     await db2.update(customers).set({
       isActive: false,
       updatedAt: /* @__PURE__ */ new Date()
-    }).where((0, import_drizzle_orm9.eq)(customers.id, id));
+    }).where(eq(customers.id, id));
     sendNoContent(res);
   } catch (error) {
     next(error);
@@ -9324,11 +15983,11 @@ customersRoutes.get("/:id/addresses", requireAuth, requireAdmin, async (req, res
   try {
     const db2 = getDb();
     const customerId = req.params["id"];
-    const [customer] = await db2.select({ id: customers.id }).from(customers).where((0, import_drizzle_orm9.eq)(customers.id, customerId));
+    const [customer] = await db2.select({ id: customers.id }).from(customers).where(eq(customers.id, customerId));
     if (!customer) {
       throw new NotFoundError("Customer not found");
     }
-    const customerAddresses = await db2.select().from(addresses).where((0, import_drizzle_orm9.eq)(addresses.customerId, customerId));
+    const customerAddresses = await db2.select().from(addresses).where(eq(addresses.customerId, customerId));
     sendSuccess(res, customerAddresses);
   } catch (error) {
     next(error);
@@ -9344,15 +16003,15 @@ customersRoutes.post(
       const db2 = getDb();
       const customerId = req.params["id"];
       const data = req.body;
-      const [customer] = await db2.select({ id: customers.id }).from(customers).where((0, import_drizzle_orm9.eq)(customers.id, customerId));
+      const [customer] = await db2.select({ id: customers.id }).from(customers).where(eq(customers.id, customerId));
       if (!customer) {
         throw new NotFoundError("Customer not found");
       }
       if (data.isDefault) {
         await db2.update(addresses).set({ isDefault: false }).where(
-          (0, import_drizzle_orm9.and)(
-            (0, import_drizzle_orm9.eq)(addresses.customerId, customerId),
-            (0, import_drizzle_orm9.eq)(addresses.type, data.type)
+          and(
+            eq(addresses.customerId, customerId),
+            eq(addresses.type, data.type)
           )
         );
       }
@@ -9378,14 +16037,14 @@ customersRoutes.put(
       const customerId = req.params["id"];
       const addressId = req.params["addressId"];
       const data = req.body;
-      const [customer] = await db2.select({ id: customers.id }).from(customers).where((0, import_drizzle_orm9.eq)(customers.id, customerId));
+      const [customer] = await db2.select({ id: customers.id }).from(customers).where(eq(customers.id, customerId));
       if (!customer) {
         throw new NotFoundError("Customer not found");
       }
       const [existing] = await db2.select().from(addresses).where(
-        (0, import_drizzle_orm9.and)(
-          (0, import_drizzle_orm9.eq)(addresses.id, addressId),
-          (0, import_drizzle_orm9.eq)(addresses.customerId, customerId)
+        and(
+          eq(addresses.id, addressId),
+          eq(addresses.customerId, customerId)
         )
       );
       if (!existing) {
@@ -9393,16 +16052,16 @@ customersRoutes.put(
       }
       if (data.isDefault) {
         await db2.update(addresses).set({ isDefault: false }).where(
-          (0, import_drizzle_orm9.and)(
-            (0, import_drizzle_orm9.eq)(addresses.customerId, customerId),
-            (0, import_drizzle_orm9.eq)(addresses.type, data.type || existing.type)
+          and(
+            eq(addresses.customerId, customerId),
+            eq(addresses.type, data.type || existing.type)
           )
         );
       }
       const addressResult = await db2.update(addresses).set({
         ...data,
         updatedAt: /* @__PURE__ */ new Date()
-      }).where((0, import_drizzle_orm9.eq)(addresses.id, addressId)).returning();
+      }).where(eq(addresses.id, addressId)).returning();
       const address = addressResult[0];
       sendSuccess(res, address);
     } catch (error) {
@@ -9420,15 +16079,15 @@ customersRoutes.delete(
       const customerId = req.params["id"];
       const addressId = req.params["addressId"];
       const [existing] = await db2.select({ id: addresses.id }).from(addresses).where(
-        (0, import_drizzle_orm9.and)(
-          (0, import_drizzle_orm9.eq)(addresses.id, addressId),
-          (0, import_drizzle_orm9.eq)(addresses.customerId, customerId)
+        and(
+          eq(addresses.id, addressId),
+          eq(addresses.customerId, customerId)
         )
       );
       if (!existing) {
         throw new NotFoundError("Address not found");
       }
-      await db2.delete(addresses).where((0, import_drizzle_orm9.eq)(addresses.id, addressId));
+      await db2.delete(addresses).where(eq(addresses.id, addressId));
       sendNoContent(res);
     } catch (error) {
       next(error);
@@ -9440,9 +16099,9 @@ customersRoutes.get("/:id/orders", requireAuth, requireAdmin, async (req, res, n
     const db2 = getDb();
     const id = req.params["id"];
     const { page, limit, offset } = parsePaginationParams(req.query);
-    const countResult = await db2.select({ count: import_drizzle_orm9.sql`count(*)` }).from(orders).where((0, import_drizzle_orm9.eq)(orders.customerId, id));
+    const countResult = await db2.select({ count: sql`count(*)` }).from(orders).where(eq(orders.customerId, id));
     const count2 = countResult[0]?.count ?? 0;
-    const orderList = await db2.select().from(orders).where((0, import_drizzle_orm9.eq)(orders.customerId, id)).orderBy((0, import_drizzle_orm9.desc)(orders.createdAt)).limit(limit).offset(offset);
+    const orderList = await db2.select().from(orders).where(eq(orders.customerId, id)).orderBy(desc(orders.createdAt)).limit(limit).offset(offset);
     sendSuccess(
       res,
       orderList.map((o) => ({
@@ -9509,7 +16168,7 @@ customersRoutes.post("/admin/customers/:id/unlock", requireAdmin, async (req, re
   try {
     const id = req.params["id"];
     const db2 = getDb();
-    const [customer] = await db2.select({ id: customers.id, email: customers.email }).from(customers).where((0, import_drizzle_orm9.eq)(customers.id, id));
+    const [customer] = await db2.select({ id: customers.id, email: customers.email }).from(customers).where(eq(customers.id, id));
     if (!customer) {
       throw new NotFoundError("Customer not found");
     }
@@ -9556,7 +16215,7 @@ promoCodesRoutes.post(
     try {
       const db2 = getDb();
       const { code, orderAmount } = req.body;
-      const [promoCode] = await db2.select().from(promoCodes).where((0, import_drizzle_orm9.eq)(promoCodes.code, code.toUpperCase()));
+      const [promoCode] = await db2.select().from(promoCodes).where(eq(promoCodes.code, code.toUpperCase()));
       if (!promoCode) {
         throw new BadRequestError("Invalid promo code");
       }
@@ -9614,38 +16273,38 @@ promoCodesRoutes.get(
       const now = /* @__PURE__ */ new Date();
       if (search) {
         conditions.push(
-          (0, import_drizzle_orm9.or)(
-            (0, import_drizzle_orm9.like)(promoCodes.code, `%${search.toUpperCase()}%`),
-            (0, import_drizzle_orm9.like)(promoCodes.description, `%${search}%`)
+          or(
+            like(promoCodes.code, `%${search.toUpperCase()}%`),
+            like(promoCodes.description, `%${search}%`)
           )
         );
       }
       if (isActive !== void 0) {
-        conditions.push((0, import_drizzle_orm9.eq)(promoCodes.isActive, isActive === "true"));
+        conditions.push(eq(promoCodes.isActive, isActive === "true"));
       }
       if (status === "active") {
-        conditions.push((0, import_drizzle_orm9.eq)(promoCodes.isActive, true));
+        conditions.push(eq(promoCodes.isActive, true));
         conditions.push(
-          (0, import_drizzle_orm9.or)(
-            import_drizzle_orm9.sql`${promoCodes.startsAt} IS NULL`,
-            (0, import_drizzle_orm9.lte)(promoCodes.startsAt, now)
+          or(
+            sql`${promoCodes.startsAt} IS NULL`,
+            lte(promoCodes.startsAt, now)
           )
         );
         conditions.push(
-          (0, import_drizzle_orm9.or)(
-            import_drizzle_orm9.sql`${promoCodes.expiresAt} IS NULL`,
-            (0, import_drizzle_orm9.gte)(promoCodes.expiresAt, now)
+          or(
+            sql`${promoCodes.expiresAt} IS NULL`,
+            gte(promoCodes.expiresAt, now)
           )
         );
       } else if (status === "expired") {
-        conditions.push((0, import_drizzle_orm9.lte)(promoCodes.expiresAt, now));
+        conditions.push(lte(promoCodes.expiresAt, now));
       } else if (status === "upcoming") {
-        conditions.push((0, import_drizzle_orm9.gte)(promoCodes.startsAt, now));
+        conditions.push(gte(promoCodes.startsAt, now));
       }
-      const whereClause = conditions.length > 0 ? (0, import_drizzle_orm9.and)(...conditions) : void 0;
-      const countResult = await db2.select({ count: import_drizzle_orm9.sql`count(*)` }).from(promoCodes).where(whereClause);
+      const whereClause = conditions.length > 0 ? and(...conditions) : void 0;
+      const countResult = await db2.select({ count: sql`count(*)` }).from(promoCodes).where(whereClause);
       const count2 = countResult[0]?.count ?? 0;
-      const promoCodeList = await db2.select().from(promoCodes).where(whereClause).orderBy((0, import_drizzle_orm9.desc)(promoCodes.createdAt)).limit(limit).offset(offset);
+      const promoCodeList = await db2.select().from(promoCodes).where(whereClause).orderBy(desc(promoCodes.createdAt)).limit(limit).offset(offset);
       const formattedList = promoCodeList.map((pc) => ({
         ...pc,
         discountValue: Number(pc.discountValue),
@@ -9664,7 +16323,7 @@ promoCodesRoutes.get("/:id", requireAuth, requireAdmin, async (req, res, next) =
   try {
     const db2 = getDb();
     const id = req.params["id"];
-    const [promoCode] = await db2.select().from(promoCodes).where((0, import_drizzle_orm9.eq)(promoCodes.id, id));
+    const [promoCode] = await db2.select().from(promoCodes).where(eq(promoCodes.id, id));
     if (!promoCode) {
       throw new NotFoundError("Promo code not found");
     }
@@ -9687,7 +16346,7 @@ promoCodesRoutes.post(
     try {
       const db2 = getDb();
       const data = req.body;
-      const [existing] = await db2.select({ id: promoCodes.id }).from(promoCodes).where((0, import_drizzle_orm9.eq)(promoCodes.code, data.code));
+      const [existing] = await db2.select({ id: promoCodes.id }).from(promoCodes).where(eq(promoCodes.code, data.code));
       if (existing) {
         throw new ConflictError("Promo code already exists");
       }
@@ -9729,7 +16388,7 @@ promoCodesRoutes.put(
       const db2 = getDb();
       const id = req.params["id"];
       const data = req.body;
-      const [existing] = await db2.select().from(promoCodes).where((0, import_drizzle_orm9.eq)(promoCodes.id, id));
+      const [existing] = await db2.select().from(promoCodes).where(eq(promoCodes.id, id));
       if (!existing) {
         throw new NotFoundError("Promo code not found");
       }
@@ -9751,7 +16410,7 @@ promoCodesRoutes.put(
       if (data["expiresAt"]) {
         updateData["expiresAt"] = new Date(data["expiresAt"]);
       }
-      const promoCodeResult = await db2.update(promoCodes).set(updateData).where((0, import_drizzle_orm9.eq)(promoCodes.id, id)).returning();
+      const promoCodeResult = await db2.update(promoCodes).set(updateData).where(eq(promoCodes.id, id)).returning();
       const promoCode = promoCodeResult[0];
       if (!promoCode) {
         throw new NotFoundError("Promo code not found");
@@ -9771,7 +16430,7 @@ promoCodesRoutes.delete("/:id", requireAuth, requireAdmin, async (req, res, next
   try {
     const db2 = getDb();
     const id = req.params["id"];
-    const [existing] = await db2.select({ id: promoCodes.id, usageCount: promoCodes.usageCount }).from(promoCodes).where((0, import_drizzle_orm9.eq)(promoCodes.id, id));
+    const [existing] = await db2.select({ id: promoCodes.id, usageCount: promoCodes.usageCount }).from(promoCodes).where(eq(promoCodes.id, id));
     if (!existing) {
       throw new NotFoundError("Promo code not found");
     }
@@ -9780,7 +16439,7 @@ promoCodesRoutes.delete("/:id", requireAuth, requireAdmin, async (req, res, next
         "Cannot delete promo code that has been used. Consider deactivating it instead."
       );
     }
-    await db2.delete(promoCodes).where((0, import_drizzle_orm9.eq)(promoCodes.id, id));
+    await db2.delete(promoCodes).where(eq(promoCodes.id, id));
     sendNoContent(res);
   } catch (error) {
     next(error);
@@ -9790,14 +16449,14 @@ promoCodesRoutes.post("/:id/toggle", requireAuth, requireAdmin, async (req, res,
   try {
     const db2 = getDb();
     const id = req.params["id"];
-    const [existing] = await db2.select().from(promoCodes).where((0, import_drizzle_orm9.eq)(promoCodes.id, id));
+    const [existing] = await db2.select().from(promoCodes).where(eq(promoCodes.id, id));
     if (!existing) {
       throw new NotFoundError("Promo code not found");
     }
     const promoCodeResult = await db2.update(promoCodes).set({
       isActive: !existing.isActive,
       updatedAt: /* @__PURE__ */ new Date()
-    }).where((0, import_drizzle_orm9.eq)(promoCodes.id, id)).returning();
+    }).where(eq(promoCodes.id, id)).returning();
     const promoCode = promoCodeResult[0];
     if (!promoCode) {
       throw new NotFoundError("Promo code not found");
@@ -9816,30 +16475,30 @@ promoCodesRoutes.get("/stats/summary", requireAuth, requireAdmin, async (req, re
   try {
     const db2 = getDb();
     const now = /* @__PURE__ */ new Date();
-    const totalResult = await db2.select({ total: import_drizzle_orm9.sql`count(*)` }).from(promoCodes);
+    const totalResult = await db2.select({ total: sql`count(*)` }).from(promoCodes);
     const total = totalResult[0]?.total ?? 0;
-    const activeResult = await db2.select({ active: import_drizzle_orm9.sql`count(*)` }).from(promoCodes).where(
-      (0, import_drizzle_orm9.and)(
-        (0, import_drizzle_orm9.eq)(promoCodes.isActive, true),
-        (0, import_drizzle_orm9.or)(
-          import_drizzle_orm9.sql`${promoCodes.startsAt} IS NULL`,
-          (0, import_drizzle_orm9.lte)(promoCodes.startsAt, now)
+    const activeResult = await db2.select({ active: sql`count(*)` }).from(promoCodes).where(
+      and(
+        eq(promoCodes.isActive, true),
+        or(
+          sql`${promoCodes.startsAt} IS NULL`,
+          lte(promoCodes.startsAt, now)
         ),
-        (0, import_drizzle_orm9.or)(
-          import_drizzle_orm9.sql`${promoCodes.expiresAt} IS NULL`,
-          (0, import_drizzle_orm9.gte)(promoCodes.expiresAt, now)
+        or(
+          sql`${promoCodes.expiresAt} IS NULL`,
+          gte(promoCodes.expiresAt, now)
         )
       )
     );
     const active = activeResult[0]?.active ?? 0;
-    const usageResult = await db2.select({ totalUsage: import_drizzle_orm9.sql`COALESCE(sum(${promoCodes.usageCount}), 0)` }).from(promoCodes);
+    const usageResult = await db2.select({ totalUsage: sql`COALESCE(sum(${promoCodes.usageCount}), 0)` }).from(promoCodes);
     const totalUsage = usageResult[0]?.totalUsage ?? 0;
     const topCodes = await db2.select({
       code: promoCodes.code,
       usageCount: promoCodes.usageCount,
       discountType: promoCodes.discountType,
       discountValue: promoCodes.discountValue
-    }).from(promoCodes).where(import_drizzle_orm9.sql`${promoCodes.usageCount} > 0`).orderBy((0, import_drizzle_orm9.desc)(promoCodes.usageCount)).limit(5);
+    }).from(promoCodes).where(sql`${promoCodes.usageCount} > 0`).orderBy(desc(promoCodes.usageCount)).limit(5);
     sendSuccess(res, {
       total: Number(total),
       active: Number(active),
@@ -9889,7 +16548,7 @@ var QuotationActivityService = class {
    */
   async getActivities(quotationId, limit = 50) {
     const db2 = getDb();
-    const activities = await db2.select().from(quotationActivities).where((0, import_drizzle_orm9.eq)(quotationActivities.quotationId, quotationId)).orderBy((0, import_drizzle_orm9.desc)(quotationActivities.createdAt)).limit(limit);
+    const activities = await db2.select().from(quotationActivities).where(eq(quotationActivities.quotationId, quotationId)).orderBy(desc(quotationActivities.createdAt)).limit(limit);
     return activities;
   }
   // Helper methods for common activity types
@@ -10009,13 +16668,13 @@ var QuotationRevisionService = class {
   async createRevision(quotationId, changeDescription, createdBy, createdByName) {
     try {
       const db2 = getDb();
-      const [quotation] = await db2.select().from(quotations).where((0, import_drizzle_orm9.eq)(quotations.id, quotationId));
+      const [quotation] = await db2.select().from(quotations).where(eq(quotations.id, quotationId));
       if (!quotation) {
         logger.warn("Cannot create revision: Quotation not found", { quotationId });
         return;
       }
-      const items = await db2.select().from(quotationItems).where((0, import_drizzle_orm9.eq)(quotationItems.quotationId, quotationId));
-      const [lastRevision] = await db2.select({ maxVersion: import_drizzle_orm9.sql`COALESCE(MAX(${quotationRevisions.versionNumber}), 0)` }).from(quotationRevisions).where((0, import_drizzle_orm9.eq)(quotationRevisions.quotationId, quotationId));
+      const items = await db2.select().from(quotationItems).where(eq(quotationItems.quotationId, quotationId));
+      const [lastRevision] = await db2.select({ maxVersion: sql`COALESCE(MAX(${quotationRevisions.versionNumber}), 0)` }).from(quotationRevisions).where(eq(quotationRevisions.quotationId, quotationId));
       const nextVersion = (lastRevision?.maxVersion || 0) + 1;
       const snapshot = {
         customerName: quotation.customerName,
@@ -10064,7 +16723,7 @@ var QuotationRevisionService = class {
    */
   async getRevisions(quotationId) {
     const db2 = getDb();
-    const revisions = await db2.select().from(quotationRevisions).where((0, import_drizzle_orm9.eq)(quotationRevisions.quotationId, quotationId)).orderBy((0, import_drizzle_orm9.desc)(quotationRevisions.versionNumber));
+    const revisions = await db2.select().from(quotationRevisions).where(eq(quotationRevisions.quotationId, quotationId)).orderBy(desc(quotationRevisions.versionNumber));
     return revisions;
   }
   /**
@@ -10072,7 +16731,7 @@ var QuotationRevisionService = class {
    */
   async getRevision(revisionId) {
     const db2 = getDb();
-    const [revision] = await db2.select().from(quotationRevisions).where((0, import_drizzle_orm9.eq)(quotationRevisions.id, revisionId));
+    const [revision] = await db2.select().from(quotationRevisions).where(eq(quotationRevisions.id, revisionId));
     return revision || null;
   }
   /**
@@ -10094,11 +16753,11 @@ var QuotationRevisionService = class {
       snapshotB = revisionB.snapshot;
       versionB = revisionB.versionNumber;
     } else {
-      const [quotation] = await db2.select().from(quotations).where((0, import_drizzle_orm9.eq)(quotations.id, quotationId));
+      const [quotation] = await db2.select().from(quotations).where(eq(quotations.id, quotationId));
       if (!quotation) {
         return null;
       }
-      const items = await db2.select().from(quotationItems).where((0, import_drizzle_orm9.eq)(quotationItems.quotationId, quotationId));
+      const items = await db2.select().from(quotationItems).where(eq(quotationItems.quotationId, quotationId));
       snapshotB = {
         customerName: quotation.customerName,
         customerEmail: quotation.customerEmail,
@@ -10181,7 +16840,7 @@ var QuotationRevisionService = class {
       restoredBy,
       restoredByName
     );
-    await db2.delete(quotationItems).where((0, import_drizzle_orm9.eq)(quotationItems.quotationId, quotationId));
+    await db2.delete(quotationItems).where(eq(quotationItems.quotationId, quotationId));
     await db2.update(quotations).set({
       customerName: revision.snapshot.customerName,
       customerEmail: revision.snapshot.customerEmail,
@@ -10198,7 +16857,7 @@ var QuotationRevisionService = class {
       notes: revision.snapshot.notes,
       termsAndConditions: revision.snapshot.termsAndConditions,
       updatedAt: /* @__PURE__ */ new Date()
-    }).where((0, import_drizzle_orm9.eq)(quotations.id, quotationId));
+    }).where(eq(quotations.id, quotationId));
     for (const item of revision.snapshot.items) {
       await db2.insert(quotationItems).values({
         quotationId,
@@ -10319,23 +16978,23 @@ quotationsRoutes.get(
       const conditions = [];
       if (search) {
         conditions.push(
-          (0, import_drizzle_orm9.or)(
-            (0, import_drizzle_orm9.like)(quotations.quotationNumber, `%${search}%`),
-            (0, import_drizzle_orm9.like)(quotations.customerName, `%${search}%`),
-            (0, import_drizzle_orm9.like)(quotations.customerEmail, `%${search}%`)
+          or(
+            like(quotations.quotationNumber, `%${search}%`),
+            like(quotations.customerName, `%${search}%`),
+            like(quotations.customerEmail, `%${search}%`)
           )
         );
       }
       if (status) {
-        conditions.push((0, import_drizzle_orm9.eq)(quotations.status, status));
+        conditions.push(eq(quotations.status, status));
       }
       if (customerId) {
-        conditions.push((0, import_drizzle_orm9.eq)(quotations.customerId, customerId));
+        conditions.push(eq(quotations.customerId, customerId));
       }
-      const whereClause = conditions.length > 0 ? (0, import_drizzle_orm9.and)(...conditions) : void 0;
-      const countResult = await db2.select({ count: import_drizzle_orm9.sql`count(*)` }).from(quotations).where(whereClause);
+      const whereClause = conditions.length > 0 ? and(...conditions) : void 0;
+      const countResult = await db2.select({ count: sql`count(*)` }).from(quotations).where(whereClause);
       const count2 = countResult[0]?.count ?? 0;
-      const quotationList = await db2.select().from(quotations).where(whereClause).orderBy((0, import_drizzle_orm9.desc)(quotations.createdAt)).limit(limit).offset(offset);
+      const quotationList = await db2.select().from(quotations).where(whereClause).orderBy(desc(quotations.createdAt)).limit(limit).offset(offset);
       const formattedList = quotationList.map((q) => ({
         ...q,
         subtotal: Number(q.subtotal),
@@ -10356,21 +17015,21 @@ quotationsRoutes.get("/stats", requireAuth, requireAdmin, async (req, res, next)
     const now = /* @__PURE__ */ new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1e3);
-    const [totalResult] = await db2.select({ count: import_drizzle_orm9.sql`count(*)` }).from(quotations);
+    const [totalResult] = await db2.select({ count: sql`count(*)` }).from(quotations);
     const statusCounts = await db2.select({
       status: quotations.status,
-      count: import_drizzle_orm9.sql`count(*)`
+      count: sql`count(*)`
     }).from(quotations).groupBy(quotations.status);
-    const [totalValueResult] = await db2.select({ total: import_drizzle_orm9.sql`COALESCE(SUM(total), 0)` }).from(quotations);
-    const [acceptedValueResult] = await db2.select({ total: import_drizzle_orm9.sql`COALESCE(SUM(total), 0)` }).from(quotations).where((0, import_drizzle_orm9.eq)(quotations.status, "accepted"));
-    const [expiringSoonResult] = await db2.select({ count: import_drizzle_orm9.sql`count(*)` }).from(quotations).where(
-      (0, import_drizzle_orm9.and)(
-        (0, import_drizzle_orm9.eq)(quotations.status, "sent"),
-        (0, import_drizzle_orm9.gte)(quotations.validUntil, now),
-        (0, import_drizzle_orm9.lte)(quotations.validUntil, sevenDaysFromNow)
+    const [totalValueResult] = await db2.select({ total: sql`COALESCE(SUM(total), 0)` }).from(quotations);
+    const [acceptedValueResult] = await db2.select({ total: sql`COALESCE(SUM(total), 0)` }).from(quotations).where(eq(quotations.status, "accepted"));
+    const [expiringSoonResult] = await db2.select({ count: sql`count(*)` }).from(quotations).where(
+      and(
+        eq(quotations.status, "sent"),
+        gte(quotations.validUntil, now),
+        lte(quotations.validUntil, sevenDaysFromNow)
       )
     );
-    const [thisMonthResult] = await db2.select({ count: import_drizzle_orm9.sql`count(*)` }).from(quotations).where((0, import_drizzle_orm9.gte)(quotations.createdAt, startOfMonth));
+    const [thisMonthResult] = await db2.select({ count: sql`count(*)` }).from(quotations).where(gte(quotations.createdAt, startOfMonth));
     const statusMap = statusCounts.reduce((acc, item) => {
       acc[item.status] = Number(item.count);
       return acc;
@@ -10381,7 +17040,7 @@ quotationsRoutes.get("/stats", requireAuth, requireAdmin, async (req, res, next)
     const totalDecided = acceptedCount + rejectedCount + convertedCount;
     const conversionRate = totalDecided > 0 ? (acceptedCount + convertedCount) / totalDecided * 100 : 0;
     sendSuccess(res, {
-      total: Number(totalResult.count),
+      total: Number(totalResult?.count ?? 0),
       byStatus: {
         draft: statusMap["draft"] || 0,
         sent: statusMap["sent"] || 0,
@@ -10390,11 +17049,11 @@ quotationsRoutes.get("/stats", requireAuth, requireAdmin, async (req, res, next)
         expired: statusMap["expired"] || 0,
         converted: statusMap["converted"] || 0
       },
-      totalValue: Number(totalValueResult.total),
-      acceptedValue: Number(acceptedValueResult.total),
+      totalValue: Number(totalValueResult?.total ?? 0),
+      acceptedValue: Number(acceptedValueResult?.total ?? 0),
       conversionRate: Math.round(conversionRate * 100) / 100,
-      expiringSoon: Number(expiringSoonResult.count),
-      thisMonth: Number(thisMonthResult.count)
+      expiringSoon: Number(expiringSoonResult?.count ?? 0),
+      thisMonth: Number(thisMonthResult?.count ?? 0)
     });
   } catch (error) {
     next(error);
@@ -10405,9 +17064,9 @@ quotationsRoutes.post("/check-expired", requireAuth, requireAdmin, async (req, r
     const db2 = getDb();
     const now = /* @__PURE__ */ new Date();
     const expiredQuotations = await db2.select({ id: quotations.id, quotationNumber: quotations.quotationNumber }).from(quotations).where(
-      (0, import_drizzle_orm9.and)(
-        (0, import_drizzle_orm9.eq)(quotations.status, "sent"),
-        (0, import_drizzle_orm9.lte)(quotations.validUntil, now)
+      and(
+        eq(quotations.status, "sent"),
+        lte(quotations.validUntil, now)
       )
     );
     if (expiredQuotations.length === 0) {
@@ -10421,9 +17080,9 @@ quotationsRoutes.post("/check-expired", requireAuth, requireAdmin, async (req, r
       status: "expired",
       updatedAt: now
     }).where(
-      (0, import_drizzle_orm9.and)(
-        (0, import_drizzle_orm9.eq)(quotations.status, "sent"),
-        (0, import_drizzle_orm9.lte)(quotations.validUntil, now)
+      and(
+        eq(quotations.status, "sent"),
+        lte(quotations.validUntil, now)
       )
     );
     for (const q of expiredQuotations) {
@@ -10478,15 +17137,15 @@ quotationsRoutes.post(
       const results = { success: [], failed: [] };
       for (const id of ids) {
         try {
-          const [quotation] = await db2.select().from(quotations).where((0, import_drizzle_orm9.eq)(quotations.id, id));
+          const [quotation] = await db2.select().from(quotations).where(eq(quotations.id, id));
           if (!quotation) {
             results.failed.push(id);
             continue;
           }
           switch (action) {
             case "delete":
-              await db2.delete(quotationItems).where((0, import_drizzle_orm9.eq)(quotationItems.quotationId, id));
-              await db2.delete(quotations).where((0, import_drizzle_orm9.eq)(quotations.id, id));
+              await db2.delete(quotationItems).where(eq(quotationItems.quotationId, id));
+              await db2.delete(quotations).where(eq(quotations.id, id));
               results.success.push(id);
               break;
             case "send":
@@ -10502,7 +17161,7 @@ quotationsRoutes.post(
                 acceptanceToken,
                 tokenExpiresAt,
                 updatedAt: /* @__PURE__ */ new Date()
-              }).where((0, import_drizzle_orm9.eq)(quotations.id, id));
+              }).where(eq(quotations.id, id));
               await quotationActivityService.logSent(
                 id,
                 quotation.customerEmail,
@@ -10519,7 +17178,7 @@ quotationsRoutes.post(
               await db2.update(quotations).set({
                 status,
                 updatedAt: /* @__PURE__ */ new Date()
-              }).where((0, import_drizzle_orm9.eq)(quotations.id, id));
+              }).where(eq(quotations.id, id));
               await quotationActivityService.logStatusChanged(
                 id,
                 quotation.status,
@@ -10549,11 +17208,11 @@ quotationsRoutes.get("/:id", requireAuth, requireAdmin, async (req, res, next) =
   try {
     const db2 = getDb();
     const id = req.params["id"];
-    const [quotation] = await db2.select().from(quotations).where((0, import_drizzle_orm9.eq)(quotations.id, id));
+    const [quotation] = await db2.select().from(quotations).where(eq(quotations.id, id));
     if (!quotation) {
       throw new NotFoundError("Quotation not found");
     }
-    const items = await db2.select().from(quotationItems).where((0, import_drizzle_orm9.eq)(quotationItems.quotationId, id));
+    const items = await db2.select().from(quotationItems).where(eq(quotationItems.quotationId, id));
     sendSuccess(res, {
       ...quotation,
       subtotal: Number(quotation.subtotal),
@@ -10580,7 +17239,7 @@ quotationsRoutes.post(
     try {
       const db2 = getDb();
       const data = req.body;
-      const countResult = await db2.select({ count: import_drizzle_orm9.sql`count(*)` }).from(quotations);
+      const countResult = await db2.select({ count: sql`count(*)` }).from(quotations);
       const qCount = countResult[0]?.count ?? 0;
       const quotationNumber = generateQuotationNumber(Number(qCount) + 1);
       const validUntil = /* @__PURE__ */ new Date();
@@ -10589,7 +17248,7 @@ quotationsRoutes.post(
       let subtotal = 0;
       for (const item of data.items) {
         if (item.productId) {
-          const [product] = await db2.select().from(products).where((0, import_drizzle_orm9.eq)(products.id, item.productId));
+          const [product] = await db2.select().from(products).where(eq(products.id, item.productId));
           if (!product) {
             throw new BadRequestError(`Product not found: ${item.productId}`);
           }
@@ -10597,7 +17256,7 @@ quotationsRoutes.post(
           let sku = product.sku;
           let variantId = null;
           if (item.variantId) {
-            const [variant] = await db2.select().from(productVariants).where((0, import_drizzle_orm9.eq)(productVariants.id, item.variantId));
+            const [variant] = await db2.select().from(productVariants).where(eq(productVariants.id, item.variantId));
             if (variant) {
               unitPrice = Number(variant.basePrice);
               sku = variant.sku;
@@ -10644,7 +17303,7 @@ quotationsRoutes.post(
           discountAmount = Math.min(data.discountValue, subtotal);
         }
       }
-      const [taxSetting] = await db2.select().from(settings).where((0, import_drizzle_orm9.eq)(settings.key, "tax"));
+      const [taxSetting] = await db2.select().from(settings).where(eq(settings.key, "tax"));
       let taxRate = 0;
       if (taxSetting && taxSetting.value && typeof taxSetting.value === "object") {
         const taxValue = taxSetting.value;
@@ -10718,11 +17377,11 @@ quotationsRoutes.put(
       const db2 = getDb();
       const id = req.params["id"];
       const data = req.body;
-      const [existing] = await db2.select().from(quotations).where((0, import_drizzle_orm9.eq)(quotations.id, id));
+      const [existing] = await db2.select().from(quotations).where(eq(quotations.id, id));
       if (!existing) {
         throw new NotFoundError("Quotation not found");
       }
-      const isStatusOnlyUpdate = Object.keys(data).length === 1 && data.status !== void 0;
+      const isStatusOnlyUpdate = Object.keys(data).length === 1 && data["status"] !== void 0;
       if (existing.status !== "draft" && !isStatusOnlyUpdate) {
         throw new BadRequestError("Only draft quotations can be edited. Non-draft quotations can only have their status changed.");
       }
@@ -10736,49 +17395,50 @@ quotationsRoutes.put(
       const updateData = {
         updatedAt: /* @__PURE__ */ new Date()
       };
-      if (data.customerName !== void 0) {
-        updateData.customerName = data.customerName;
+      if (data["customerName"] !== void 0) {
+        updateData["customerName"] = data["customerName"];
       }
-      if (data.customerEmail !== void 0) {
-        updateData.customerEmail = data.customerEmail.toLowerCase();
+      if (data["customerEmail"] !== void 0) {
+        updateData["customerEmail"] = data["customerEmail"].toLowerCase();
       }
-      if (data.customerPhone !== void 0) {
-        updateData.customerPhone = data.customerPhone || null;
+      if (data["customerPhone"] !== void 0) {
+        updateData["customerPhone"] = data["customerPhone"] || null;
       }
-      if (data.customerCompany !== void 0) {
-        updateData.customerCompany = data.customerCompany || null;
+      if (data["customerCompany"] !== void 0) {
+        updateData["customerCompany"] = data["customerCompany"] || null;
       }
-      if (data.status !== void 0) {
-        updateData.status = data.status;
+      if (data["status"] !== void 0) {
+        updateData["status"] = data["status"];
       }
-      if (data.notes !== void 0) {
-        updateData.notes = data.notes || null;
+      if (data["notes"] !== void 0) {
+        updateData["notes"] = data["notes"] || null;
       }
-      if (data.terms !== void 0) {
-        updateData.termsAndConditions = data.terms || null;
+      if (data["terms"] !== void 0) {
+        updateData["termsAndConditions"] = data["terms"] || null;
       }
-      if (data.discountType !== void 0) {
-        updateData.discountType = data.discountType;
+      if (data["discountType"] !== void 0) {
+        updateData["discountType"] = data["discountType"];
       }
-      if (data.discountValue !== void 0) {
-        updateData.discountValue = String(data.discountValue);
+      if (data["discountValue"] !== void 0) {
+        updateData["discountValue"] = String(data["discountValue"]);
       }
-      if (data.taxRate !== void 0) {
-        updateData.taxRate = String(data.taxRate);
+      if (data["taxRate"] !== void 0) {
+        updateData["taxRate"] = String(data["taxRate"]);
       }
-      if (data.validDays !== void 0) {
+      if (data["validDays"] !== void 0) {
         const validUntil = /* @__PURE__ */ new Date();
-        validUntil.setDate(validUntil.getDate() + data.validDays);
-        updateData.validUntil = validUntil;
+        validUntil.setDate(validUntil.getDate() + data["validDays"]);
+        updateData["validUntil"] = validUntil;
       }
-      const shouldRecalculate = data.discountType !== void 0 || data.discountValue !== void 0 || data.taxRate !== void 0 || data.items && data.items.length > 0;
-      if (data.items && data.items.length > 0) {
-        await db2.delete(quotationItems).where((0, import_drizzle_orm9.eq)(quotationItems.quotationId, id));
+      const dataItems = data["items"];
+      const shouldRecalculate = data["discountType"] !== void 0 || data["discountValue"] !== void 0 || data["taxRate"] !== void 0 || dataItems && dataItems.length > 0;
+      if (dataItems && dataItems.length > 0) {
+        await db2.delete(quotationItems).where(eq(quotationItems.quotationId, id));
         let subtotal = 0;
         const processedItems = [];
-        for (const item of data.items) {
+        for (const item of dataItems) {
           if (item.productId) {
-            const [product] = await db2.select().from(products).where((0, import_drizzle_orm9.eq)(products.id, item.productId));
+            const [product] = await db2.select().from(products).where(eq(products.id, item.productId));
             if (!product) {
               throw new BadRequestError(`Product not found: ${item.productId}`);
             }
@@ -10786,7 +17446,7 @@ quotationsRoutes.put(
             let sku = product.sku;
             let variantId = null;
             if (item.variantId) {
-              const [variant] = await db2.select().from(productVariants).where((0, import_drizzle_orm9.eq)(productVariants.id, item.variantId));
+              const [variant] = await db2.select().from(productVariants).where(eq(productVariants.id, item.variantId));
               if (variant) {
                 unitPrice = Number(variant.basePrice);
                 sku = variant.sku;
@@ -10835,10 +17495,10 @@ quotationsRoutes.put(
         const taxableAmount = subtotal - discountAmount;
         const taxAmount = taxableAmount * taxRate;
         const total = taxableAmount + taxAmount;
-        updateData.subtotal = String(subtotal);
-        updateData.discountAmount = String(discountAmount);
-        updateData.taxAmount = String(taxAmount);
-        updateData.total = String(total);
+        updateData["subtotal"] = String(subtotal);
+        updateData["discountAmount"] = String(discountAmount);
+        updateData["taxAmount"] = String(taxAmount);
+        updateData["total"] = String(total);
         for (const item of processedItems) {
           await db2.insert(quotationItems).values({
             quotationId: id,
@@ -10852,13 +17512,13 @@ quotationsRoutes.put(
           });
         }
       } else if (shouldRecalculate) {
-        const existingItems = await db2.select().from(quotationItems).where((0, import_drizzle_orm9.eq)(quotationItems.quotationId, id));
+        const existingItems = await db2.select().from(quotationItems).where(eq(quotationItems.quotationId, id));
         const subtotal = existingItems.reduce((sum2, item) => {
           return sum2 + Number(item.unitPrice) * item.quantity;
         }, 0);
-        const discountType = data.discountType ?? existing.discountType ?? "percentage";
-        const discountValue = data.discountValue ?? Number(existing.discountValue || 0);
-        const taxRate = data.taxRate ?? Number(existing.taxRate || 0);
+        const discountType = data["discountType"] ?? existing.discountType ?? "percentage";
+        const discountValue = data["discountValue"] ?? Number(existing.discountValue || 0);
+        const taxRate = data["taxRate"] ?? Number(existing.taxRate || 0);
         let discountAmount = 0;
         if (discountType === "percentage") {
           discountAmount = subtotal * discountValue / 100;
@@ -10868,17 +17528,17 @@ quotationsRoutes.put(
         const taxableAmount = subtotal - discountAmount;
         const taxAmount = taxableAmount * taxRate;
         const total = taxableAmount + taxAmount;
-        updateData.subtotal = String(subtotal);
-        updateData.discountAmount = String(discountAmount);
-        updateData.taxAmount = String(taxAmount);
-        updateData.total = String(total);
+        updateData["subtotal"] = String(subtotal);
+        updateData["discountAmount"] = String(discountAmount);
+        updateData["taxAmount"] = String(taxAmount);
+        updateData["total"] = String(total);
       }
-      const quotationResult = await db2.update(quotations).set(updateData).where((0, import_drizzle_orm9.eq)(quotations.id, id)).returning();
+      const quotationResult = await db2.update(quotations).set(updateData).where(eq(quotations.id, id)).returning();
       const quotation = quotationResult[0];
       if (!quotation) {
         throw new NotFoundError("Quotation not found");
       }
-      const items = await db2.select().from(quotationItems).where((0, import_drizzle_orm9.eq)(quotationItems.quotationId, id));
+      const items = await db2.select().from(quotationItems).where(eq(quotationItems.quotationId, id));
       sendSuccess(res, {
         ...quotation,
         subtotal: Number(quotation.subtotal),
@@ -10901,7 +17561,7 @@ quotationsRoutes.delete("/:id", requireAuth, requireAdmin, async (req, res, next
   try {
     const db2 = getDb();
     const id = req.params["id"];
-    const [existing] = await db2.select({ id: quotations.id, status: quotations.status }).from(quotations).where((0, import_drizzle_orm9.eq)(quotations.id, id));
+    const [existing] = await db2.select({ id: quotations.id, status: quotations.status }).from(quotations).where(eq(quotations.id, id));
     if (!existing) {
       throw new NotFoundError("Quotation not found");
     }
@@ -10909,8 +17569,8 @@ quotationsRoutes.delete("/:id", requireAuth, requireAdmin, async (req, res, next
     if (!deletableStatuses.includes(existing.status)) {
       throw new BadRequestError("Only draft, rejected, or expired quotations can be deleted. Sent and accepted quotations must be preserved.");
     }
-    await db2.delete(quotationItems).where((0, import_drizzle_orm9.eq)(quotationItems.quotationId, id));
-    await db2.delete(quotations).where((0, import_drizzle_orm9.eq)(quotations.id, id));
+    await db2.delete(quotationItems).where(eq(quotationItems.quotationId, id));
+    await db2.delete(quotations).where(eq(quotations.id, id));
     sendNoContent(res);
   } catch (error) {
     next(error);
@@ -10970,7 +17630,7 @@ quotationsRoutes.get("/:id/revisions/:revisionId/compare", requireAuth, requireA
   try {
     const id = req.params["id"];
     const revisionId = req.params["revisionId"];
-    const compareWith = req.query.compareWith;
+    const compareWith = req.query["compareWith"];
     const comparison = await quotationRevisionService.compareRevisions(id, revisionId, compareWith);
     if (!comparison) {
       throw new NotFoundError("Revision not found");
@@ -10984,30 +17644,43 @@ quotationsRoutes.get("/:id/pdf", requireAuth, requireAdmin, async (req, res, nex
   try {
     const db2 = getDb();
     const id = req.params["id"];
-    const templateId = req.query.templateId;
-    const [quotation] = await db2.select().from(quotations).where((0, import_drizzle_orm9.eq)(quotations.id, id));
+    const templateId = req.query["templateId"];
+    const [quotation] = await db2.select().from(quotations).where(eq(quotations.id, id));
     if (!quotation) {
       throw new NotFoundError("Quotation not found");
     }
-    const items = await db2.select().from(quotationItems).where((0, import_drizzle_orm9.eq)(quotationItems.quotationId, id));
+    const items = await db2.select({
+      id: quotationItems.id,
+      quotationId: quotationItems.quotationId,
+      productId: quotationItems.productId,
+      variantId: quotationItems.variantId,
+      name: quotationItems.name,
+      description: quotationItems.description,
+      sku: quotationItems.sku,
+      quantity: quotationItems.quantity,
+      unitPrice: quotationItems.unitPrice,
+      createdAt: quotationItems.createdAt,
+      productSlug: products.slug
+    }).from(quotationItems).leftJoin(products, eq(quotationItems.productId, products.id)).where(eq(quotationItems.quotationId, id));
+    const websiteUrl = process.env["WEB_URL"] || "https://lab404electronics.com";
     const companySettings = await db2.select().from(settings).where(
-      (0, import_drizzle_orm9.or)(
-        (0, import_drizzle_orm9.eq)(settings.key, "company_name"),
-        (0, import_drizzle_orm9.eq)(settings.key, "company_address"),
-        (0, import_drizzle_orm9.eq)(settings.key, "company_phone"),
-        (0, import_drizzle_orm9.eq)(settings.key, "company_email"),
-        (0, import_drizzle_orm9.eq)(settings.key, "company_website"),
-        (0, import_drizzle_orm9.eq)(settings.key, "quotation_terms")
+      or(
+        eq(settings.key, "company_name"),
+        eq(settings.key, "company_address"),
+        eq(settings.key, "company_phone"),
+        eq(settings.key, "company_email"),
+        eq(settings.key, "company_website"),
+        eq(settings.key, "quotation_terms")
       )
     );
     const settingsMap = new Map(companySettings.map((s) => [s.key, s.value]));
     let template = null;
     if (templateId) {
-      [template] = await db2.select().from(pdfTemplates).where((0, import_drizzle_orm9.eq)(pdfTemplates.id, templateId));
+      [template] = await db2.select().from(pdfTemplates).where(eq(pdfTemplates.id, templateId));
     } else if (quotation.pdfTemplateId) {
-      [template] = await db2.select().from(pdfTemplates).where((0, import_drizzle_orm9.eq)(pdfTemplates.id, quotation.pdfTemplateId));
+      [template] = await db2.select().from(pdfTemplates).where(eq(pdfTemplates.id, quotation.pdfTemplateId));
     } else {
-      [template] = await db2.select().from(pdfTemplates).where((0, import_drizzle_orm9.eq)(pdfTemplates.isDefault, true)).limit(1);
+      [template] = await db2.select().from(pdfTemplates).where(eq(pdfTemplates.isDefault, true)).limit(1);
     }
     const templateConfig = template ? {
       primaryColor: template.primaryColor,
@@ -11037,7 +17710,8 @@ quotationsRoutes.get("/:id/pdf", requireAuth, requireAdmin, async (req, res, nex
         quantity: item.quantity,
         unitPrice: Number(item.unitPrice),
         lineTotal: Number(item.unitPrice) * item.quantity,
-        variantOptions: void 0
+        variantOptions: void 0,
+        productUrl: item.productSlug ? `${websiteUrl}/products/${item.productSlug}` : void 0
       })),
       subtotal: Number(quotation.subtotal),
       taxRate: Number(quotation.taxRate || 0),
@@ -11070,28 +17744,41 @@ quotationsRoutes.post("/:id/send", requireAuth, requireAdmin, async (req, res, n
   try {
     const db2 = getDb();
     const id = req.params["id"];
-    const [quotation] = await db2.select().from(quotations).where((0, import_drizzle_orm9.eq)(quotations.id, id));
+    const [quotation] = await db2.select().from(quotations).where(eq(quotations.id, id));
     if (!quotation) {
       throw new NotFoundError("Quotation not found");
     }
     if (quotation.status !== "draft") {
       throw new BadRequestError("Only draft quotations can be sent");
     }
-    const items = await db2.select().from(quotationItems).where((0, import_drizzle_orm9.eq)(quotationItems.quotationId, id));
+    const items = await db2.select({
+      id: quotationItems.id,
+      quotationId: quotationItems.quotationId,
+      productId: quotationItems.productId,
+      variantId: quotationItems.variantId,
+      name: quotationItems.name,
+      description: quotationItems.description,
+      sku: quotationItems.sku,
+      quantity: quotationItems.quantity,
+      unitPrice: quotationItems.unitPrice,
+      createdAt: quotationItems.createdAt,
+      productSlug: products.slug
+    }).from(quotationItems).leftJoin(products, eq(quotationItems.productId, products.id)).where(eq(quotationItems.quotationId, id));
+    const websiteUrl = process.env["WEB_URL"] || "https://lab404electronics.com";
     const settingsRows = await db2.select().from(settings).where(
-      (0, import_drizzle_orm9.or)(
-        (0, import_drizzle_orm9.eq)(settings.key, "company_name"),
-        (0, import_drizzle_orm9.eq)(settings.key, "company_email"),
-        (0, import_drizzle_orm9.eq)(settings.key, "company_phone"),
-        (0, import_drizzle_orm9.eq)(settings.key, "company_address"),
-        (0, import_drizzle_orm9.eq)(settings.key, "company_website"),
-        (0, import_drizzle_orm9.eq)(settings.key, "quotation_terms")
+      or(
+        eq(settings.key, "company_name"),
+        eq(settings.key, "company_email"),
+        eq(settings.key, "company_phone"),
+        eq(settings.key, "company_address"),
+        eq(settings.key, "company_website"),
+        eq(settings.key, "quotation_terms")
       )
     );
     const settingsMap = new Map(settingsRows.map((s) => [s.key, s.value]));
     let templateConfig = {};
     if (quotation.pdfTemplateId) {
-      const [template] = await db2.select().from(pdfTemplates).where((0, import_drizzle_orm9.eq)(pdfTemplates.id, quotation.pdfTemplateId));
+      const [template] = await db2.select().from(pdfTemplates).where(eq(pdfTemplates.id, quotation.pdfTemplateId));
       if (template) {
         templateConfig = {
           primaryColor: template.primaryColor || void 0,
@@ -11123,7 +17810,8 @@ quotationsRoutes.post("/:id/send", requireAuth, requireAdmin, async (req, res, n
         sku: item.sku || void 0,
         quantity: item.quantity,
         unitPrice: Number(item.unitPrice),
-        lineTotal: Number(item.unitPrice) * item.quantity
+        lineTotal: Number(item.unitPrice) * item.quantity,
+        productUrl: item.productSlug ? `${websiteUrl}/products/${item.productSlug}` : void 0
       })),
       subtotal: Number(quotation.subtotal),
       taxRate: Number(quotation.taxRate || 0),
@@ -11146,7 +17834,7 @@ quotationsRoutes.post("/:id/send", requireAuth, requireAdmin, async (req, res, n
         customerName: quotation.customerName,
         customerEmail: quotation.customerEmail,
         total: Number(quotation.total),
-        validUntil: quotation.validUntil,
+        validUntil: quotation.validUntil || null,
         currency: quotation.currency,
         itemCount: items.length,
         companyName,
@@ -11173,7 +17861,7 @@ quotationsRoutes.post("/:id/send", requireAuth, requireAdmin, async (req, res, n
       acceptanceToken,
       tokenExpiresAt,
       updatedAt: /* @__PURE__ */ new Date()
-    }).where((0, import_drizzle_orm9.eq)(quotations.id, id));
+    }).where(eq(quotations.id, id));
     await quotationActivityService.logSent(id, quotation.customerEmail);
     const baseUrl = process.env["WEB_APP_URL"] || "http://localhost:3000";
     const acceptanceLink = `${baseUrl}/quotations/view/${acceptanceToken}`;
@@ -11192,7 +17880,7 @@ quotationsRoutes.post("/:id/convert-to-order", requireAuth, requireAdmin, async 
   try {
     const db2 = getDb();
     const id = req.params["id"];
-    const [quotation] = await db2.select().from(quotations).where((0, import_drizzle_orm9.eq)(quotations.id, id));
+    const [quotation] = await db2.select().from(quotations).where(eq(quotations.id, id));
     if (!quotation) {
       throw new NotFoundError("Quotation not found");
     }
@@ -11214,12 +17902,12 @@ quotationsRoutes.post("/:id/duplicate", requireAuth, requireAdmin, async (req, r
   try {
     const db2 = getDb();
     const id = req.params["id"];
-    const [original] = await db2.select().from(quotations).where((0, import_drizzle_orm9.eq)(quotations.id, id));
+    const [original] = await db2.select().from(quotations).where(eq(quotations.id, id));
     if (!original) {
       throw new NotFoundError("Quotation not found");
     }
-    const items = await db2.select().from(quotationItems).where((0, import_drizzle_orm9.eq)(quotationItems.quotationId, id));
-    const countResult = await db2.select({ count: import_drizzle_orm9.sql`count(*)` }).from(quotations);
+    const items = await db2.select().from(quotationItems).where(eq(quotationItems.quotationId, id));
+    const countResult = await db2.select({ count: sql`count(*)` }).from(quotations);
     const count2 = countResult[0]?.count ?? 0;
     const quotationNumber = generateQuotationNumber(Number(count2) + 1);
     const validUntil = /* @__PURE__ */ new Date();
@@ -11284,25 +17972,25 @@ quotationsRoutes.get("/public/:token", async (req, res, next) => {
     if (!token || token.length !== 64) {
       throw new BadRequestError("Invalid token");
     }
-    const [quotation] = await db2.select().from(quotations).where((0, import_drizzle_orm9.eq)(quotations.acceptanceToken, token));
+    const [quotation] = await db2.select().from(quotations).where(eq(quotations.acceptanceToken, token));
     if (!quotation) {
       throw new NotFoundError("Quotation not found or link has expired");
     }
     if (quotation.tokenExpiresAt && new Date(quotation.tokenExpiresAt) < /* @__PURE__ */ new Date()) {
       throw new BadRequestError("This quotation link has expired");
     }
-    const items = await db2.select().from(quotationItems).where((0, import_drizzle_orm9.eq)(quotationItems.quotationId, quotation.id));
+    const items = await db2.select().from(quotationItems).where(eq(quotationItems.quotationId, quotation.id));
     if (!quotation.viewedAt) {
-      await db2.update(quotations).set({ viewedAt: /* @__PURE__ */ new Date() }).where((0, import_drizzle_orm9.eq)(quotations.id, quotation.id));
+      await db2.update(quotations).set({ viewedAt: /* @__PURE__ */ new Date() }).where(eq(quotations.id, quotation.id));
       await quotationActivityService.logViewed(quotation.id, quotation.customerName);
     }
     const settingsRows = await db2.select().from(settings).where(
-      (0, import_drizzle_orm9.or)(
-        (0, import_drizzle_orm9.eq)(settings.key, "company_name"),
-        (0, import_drizzle_orm9.eq)(settings.key, "company_email"),
-        (0, import_drizzle_orm9.eq)(settings.key, "company_phone"),
-        (0, import_drizzle_orm9.eq)(settings.key, "company_address"),
-        (0, import_drizzle_orm9.eq)(settings.key, "company_website")
+      or(
+        eq(settings.key, "company_name"),
+        eq(settings.key, "company_email"),
+        eq(settings.key, "company_phone"),
+        eq(settings.key, "company_address"),
+        eq(settings.key, "company_website")
       )
     );
     const settingsMap = new Map(settingsRows.map((s) => [s.key, s.value]));
@@ -11352,7 +18040,7 @@ quotationsRoutes.post("/public/:token/accept", async (req, res, next) => {
     if (!token || token.length !== 64) {
       throw new BadRequestError("Invalid token");
     }
-    const [quotation] = await db2.select().from(quotations).where((0, import_drizzle_orm9.eq)(quotations.acceptanceToken, token));
+    const [quotation] = await db2.select().from(quotations).where(eq(quotations.acceptanceToken, token));
     if (!quotation) {
       throw new NotFoundError("Quotation not found or link has expired");
     }
@@ -11365,7 +18053,7 @@ quotationsRoutes.post("/public/:token/accept", async (req, res, next) => {
     await db2.update(quotations).set({
       status: "accepted",
       updatedAt: /* @__PURE__ */ new Date()
-    }).where((0, import_drizzle_orm9.eq)(quotations.id, quotation.id));
+    }).where(eq(quotations.id, quotation.id));
     await quotationActivityService.logAccepted(quotation.id, quotation.customerName);
     sendSuccess(res, {
       message: "Quotation accepted successfully",
@@ -11387,7 +18075,7 @@ quotationsRoutes.post("/public/:token/reject", validateBody(rejectQuotationSchem
     if (!token || token.length !== 64) {
       throw new BadRequestError("Invalid token");
     }
-    const [quotation] = await db2.select().from(quotations).where((0, import_drizzle_orm9.eq)(quotations.acceptanceToken, token));
+    const [quotation] = await db2.select().from(quotations).where(eq(quotations.acceptanceToken, token));
     if (!quotation) {
       throw new NotFoundError("Quotation not found or link has expired");
     }
@@ -11403,7 +18091,7 @@ quotationsRoutes.post("/public/:token/reject", validateBody(rejectQuotationSchem
 
 Rejection reason: ${reason}`.trim() : quotation.notes,
       updatedAt: /* @__PURE__ */ new Date()
-    }).where((0, import_drizzle_orm9.eq)(quotations.id, quotation.id));
+    }).where(eq(quotations.id, quotation.id));
     await quotationActivityService.logRejected(quotation.id, reason, quotation.customerName);
     sendSuccess(res, {
       message: "Quotation rejected",
@@ -11421,22 +18109,35 @@ quotationsRoutes.get("/public/:token/pdf", async (req, res, next) => {
     if (!token || token.length !== 64) {
       throw new BadRequestError("Invalid token");
     }
-    const [quotation] = await db2.select().from(quotations).where((0, import_drizzle_orm9.eq)(quotations.acceptanceToken, token));
+    const [quotation] = await db2.select().from(quotations).where(eq(quotations.acceptanceToken, token));
     if (!quotation) {
       throw new NotFoundError("Quotation not found or link has expired");
     }
     if (quotation.tokenExpiresAt && new Date(quotation.tokenExpiresAt) < /* @__PURE__ */ new Date()) {
       throw new BadRequestError("This quotation link has expired");
     }
-    const items = await db2.select().from(quotationItems).where((0, import_drizzle_orm9.eq)(quotationItems.quotationId, quotation.id));
+    const items = await db2.select({
+      id: quotationItems.id,
+      quotationId: quotationItems.quotationId,
+      productId: quotationItems.productId,
+      variantId: quotationItems.variantId,
+      name: quotationItems.name,
+      description: quotationItems.description,
+      sku: quotationItems.sku,
+      quantity: quotationItems.quantity,
+      unitPrice: quotationItems.unitPrice,
+      createdAt: quotationItems.createdAt,
+      productSlug: products.slug
+    }).from(quotationItems).leftJoin(products, eq(quotationItems.productId, products.id)).where(eq(quotationItems.quotationId, quotation.id));
+    const websiteUrl = process.env["WEB_URL"] || "https://lab404electronics.com";
     const settingsRows = await db2.select().from(settings).where(
-      (0, import_drizzle_orm9.or)(
-        (0, import_drizzle_orm9.eq)(settings.key, "company_name"),
-        (0, import_drizzle_orm9.eq)(settings.key, "company_email"),
-        (0, import_drizzle_orm9.eq)(settings.key, "company_phone"),
-        (0, import_drizzle_orm9.eq)(settings.key, "company_address"),
-        (0, import_drizzle_orm9.eq)(settings.key, "company_website"),
-        (0, import_drizzle_orm9.eq)(settings.key, "quotation_terms")
+      or(
+        eq(settings.key, "company_name"),
+        eq(settings.key, "company_email"),
+        eq(settings.key, "company_phone"),
+        eq(settings.key, "company_address"),
+        eq(settings.key, "company_website"),
+        eq(settings.key, "quotation_terms")
       )
     );
     const settingsMap = new Map(settingsRows.map((s) => [s.key, s.value]));
@@ -11456,7 +18157,8 @@ quotationsRoutes.get("/public/:token/pdf", async (req, res, next) => {
         sku: item.sku || void 0,
         quantity: item.quantity,
         unitPrice: Number(item.unitPrice),
-        lineTotal: Number(item.unitPrice) * item.quantity
+        lineTotal: Number(item.unitPrice) * item.quantity,
+        productUrl: item.productSlug ? `${websiteUrl}/products/${item.productSlug}` : void 0
       })),
       subtotal: Number(quotation.subtotal),
       taxRate: Number(quotation.taxRate || 0),
@@ -11517,12 +18219,9 @@ var updateTemplateSchema = import_zod12.z.object({
 quotationTemplatesRoutes.get("/", requireAuth, requireAdmin, async (req, res, next) => {
   try {
     const db2 = getDb();
-    const activeOnly = req.query.activeOnly !== "false";
-    let query = db2.select().from(quotationTemplates);
-    if (activeOnly) {
-      query = query.where((0, import_drizzle_orm9.eq)(quotationTemplates.isActive, 1));
-    }
-    const templates = await query.orderBy((0, import_drizzle_orm9.desc)(quotationTemplates.createdAt));
+    const activeOnly = req.query["activeOnly"] !== "false";
+    const baseQuery = db2.select().from(quotationTemplates);
+    const templates = activeOnly ? await baseQuery.where(eq(quotationTemplates.isActive, 1)).orderBy(desc(quotationTemplates.createdAt)) : await baseQuery.orderBy(desc(quotationTemplates.createdAt));
     sendSuccess(res, templates.map((t) => ({
       ...t,
       defaultDiscount: t.defaultDiscount ? Number(t.defaultDiscount) : null,
@@ -11537,7 +18236,7 @@ quotationTemplatesRoutes.get("/:id", requireAuth, requireAdmin, async (req, res,
   try {
     const db2 = getDb();
     const id = req.params["id"];
-    const [template] = await db2.select().from(quotationTemplates).where((0, import_drizzle_orm9.eq)(quotationTemplates.id, id));
+    const [template] = await db2.select().from(quotationTemplates).where(eq(quotationTemplates.id, id));
     if (!template) {
       throw new NotFoundError("Template not found");
     }
@@ -11561,15 +18260,18 @@ quotationTemplatesRoutes.post(
       const db2 = getDb();
       const data = req.body;
       const [template] = await db2.insert(quotationTemplates).values({
-        name: data.name,
-        description: data.description,
-        items: data.items,
-        defaultDiscount: data.defaultDiscount ? String(data.defaultDiscount) : null,
-        defaultDiscountType: data.defaultDiscountType,
-        defaultTaxRate: data.defaultTaxRate ? String(data.defaultTaxRate) : null,
-        defaultValidDays: data.defaultValidDays,
-        defaultTerms: data.defaultTerms
+        name: data["name"],
+        description: data["description"],
+        items: data["items"],
+        defaultDiscount: data["defaultDiscount"] ? String(data["defaultDiscount"]) : null,
+        defaultDiscountType: data["defaultDiscountType"],
+        defaultTaxRate: data["defaultTaxRate"] ? String(data["defaultTaxRate"]) : null,
+        defaultValidDays: data["defaultValidDays"],
+        defaultTerms: data["defaultTerms"]
       }).returning();
+      if (!template) {
+        throw new NotFoundError("Failed to create template");
+      }
       sendCreated(res, {
         ...template,
         defaultDiscount: template.defaultDiscount ? Number(template.defaultDiscount) : null,
@@ -11591,41 +18293,44 @@ quotationTemplatesRoutes.put(
       const db2 = getDb();
       const id = req.params["id"];
       const data = req.body;
-      const [existing] = await db2.select().from(quotationTemplates).where((0, import_drizzle_orm9.eq)(quotationTemplates.id, id));
+      const [existing] = await db2.select().from(quotationTemplates).where(eq(quotationTemplates.id, id));
       if (!existing) {
         throw new NotFoundError("Template not found");
       }
       const updateData = {
         updatedAt: /* @__PURE__ */ new Date()
       };
-      if (data.name !== void 0) {
-        updateData.name = data.name;
+      if (data["name"] !== void 0) {
+        updateData["name"] = data["name"];
       }
-      if (data.description !== void 0) {
-        updateData.description = data.description;
+      if (data["description"] !== void 0) {
+        updateData["description"] = data["description"];
       }
-      if (data.items !== void 0) {
-        updateData.items = data.items;
+      if (data["items"] !== void 0) {
+        updateData["items"] = data["items"];
       }
-      if (data.defaultDiscount !== void 0) {
-        updateData.defaultDiscount = data.defaultDiscount !== null ? String(data.defaultDiscount) : null;
+      if (data["defaultDiscount"] !== void 0) {
+        updateData["defaultDiscount"] = data["defaultDiscount"] !== null ? String(data["defaultDiscount"]) : null;
       }
-      if (data.defaultDiscountType !== void 0) {
-        updateData.defaultDiscountType = data.defaultDiscountType;
+      if (data["defaultDiscountType"] !== void 0) {
+        updateData["defaultDiscountType"] = data["defaultDiscountType"];
       }
-      if (data.defaultTaxRate !== void 0) {
-        updateData.defaultTaxRate = data.defaultTaxRate !== null ? String(data.defaultTaxRate) : null;
+      if (data["defaultTaxRate"] !== void 0) {
+        updateData["defaultTaxRate"] = data["defaultTaxRate"] !== null ? String(data["defaultTaxRate"]) : null;
       }
-      if (data.defaultValidDays !== void 0) {
-        updateData.defaultValidDays = data.defaultValidDays;
+      if (data["defaultValidDays"] !== void 0) {
+        updateData["defaultValidDays"] = data["defaultValidDays"];
       }
-      if (data.defaultTerms !== void 0) {
-        updateData.defaultTerms = data.defaultTerms;
+      if (data["defaultTerms"] !== void 0) {
+        updateData["defaultTerms"] = data["defaultTerms"];
       }
-      if (data.isActive !== void 0) {
-        updateData.isActive = data.isActive ? 1 : 0;
+      if (data["isActive"] !== void 0) {
+        updateData["isActive"] = data["isActive"] ? 1 : 0;
       }
-      const [template] = await db2.update(quotationTemplates).set(updateData).where((0, import_drizzle_orm9.eq)(quotationTemplates.id, id)).returning();
+      const [template] = await db2.update(quotationTemplates).set(updateData).where(eq(quotationTemplates.id, id)).returning();
+      if (!template) {
+        throw new NotFoundError("Template not found");
+      }
       sendSuccess(res, {
         ...template,
         defaultDiscount: template.defaultDiscount ? Number(template.defaultDiscount) : null,
@@ -11641,11 +18346,11 @@ quotationTemplatesRoutes.delete("/:id", requireAuth, requireAdmin, async (req, r
   try {
     const db2 = getDb();
     const id = req.params["id"];
-    const [existing] = await db2.select().from(quotationTemplates).where((0, import_drizzle_orm9.eq)(quotationTemplates.id, id));
+    const [existing] = await db2.select().from(quotationTemplates).where(eq(quotationTemplates.id, id));
     if (!existing) {
       throw new NotFoundError("Template not found");
     }
-    await db2.delete(quotationTemplates).where((0, import_drizzle_orm9.eq)(quotationTemplates.id, id));
+    await db2.delete(quotationTemplates).where(eq(quotationTemplates.id, id));
     sendNoContent(res);
   } catch (error) {
     next(error);
@@ -11684,22 +18389,22 @@ blogsRoutes.get("/", validateQuery(blogFiltersSchema), async (req, res, next) =>
     const isAdmin = req.user?.role === "admin";
     const conditions = [];
     if (!isAdmin) {
-      conditions.push((0, import_drizzle_orm9.eq)(blogs.status, "published"));
-      conditions.push((0, import_drizzle_orm9.lte)(blogs.publishedAt, /* @__PURE__ */ new Date()));
+      conditions.push(eq(blogs.status, "published"));
+      conditions.push(lte(blogs.publishedAt, /* @__PURE__ */ new Date()));
     }
     if (search) {
       conditions.push(
-        (0, import_drizzle_orm9.or)(
-          (0, import_drizzle_orm9.like)(blogs.title, `%${search}%`),
-          (0, import_drizzle_orm9.like)(blogs.excerpt, `%${search}%`)
+        or(
+          like(blogs.title, `%${search}%`),
+          like(blogs.excerpt, `%${search}%`)
         )
       );
     }
     if (tag) {
-      conditions.push(import_drizzle_orm9.sql`${tag} = ANY(${blogs.tags})`);
+      conditions.push(sql`${tag} = ANY(${blogs.tags})`);
     }
-    const whereClause = conditions.length > 0 ? (0, import_drizzle_orm9.and)(...conditions) : void 0;
-    const countResult = await db2.select({ count: import_drizzle_orm9.sql`count(*)` }).from(blogs).where(whereClause);
+    const whereClause = conditions.length > 0 ? and(...conditions) : void 0;
+    const countResult = await db2.select({ count: sql`count(*)` }).from(blogs).where(whereClause);
     const count2 = countResult[0]?.count ?? 0;
     const blogList = await db2.select({
       id: blogs.id,
@@ -11711,7 +18416,7 @@ blogsRoutes.get("/", validateQuery(blogFiltersSchema), async (req, res, next) =>
       status: blogs.status,
       publishedAt: blogs.publishedAt,
       createdAt: blogs.createdAt
-    }).from(blogs).where(whereClause).orderBy((0, import_drizzle_orm9.desc)(blogs.publishedAt)).limit(limit).offset(offset);
+    }).from(blogs).where(whereClause).orderBy(desc(blogs.publishedAt)).limit(limit).offset(offset);
     sendSuccess(res, blogList, 200, createPaginationMeta(page, limit, Number(count2)));
   } catch (error) {
     next(error);
@@ -11720,8 +18425,8 @@ blogsRoutes.get("/", validateQuery(blogFiltersSchema), async (req, res, next) =>
 blogsRoutes.get("/tags", async (_req, res, next) => {
   try {
     const db2 = getDb();
-    const result = await db2.select({ tags: blogs.tags }).from(blogs).where((0, import_drizzle_orm9.eq)(blogs.status, "published"));
-    const allTags = result.flatMap((r) => r.tags || []).filter((tag, index8, self) => self.indexOf(tag) === index8).sort();
+    const result = await db2.select({ tags: blogs.tags }).from(blogs).where(eq(blogs.status, "published"));
+    const allTags = result.flatMap((r) => r.tags || []).filter((tag, index2, self) => self.indexOf(tag) === index2).sort();
     sendSuccess(res, allTags);
   } catch (error) {
     next(error);
@@ -11732,7 +18437,7 @@ blogsRoutes.get("/:slug", async (req, res, next) => {
     const db2 = getDb();
     const { slug } = req.params;
     const isAdmin = req.user?.role === "admin";
-    const [blog] = await db2.select().from(blogs).where((0, import_drizzle_orm9.eq)(blogs.slug, slug));
+    const [blog] = await db2.select().from(blogs).where(eq(blogs.slug, slug));
     if (!blog) {
       throw new NotFoundError("Blog post not found");
     }
@@ -11749,7 +18454,7 @@ blogsRoutes.get("/:slug/related", async (req, res, next) => {
     const db2 = getDb();
     const { slug } = req.params;
     const limitParam = parseInt(req.query["limit"]) || 3;
-    const [currentBlog] = await db2.select({ id: blogs.id, tags: blogs.tags }).from(blogs).where((0, import_drizzle_orm9.eq)(blogs.slug, slug));
+    const [currentBlog] = await db2.select({ id: blogs.id, tags: blogs.tags }).from(blogs).where(eq(blogs.slug, slug));
     if (!currentBlog) {
       throw new NotFoundError("Blog post not found");
     }
@@ -11763,13 +18468,13 @@ blogsRoutes.get("/:slug/related", async (req, res, next) => {
         featuredImageUrl: blogs.featuredImageUrl,
         publishedAt: blogs.publishedAt
       }).from(blogs).where(
-        (0, import_drizzle_orm9.and)(
-          (0, import_drizzle_orm9.eq)(blogs.status, "published"),
-          import_drizzle_orm9.sql`${blogs.id} != ${currentBlog.id}`,
-          import_drizzle_orm9.sql`${blogs.tags} && ${currentBlog.tags}`
+        and(
+          eq(blogs.status, "published"),
+          sql`${blogs.id} != ${currentBlog.id}`,
+          sql`${blogs.tags} && ${currentBlog.tags}`
           // Array overlap
         )
-      ).orderBy((0, import_drizzle_orm9.desc)(blogs.publishedAt)).limit(limitParam);
+      ).orderBy(desc(blogs.publishedAt)).limit(limitParam);
     }
     if (relatedPosts.length < limitParam) {
       const existing = relatedPosts.map((p) => p.id);
@@ -11782,12 +18487,12 @@ blogsRoutes.get("/:slug/related", async (req, res, next) => {
         featuredImageUrl: blogs.featuredImageUrl,
         publishedAt: blogs.publishedAt
       }).from(blogs).where(
-        (0, import_drizzle_orm9.and)(
-          (0, import_drizzle_orm9.eq)(blogs.status, "published"),
-          import_drizzle_orm9.sql`${blogs.id} != ${currentBlog.id}`,
-          existing.length > 0 ? import_drizzle_orm9.sql`${blogs.id} != ALL(${existing})` : import_drizzle_orm9.sql`true`
+        and(
+          eq(blogs.status, "published"),
+          sql`${blogs.id} != ${currentBlog.id}`,
+          existing.length > 0 ? sql`${blogs.id} != ALL(${existing})` : sql`true`
         )
-      ).orderBy((0, import_drizzle_orm9.desc)(blogs.publishedAt)).limit(needed);
+      ).orderBy(desc(blogs.publishedAt)).limit(needed);
       relatedPosts = [...relatedPosts, ...recentPosts];
     }
     sendSuccess(res, relatedPosts);
@@ -11808,22 +18513,22 @@ blogsRoutes.get(
       const conditions = [];
       if (search) {
         conditions.push(
-          (0, import_drizzle_orm9.or)(
-            (0, import_drizzle_orm9.like)(blogs.title, `%${search}%`),
-            (0, import_drizzle_orm9.like)(blogs.excerpt, `%${search}%`)
+          or(
+            like(blogs.title, `%${search}%`),
+            like(blogs.excerpt, `%${search}%`)
           )
         );
       }
       if (status) {
-        conditions.push((0, import_drizzle_orm9.eq)(blogs.status, status));
+        conditions.push(eq(blogs.status, status));
       }
       if (tag) {
-        conditions.push(import_drizzle_orm9.sql`${tag} = ANY(${blogs.tags})`);
+        conditions.push(sql`${tag} = ANY(${blogs.tags})`);
       }
-      const whereClause = conditions.length > 0 ? (0, import_drizzle_orm9.and)(...conditions) : void 0;
-      const countResult = await db2.select({ count: import_drizzle_orm9.sql`count(*)` }).from(blogs).where(whereClause);
+      const whereClause = conditions.length > 0 ? and(...conditions) : void 0;
+      const countResult = await db2.select({ count: sql`count(*)` }).from(blogs).where(whereClause);
       const count2 = countResult[0]?.count ?? 0;
-      const blogList = await db2.select().from(blogs).where(whereClause).orderBy((0, import_drizzle_orm9.desc)(blogs.createdAt)).limit(limit).offset(offset);
+      const blogList = await db2.select().from(blogs).where(whereClause).orderBy(desc(blogs.createdAt)).limit(limit).offset(offset);
       sendSuccess(res, blogList, 200, createPaginationMeta(page, limit, Number(count2)));
     } catch (error) {
       next(error);
@@ -11838,7 +18543,7 @@ blogsRoutes.get(
     try {
       const db2 = getDb();
       const id = req.params["id"];
-      const [blog] = await db2.select().from(blogs).where((0, import_drizzle_orm9.eq)(blogs.id, id));
+      const [blog] = await db2.select().from(blogs).where(eq(blogs.id, id));
       if (!blog) {
         throw new NotFoundError("Blog post not found");
       }
@@ -11858,7 +18563,7 @@ blogsRoutes.post(
       const db2 = getDb();
       const data = req.body;
       let slug = data.slug || generateSlug(data.title);
-      const [existingSlug] = await db2.select({ id: blogs.id }).from(blogs).where((0, import_drizzle_orm9.eq)(blogs.slug, slug));
+      const [existingSlug] = await db2.select({ id: blogs.id }).from(blogs).where(eq(blogs.slug, slug));
       if (existingSlug) {
         slug = `${slug}-${Date.now()}`;
       }
@@ -11903,7 +18608,7 @@ blogsRoutes.put(
       const db2 = getDb();
       const id = req.params["id"];
       const data = req.body;
-      const [existing] = await db2.select().from(blogs).where((0, import_drizzle_orm9.eq)(blogs.id, id));
+      const [existing] = await db2.select().from(blogs).where(eq(blogs.id, id));
       if (!existing) {
         throw new NotFoundError("Blog post not found");
       }
@@ -11911,11 +18616,11 @@ blogsRoutes.put(
         ...data,
         updatedAt: /* @__PURE__ */ new Date()
       };
-      if (data.content) {
-        updateData.content = sanitizeRichContent(data.content);
+      if (data["content"]) {
+        updateData["content"] = sanitizeRichContent(data["content"]);
       }
       if (data.slug && data.slug !== existing.slug) {
-        const [existingSlug] = await db2.select({ id: blogs.id }).from(blogs).where((0, import_drizzle_orm9.and)((0, import_drizzle_orm9.eq)(blogs.slug, data.slug), import_drizzle_orm9.sql`${blogs.id} != ${id}`));
+        const [existingSlug] = await db2.select({ id: blogs.id }).from(blogs).where(and(eq(blogs.slug, data.slug), sql`${blogs.id} != ${id}`));
         if (existingSlug) {
           throw new ConflictError("Slug already exists");
         }
@@ -11925,7 +18630,7 @@ blogsRoutes.put(
       } else if (data.status === "published" && !existing.publishedAt) {
         updateData["publishedAt"] = /* @__PURE__ */ new Date();
       }
-      const [blog] = await db2.update(blogs).set(updateData).where((0, import_drizzle_orm9.eq)(blogs.id, id)).returning();
+      const [blog] = await db2.update(blogs).set(updateData).where(eq(blogs.id, id)).returning();
       sendSuccess(res, blog);
     } catch (error) {
       next(error);
@@ -11936,11 +18641,11 @@ blogsRoutes.delete("/:id", requireAuth, requireAdmin, async (req, res, next) => 
   try {
     const db2 = getDb();
     const id = req.params["id"];
-    const [existing] = await db2.select({ id: blogs.id }).from(blogs).where((0, import_drizzle_orm9.eq)(blogs.id, id));
+    const [existing] = await db2.select({ id: blogs.id }).from(blogs).where(eq(blogs.id, id));
     if (!existing) {
       throw new NotFoundError("Blog post not found");
     }
-    await db2.delete(blogs).where((0, import_drizzle_orm9.eq)(blogs.id, id));
+    await db2.delete(blogs).where(eq(blogs.id, id));
     sendNoContent(res);
   } catch (error) {
     next(error);
@@ -11950,7 +18655,7 @@ blogsRoutes.post("/:id/publish", requireAuth, requireAdmin, async (req, res, nex
   try {
     const db2 = getDb();
     const id = req.params["id"];
-    const [existing] = await db2.select().from(blogs).where((0, import_drizzle_orm9.eq)(blogs.id, id));
+    const [existing] = await db2.select().from(blogs).where(eq(blogs.id, id));
     if (!existing) {
       throw new NotFoundError("Blog post not found");
     }
@@ -11958,7 +18663,7 @@ blogsRoutes.post("/:id/publish", requireAuth, requireAdmin, async (req, res, nex
       status: "published",
       publishedAt: existing.publishedAt || /* @__PURE__ */ new Date(),
       updatedAt: /* @__PURE__ */ new Date()
-    }).where((0, import_drizzle_orm9.eq)(blogs.id, id)).returning();
+    }).where(eq(blogs.id, id)).returning();
     sendSuccess(res, blog);
   } catch (error) {
     next(error);
@@ -11968,14 +18673,14 @@ blogsRoutes.post("/:id/unpublish", requireAuth, requireAdmin, async (req, res, n
   try {
     const db2 = getDb();
     const id = req.params["id"];
-    const [existing] = await db2.select({ id: blogs.id }).from(blogs).where((0, import_drizzle_orm9.eq)(blogs.id, id));
+    const [existing] = await db2.select({ id: blogs.id }).from(blogs).where(eq(blogs.id, id));
     if (!existing) {
       throw new NotFoundError("Blog post not found");
     }
     const [blog] = await db2.update(blogs).set({
       status: "draft",
       updatedAt: /* @__PURE__ */ new Date()
-    }).where((0, import_drizzle_orm9.eq)(blogs.id, id)).returning();
+    }).where(eq(blogs.id, id)).returning();
     sendSuccess(res, blog);
   } catch (error) {
     next(error);
@@ -11985,7 +18690,7 @@ blogsRoutes.post("/:id/duplicate", requireAuth, requireAdmin, async (req, res, n
   try {
     const db2 = getDb();
     const id = req.params["id"];
-    const [original] = await db2.select().from(blogs).where((0, import_drizzle_orm9.eq)(blogs.id, id));
+    const [original] = await db2.select().from(blogs).where(eq(blogs.id, id));
     if (!original) {
       throw new NotFoundError("Blog post not found");
     }
@@ -12080,7 +18785,7 @@ var updateAdminSettingsSchema = import_zod14.z.object({
   new_order_notifications: import_zod14.z.boolean().optional()
 });
 async function updateGroupedSetting(db2, key, updates, description) {
-  const [existing] = await db2.select().from(settings).where((0, import_drizzle_orm9.eq)(settings.key, key));
+  const [existing] = await db2.select().from(settings).where(eq(settings.key, key));
   let currentValue;
   if (existing && existing.value) {
     currentValue = existing.value;
@@ -12107,7 +18812,7 @@ async function updateGroupedSetting(db2, key, updates, description) {
   }
   const newValue = { ...currentValue, ...updates };
   if (existing) {
-    await db2.update(settings).set({ value: newValue, updatedAt: /* @__PURE__ */ new Date() }).where((0, import_drizzle_orm9.eq)(settings.key, key));
+    await db2.update(settings).set({ value: newValue, updatedAt: /* @__PURE__ */ new Date() }).where(eq(settings.key, key));
   } else {
     await db2.insert(settings).values({
       key,
@@ -12121,10 +18826,10 @@ settingsRoutes.get("/public", async (_req, res, next) => {
   try {
     const db2 = getDb();
     const [businessRow, taxRow, deliveryRow, systemRow] = await Promise.all([
-      db2.select().from(settings).where((0, import_drizzle_orm9.eq)(settings.key, "business")),
-      db2.select().from(settings).where((0, import_drizzle_orm9.eq)(settings.key, "tax")),
-      db2.select().from(settings).where((0, import_drizzle_orm9.eq)(settings.key, "delivery")),
-      db2.select().from(settings).where((0, import_drizzle_orm9.eq)(settings.key, "system"))
+      db2.select().from(settings).where(eq(settings.key, "business")),
+      db2.select().from(settings).where(eq(settings.key, "tax")),
+      db2.select().from(settings).where(eq(settings.key, "delivery")),
+      db2.select().from(settings).where(eq(settings.key, "system"))
     ]);
     const business = businessRow[0]?.value || DEFAULT_BUSINESS;
     const tax = taxRow[0]?.value || DEFAULT_TAX;
@@ -12158,11 +18863,11 @@ settingsRoutes.get("/", requireAuth, requireAdmin, async (_req, res, next) => {
   try {
     const db2 = getDb();
     const [businessRow, taxRow, deliveryRow, notificationsRow, systemRow] = await Promise.all([
-      db2.select().from(settings).where((0, import_drizzle_orm9.eq)(settings.key, "business")),
-      db2.select().from(settings).where((0, import_drizzle_orm9.eq)(settings.key, "tax")),
-      db2.select().from(settings).where((0, import_drizzle_orm9.eq)(settings.key, "delivery")),
-      db2.select().from(settings).where((0, import_drizzle_orm9.eq)(settings.key, "notifications")),
-      db2.select().from(settings).where((0, import_drizzle_orm9.eq)(settings.key, "system"))
+      db2.select().from(settings).where(eq(settings.key, "business")),
+      db2.select().from(settings).where(eq(settings.key, "tax")),
+      db2.select().from(settings).where(eq(settings.key, "delivery")),
+      db2.select().from(settings).where(eq(settings.key, "notifications")),
+      db2.select().from(settings).where(eq(settings.key, "system"))
     ]);
     const business = { ...DEFAULT_BUSINESS, ...businessRow[0]?.value || {} };
     const tax = { ...DEFAULT_TAX, ...taxRow[0]?.value || {} };
@@ -12312,7 +19017,7 @@ settingsRoutes.get("/:key", requireAuth, requireAdmin, async (req, res, next) =>
   try {
     const db2 = getDb();
     const key = req.params["key"];
-    const [setting] = await db2.select().from(settings).where((0, import_drizzle_orm9.eq)(settings.key, key));
+    const [setting] = await db2.select().from(settings).where(eq(settings.key, key));
     if (!setting) {
       const defaults = {
         business: DEFAULT_BUSINESS,
@@ -12343,12 +19048,12 @@ settingsRoutes.post("/reset", requireAuth, requireAdmin, async (req, res, next) 
     if (groups && groups.length > 0) {
       for (const group of groups) {
         if (validGroups.includes(group)) {
-          await db2.delete(settings).where((0, import_drizzle_orm9.eq)(settings.key, group));
+          await db2.delete(settings).where(eq(settings.key, group));
         }
       }
     } else {
       for (const group of validGroups) {
-        await db2.delete(settings).where((0, import_drizzle_orm9.eq)(settings.key, group));
+        await db2.delete(settings).where(eq(settings.key, group));
       }
     }
     await db2.insert(adminActivityLogs).values({
@@ -12374,24 +19079,24 @@ settingsRoutes.get(
       const { adminId, action, entityType, startDate, endDate } = req.query;
       const conditions = [];
       if (adminId) {
-        conditions.push((0, import_drizzle_orm9.eq)(adminActivityLogs.adminUserId, adminId));
+        conditions.push(eq(adminActivityLogs.adminUserId, adminId));
       }
       if (action) {
-        conditions.push((0, import_drizzle_orm9.eq)(adminActivityLogs.action, action));
+        conditions.push(eq(adminActivityLogs.action, action));
       }
       if (entityType) {
-        conditions.push((0, import_drizzle_orm9.eq)(adminActivityLogs.entityType, entityType));
+        conditions.push(eq(adminActivityLogs.entityType, entityType));
       }
       if (startDate) {
-        conditions.push((0, import_drizzle_orm9.gte)(adminActivityLogs.createdAt, new Date(startDate)));
+        conditions.push(gte(adminActivityLogs.createdAt, new Date(startDate)));
       }
       if (endDate) {
         const end = new Date(endDate);
         end.setHours(23, 59, 59, 999);
-        conditions.push(import_drizzle_orm9.sql`${adminActivityLogs.createdAt} <= ${end}`);
+        conditions.push(sql`${adminActivityLogs.createdAt} <= ${end}`);
       }
-      const whereClause = conditions.length > 0 ? (0, import_drizzle_orm9.and)(...conditions) : void 0;
-      const countResult = await db2.select({ count: import_drizzle_orm9.sql`count(*)` }).from(adminActivityLogs).where(whereClause);
+      const whereClause = conditions.length > 0 ? and(...conditions) : void 0;
+      const countResult = await db2.select({ count: sql`count(*)` }).from(adminActivityLogs).where(whereClause);
       const count2 = countResult[0]?.count ?? 0;
       const logs = await db2.select({
         id: adminActivityLogs.id,
@@ -12402,7 +19107,7 @@ settingsRoutes.get(
         details: adminActivityLogs.details,
         ipAddress: adminActivityLogs.ipAddress,
         createdAt: adminActivityLogs.createdAt
-      }).from(adminActivityLogs).where(whereClause).orderBy((0, import_drizzle_orm9.desc)(adminActivityLogs.createdAt)).limit(limit).offset(offset);
+      }).from(adminActivityLogs).where(whereClause).orderBy(desc(adminActivityLogs.createdAt)).limit(limit).offset(offset);
       sendSuccess(res, logs, 200, createPaginationMeta(page, limit, Number(count2)));
     } catch (error) {
       next(error);
@@ -12481,36 +19186,36 @@ analyticsRoutes.get("/dashboard", validateQuery(dateRangeSchema), async (req, re
     const { startDate, endDate } = getDateRange(req.query);
     const orderConditions = [];
     if (startDate) {
-      orderConditions.push((0, import_drizzle_orm9.gte)(orders.createdAt, startDate));
+      orderConditions.push(gte(orders.createdAt, startDate));
     }
     if (endDate) {
-      orderConditions.push((0, import_drizzle_orm9.lte)(orders.createdAt, endDate));
+      orderConditions.push(lte(orders.createdAt, endDate));
     }
-    const orderWhere = orderConditions.length > 0 ? (0, import_drizzle_orm9.and)(...orderConditions) : void 0;
+    const orderWhere = orderConditions.length > 0 ? and(...orderConditions) : void 0;
     const [revenueResult] = await db2.select({
-      totalRevenue: import_drizzle_orm9.sql`COALESCE(SUM(CAST(${orders.totalSnapshot} AS DECIMAL)), 0)`,
-      orderCount: import_drizzle_orm9.sql`COUNT(*)`
+      totalRevenue: sql`COALESCE(SUM(CAST(${orders.totalSnapshot} AS DECIMAL)), 0)`,
+      orderCount: sql`COUNT(*)`
     }).from(orders).where(
-      (0, import_drizzle_orm9.and)(
+      and(
         orderWhere,
-        (0, import_drizzle_orm9.eq)(orders.paymentStatus, "paid")
+        eq(orders.paymentStatus, "paid")
       )
     );
-    const [pendingResult] = await db2.select({ count: import_drizzle_orm9.sql`COUNT(*)` }).from(orders).where(
-      (0, import_drizzle_orm9.and)(
+    const [pendingResult] = await db2.select({ count: sql`COUNT(*)` }).from(orders).where(
+      and(
         orderWhere,
-        (0, import_drizzle_orm9.eq)(orders.status, "pending")
+        eq(orders.status, "pending")
       )
     );
     const customerConditions = [];
     if (startDate) {
-      customerConditions.push((0, import_drizzle_orm9.gte)(customers.createdAt, startDate));
+      customerConditions.push(gte(customers.createdAt, startDate));
     }
     if (endDate) {
-      customerConditions.push((0, import_drizzle_orm9.lte)(customers.createdAt, endDate));
+      customerConditions.push(lte(customers.createdAt, endDate));
     }
-    const customerWhere = customerConditions.length > 0 ? (0, import_drizzle_orm9.and)(...customerConditions) : void 0;
-    const [customerResult] = await db2.select({ count: import_drizzle_orm9.sql`COUNT(*)` }).from(customers).where(customerWhere);
+    const customerWhere = customerConditions.length > 0 ? and(...customerConditions) : void 0;
+    const [customerResult] = await db2.select({ count: sql`COUNT(*)` }).from(customers).where(customerWhere);
     const averageOrderValue = revenueResult?.orderCount && revenueResult.orderCount > 0 ? Number(revenueResult.totalRevenue) / Number(revenueResult.orderCount) : 0;
     let previousPeriodData = null;
     if (startDate && endDate) {
@@ -12518,19 +19223,19 @@ analyticsRoutes.get("/dashboard", validateQuery(dateRangeSchema), async (req, re
       const prevStart = new Date(startDate.getTime() - periodLength);
       const prevEnd = new Date(startDate.getTime() - 1);
       const [prevRevenue] = await db2.select({
-        totalRevenue: import_drizzle_orm9.sql`COALESCE(SUM(CAST(${orders.totalSnapshot} AS DECIMAL)), 0)`,
-        orderCount: import_drizzle_orm9.sql`COUNT(*)`
+        totalRevenue: sql`COALESCE(SUM(CAST(${orders.totalSnapshot} AS DECIMAL)), 0)`,
+        orderCount: sql`COUNT(*)`
       }).from(orders).where(
-        (0, import_drizzle_orm9.and)(
-          (0, import_drizzle_orm9.gte)(orders.createdAt, prevStart),
-          (0, import_drizzle_orm9.lte)(orders.createdAt, prevEnd),
-          (0, import_drizzle_orm9.eq)(orders.paymentStatus, "paid")
+        and(
+          gte(orders.createdAt, prevStart),
+          lte(orders.createdAt, prevEnd),
+          eq(orders.paymentStatus, "paid")
         )
       );
-      const [prevCustomers] = await db2.select({ count: import_drizzle_orm9.sql`COUNT(*)` }).from(customers).where(
-        (0, import_drizzle_orm9.and)(
-          (0, import_drizzle_orm9.gte)(customers.createdAt, prevStart),
-          (0, import_drizzle_orm9.lte)(customers.createdAt, prevEnd)
+      const [prevCustomers] = await db2.select({ count: sql`COUNT(*)` }).from(customers).where(
+        and(
+          gte(customers.createdAt, prevStart),
+          lte(customers.createdAt, prevEnd)
         )
       );
       const currentRevenue = Number(revenueResult?.totalRevenue ?? 0);
@@ -12575,20 +19280,20 @@ analyticsRoutes.get("/sales", validateQuery(dateRangeSchema), async (req, res, n
       default:
         dateFormat = "YYYY-MM-DD";
     }
-    const conditions = [(0, import_drizzle_orm9.eq)(orders.paymentStatus, "paid")];
+    const conditions = [eq(orders.paymentStatus, "paid")];
     if (startDate) {
-      conditions.push((0, import_drizzle_orm9.gte)(orders.createdAt, startDate));
+      conditions.push(gte(orders.createdAt, startDate));
     }
     if (endDate) {
-      conditions.push((0, import_drizzle_orm9.lte)(orders.createdAt, endDate));
+      conditions.push(lte(orders.createdAt, endDate));
     }
-    const periodExpr = import_drizzle_orm9.sql`TO_CHAR(${orders.createdAt}, ${import_drizzle_orm9.sql.raw(`'${dateFormat}'`)})`;
+    const periodExpr = sql`TO_CHAR(${orders.createdAt}, ${sql.raw(`'${dateFormat}'`)})`;
     const salesData = await db2.select({
-      period: import_drizzle_orm9.sql`${periodExpr}`,
-      revenue: import_drizzle_orm9.sql`SUM(CAST(${orders.totalSnapshot} AS DECIMAL))`,
-      orderCount: import_drizzle_orm9.sql`COUNT(*)`,
-      averageOrderValue: import_drizzle_orm9.sql`AVG(CAST(${orders.totalSnapshot} AS DECIMAL))`
-    }).from(orders).where((0, import_drizzle_orm9.and)(...conditions)).groupBy(periodExpr).orderBy(periodExpr);
+      period: sql`${periodExpr}`,
+      revenue: sql`SUM(CAST(${orders.totalSnapshot} AS DECIMAL))`,
+      orderCount: sql`COUNT(*)`,
+      averageOrderValue: sql`AVG(CAST(${orders.totalSnapshot} AS DECIMAL))`
+    }).from(orders).where(and(...conditions)).groupBy(periodExpr).orderBy(periodExpr);
     sendSuccess(res, salesData.map((row) => ({
       period: row.period,
       revenue: Number(row.revenue),
@@ -12605,16 +19310,16 @@ analyticsRoutes.get("/sales/by-status", validateQuery(dateRangeSchema), async (r
     const { startDate, endDate } = getDateRange(req.query);
     const conditions = [];
     if (startDate) {
-      conditions.push((0, import_drizzle_orm9.gte)(orders.createdAt, startDate));
+      conditions.push(gte(orders.createdAt, startDate));
     }
     if (endDate) {
-      conditions.push((0, import_drizzle_orm9.lte)(orders.createdAt, endDate));
+      conditions.push(lte(orders.createdAt, endDate));
     }
-    const whereClause = conditions.length > 0 ? (0, import_drizzle_orm9.and)(...conditions) : void 0;
+    const whereClause = conditions.length > 0 ? and(...conditions) : void 0;
     const statusData = await db2.select({
       status: orders.status,
-      count: import_drizzle_orm9.sql`COUNT(*)`,
-      totalValue: import_drizzle_orm9.sql`SUM(CAST(${orders.totalSnapshot} AS DECIMAL))`
+      count: sql`COUNT(*)`,
+      totalValue: sql`SUM(CAST(${orders.totalSnapshot} AS DECIMAL))`
     }).from(orders).where(whereClause).groupBy(orders.status);
     sendSuccess(res, statusData.map((row) => ({
       status: row.status,
@@ -12632,19 +19337,19 @@ analyticsRoutes.get("/products/top-selling", validateQuery(dateRangeSchema), asy
     const limit = parseInt(req.query["limit"]) || 10;
     const conditions = [];
     if (startDate) {
-      conditions.push((0, import_drizzle_orm9.gte)(orders.createdAt, startDate));
+      conditions.push(gte(orders.createdAt, startDate));
     }
     if (endDate) {
-      conditions.push((0, import_drizzle_orm9.lte)(orders.createdAt, endDate));
+      conditions.push(lte(orders.createdAt, endDate));
     }
-    conditions.push((0, import_drizzle_orm9.eq)(orders.paymentStatus, "paid"));
+    conditions.push(eq(orders.paymentStatus, "paid"));
     const topProducts = await db2.select({
       productId: orderItems.productId,
       productName: orderItems.productNameSnapshot,
-      totalQuantity: import_drizzle_orm9.sql`SUM(${orderItems.quantity})`,
-      totalRevenue: import_drizzle_orm9.sql`SUM(CAST(${orderItems.unitPriceSnapshot} AS DECIMAL) * ${orderItems.quantity})`,
-      orderCount: import_drizzle_orm9.sql`COUNT(DISTINCT ${orderItems.orderId})`
-    }).from(orderItems).innerJoin(orders, (0, import_drizzle_orm9.eq)(orderItems.orderId, orders.id)).where((0, import_drizzle_orm9.and)(...conditions)).groupBy(orderItems.productId, orderItems.productNameSnapshot).orderBy((0, import_drizzle_orm9.desc)(import_drizzle_orm9.sql`SUM(${orderItems.quantity})`)).limit(limit);
+      totalQuantity: sql`SUM(${orderItems.quantity})`,
+      totalRevenue: sql`SUM(CAST(${orderItems.unitPriceSnapshot} AS DECIMAL) * ${orderItems.quantity})`,
+      orderCount: sql`COUNT(DISTINCT ${orderItems.orderId})`
+    }).from(orderItems).innerJoin(orders, eq(orderItems.orderId, orders.id)).where(and(...conditions)).groupBy(orderItems.productId, orderItems.productNameSnapshot).orderBy(desc(sql`SUM(${orderItems.quantity})`)).limit(limit);
     sendSuccess(res, topProducts.map((row) => ({
       productId: row.productId,
       productName: row.productName,
@@ -12667,9 +19372,9 @@ analyticsRoutes.get("/products/low-stock", async (req, res, next) => {
       stockQuantity: products.stockQuantity,
       status: products.status
     }).from(products).where(
-      (0, import_drizzle_orm9.and)(
-        (0, import_drizzle_orm9.eq)(products.status, "active"),
-        (0, import_drizzle_orm9.lte)(products.stockQuantity, threshold)
+      and(
+        eq(products.status, "active"),
+        lte(products.stockQuantity, threshold)
       )
     ).orderBy(products.stockQuantity).limit(50);
     const lowStockVariants = await db2.select({
@@ -12679,10 +19384,10 @@ analyticsRoutes.get("/products/low-stock", async (req, res, next) => {
       sku: productVariants.sku,
       options: productVariants.options,
       stockQuantity: productVariants.stockQuantity
-    }).from(productVariants).innerJoin(products, (0, import_drizzle_orm9.eq)(productVariants.productId, products.id)).where(
-      (0, import_drizzle_orm9.and)(
-        (0, import_drizzle_orm9.eq)(productVariants.isActive, true),
-        (0, import_drizzle_orm9.lte)(productVariants.stockQuantity, threshold)
+    }).from(productVariants).innerJoin(products, eq(productVariants.productId, products.id)).where(
+      and(
+        eq(productVariants.isActive, true),
+        lte(productVariants.stockQuantity, threshold)
       )
     ).orderBy(productVariants.stockQuantity).limit(50);
     sendSuccess(res, {
@@ -12700,23 +19405,23 @@ analyticsRoutes.get("/customers/overview", validateQuery(dateRangeSchema), async
     const { startDate, endDate } = getDateRange(req.query);
     const conditions = [];
     if (startDate) {
-      conditions.push((0, import_drizzle_orm9.gte)(customers.createdAt, startDate));
+      conditions.push(gte(customers.createdAt, startDate));
     }
     if (endDate) {
-      conditions.push((0, import_drizzle_orm9.lte)(customers.createdAt, endDate));
+      conditions.push(lte(customers.createdAt, endDate));
     }
-    const whereClause = conditions.length > 0 ? (0, import_drizzle_orm9.and)(...conditions) : void 0;
-    const [totalResult] = await db2.select({ count: import_drizzle_orm9.sql`COUNT(*)` }).from(customers).where(whereClause);
-    const [guestResult] = await db2.select({ count: import_drizzle_orm9.sql`COUNT(*)` }).from(customers).where(
-      (0, import_drizzle_orm9.and)(
+    const whereClause = conditions.length > 0 ? and(...conditions) : void 0;
+    const [totalResult] = await db2.select({ count: sql`COUNT(*)` }).from(customers).where(whereClause);
+    const [guestResult] = await db2.select({ count: sql`COUNT(*)` }).from(customers).where(
+      and(
         whereClause,
-        (0, import_drizzle_orm9.eq)(customers.isGuest, true)
+        eq(customers.isGuest, true)
       )
     );
-    const [withOrdersResult] = await db2.select({ count: import_drizzle_orm9.sql`COUNT(*)` }).from(customers).where(
-      (0, import_drizzle_orm9.and)(
+    const [withOrdersResult] = await db2.select({ count: sql`COUNT(*)` }).from(customers).where(
+      and(
         whereClause,
-        import_drizzle_orm9.sql`${customers.orderCount} > 0`
+        sql`${customers.orderCount} > 0`
       )
     );
     const topCustomers = await db2.select({
@@ -12725,7 +19430,7 @@ analyticsRoutes.get("/customers/overview", validateQuery(dateRangeSchema), async
       firstName: customers.firstName,
       lastName: customers.lastName,
       orderCount: customers.orderCount
-    }).from(customers).where(import_drizzle_orm9.sql`${customers.orderCount} > 0`).orderBy((0, import_drizzle_orm9.desc)(customers.orderCount)).limit(10);
+    }).from(customers).where(sql`${customers.orderCount} > 0`).orderBy(desc(customers.orderCount)).limit(10);
     sendSuccess(res, {
       totalCustomers: Number(totalResult?.count ?? 0),
       guestCustomers: Number(guestResult?.count ?? 0),
@@ -12758,18 +19463,18 @@ analyticsRoutes.get("/customers/new", validateQuery(dateRangeSchema), async (req
     }
     const conditions = [];
     if (startDate) {
-      conditions.push((0, import_drizzle_orm9.gte)(customers.createdAt, startDate));
+      conditions.push(gte(customers.createdAt, startDate));
     }
     if (endDate) {
-      conditions.push((0, import_drizzle_orm9.lte)(customers.createdAt, endDate));
+      conditions.push(lte(customers.createdAt, endDate));
     }
-    const whereClause = conditions.length > 0 ? (0, import_drizzle_orm9.and)(...conditions) : void 0;
+    const whereClause = conditions.length > 0 ? and(...conditions) : void 0;
     const customerData = await db2.select({
-      period: import_drizzle_orm9.sql`TO_CHAR(${customers.createdAt}, ${dateFormat})`,
-      total: import_drizzle_orm9.sql`COUNT(*)`,
-      guests: import_drizzle_orm9.sql`COUNT(*) FILTER (WHERE ${customers.isGuest} = true)`,
-      registered: import_drizzle_orm9.sql`COUNT(*) FILTER (WHERE ${customers.isGuest} = false)`
-    }).from(customers).where(whereClause).groupBy(import_drizzle_orm9.sql`TO_CHAR(${customers.createdAt}, ${dateFormat})`).orderBy(import_drizzle_orm9.sql`TO_CHAR(${customers.createdAt}, ${dateFormat})`);
+      period: sql`TO_CHAR(${customers.createdAt}, ${dateFormat})`,
+      total: sql`COUNT(*)`,
+      guests: sql`COUNT(*) FILTER (WHERE ${customers.isGuest} = true)`,
+      registered: sql`COUNT(*) FILTER (WHERE ${customers.isGuest} = false)`
+    }).from(customers).where(whereClause).groupBy(sql`TO_CHAR(${customers.createdAt}, ${dateFormat})`).orderBy(sql`TO_CHAR(${customers.createdAt}, ${dateFormat})`);
     sendSuccess(res, customerData.map((row) => ({
       period: row.period,
       total: Number(row.total),
@@ -12784,21 +19489,21 @@ analyticsRoutes.get("/revenue/breakdown", validateQuery(dateRangeSchema), async 
   try {
     const db2 = getDb();
     const { startDate, endDate } = getDateRange(req.query);
-    const conditions = [(0, import_drizzle_orm9.eq)(orders.paymentStatus, "paid")];
+    const conditions = [eq(orders.paymentStatus, "paid")];
     if (startDate) {
-      conditions.push((0, import_drizzle_orm9.gte)(orders.createdAt, startDate));
+      conditions.push(gte(orders.createdAt, startDate));
     }
     if (endDate) {
-      conditions.push((0, import_drizzle_orm9.lte)(orders.createdAt, endDate));
+      conditions.push(lte(orders.createdAt, endDate));
     }
     const [breakdown] = await db2.select({
-      subtotal: import_drizzle_orm9.sql`SUM(CAST(${orders.subtotalSnapshot} AS DECIMAL))`,
-      taxAmount: import_drizzle_orm9.sql`SUM(CAST(${orders.taxAmountSnapshot} AS DECIMAL))`,
-      shippingAmount: import_drizzle_orm9.sql`SUM(CAST(${orders.shippingAmountSnapshot} AS DECIMAL))`,
-      discountAmount: import_drizzle_orm9.sql`SUM(CAST(${orders.discountAmountSnapshot} AS DECIMAL))`,
-      total: import_drizzle_orm9.sql`SUM(CAST(${orders.totalSnapshot} AS DECIMAL))`,
-      orderCount: import_drizzle_orm9.sql`COUNT(*)`
-    }).from(orders).where((0, import_drizzle_orm9.and)(...conditions));
+      subtotal: sql`SUM(CAST(${orders.subtotalSnapshot} AS DECIMAL))`,
+      taxAmount: sql`SUM(CAST(${orders.taxAmountSnapshot} AS DECIMAL))`,
+      shippingAmount: sql`SUM(CAST(${orders.shippingAmountSnapshot} AS DECIMAL))`,
+      discountAmount: sql`SUM(CAST(${orders.discountAmountSnapshot} AS DECIMAL))`,
+      total: sql`SUM(CAST(${orders.totalSnapshot} AS DECIMAL))`,
+      orderCount: sql`COUNT(*)`
+    }).from(orders).where(and(...conditions));
     sendSuccess(res, {
       subtotal: Number(breakdown?.subtotal) || 0,
       taxAmount: Number(breakdown?.taxAmount) || 0,
@@ -12815,18 +19520,18 @@ analyticsRoutes.get("/revenue/by-payment-method", validateQuery(dateRangeSchema)
   try {
     const db2 = getDb();
     const { startDate, endDate } = getDateRange(req.query);
-    const conditions = [(0, import_drizzle_orm9.eq)(orders.paymentStatus, "paid")];
+    const conditions = [eq(orders.paymentStatus, "paid")];
     if (startDate) {
-      conditions.push((0, import_drizzle_orm9.gte)(orders.createdAt, startDate));
+      conditions.push(gte(orders.createdAt, startDate));
     }
     if (endDate) {
-      conditions.push((0, import_drizzle_orm9.lte)(orders.createdAt, endDate));
+      conditions.push(lte(orders.createdAt, endDate));
     }
     const byPaymentMethod = await db2.select({
       paymentMethod: orders.paymentMethod,
-      revenue: import_drizzle_orm9.sql`SUM(CAST(${orders.totalSnapshot} AS DECIMAL))`,
-      orderCount: import_drizzle_orm9.sql`COUNT(*)`
-    }).from(orders).where((0, import_drizzle_orm9.and)(...conditions)).groupBy(orders.paymentMethod);
+      revenue: sql`SUM(CAST(${orders.totalSnapshot} AS DECIMAL))`,
+      orderCount: sql`COUNT(*)`
+    }).from(orders).where(and(...conditions)).groupBy(orders.paymentMethod);
     sendSuccess(res, byPaymentMethod.map((row) => ({
       paymentMethod: row.paymentMethod || "unknown",
       revenue: Number(row.revenue),
@@ -12850,7 +19555,7 @@ analyticsRoutes.get("/orders/recent", async (req, res, next) => {
       total: orders.totalSnapshot,
       status: orders.status,
       createdAt: orders.createdAt
-    }).from(orders).leftJoin(customers, (0, import_drizzle_orm9.eq)(orders.customerId, customers.id)).orderBy((0, import_drizzle_orm9.desc)(orders.createdAt)).limit(limit);
+    }).from(orders).leftJoin(customers, eq(orders.customerId, customers.id)).orderBy(desc(orders.createdAt)).limit(limit);
     sendSuccess(res, recentOrders.map((order) => ({
       id: order.id,
       orderNumber: order.orderNumber,
@@ -12869,10 +19574,10 @@ analyticsRoutes.get("/export", validateQuery(dateRangeSchema), async (req, res, 
     const { startDate, endDate } = getDateRange(req.query);
     const conditions = [];
     if (startDate) {
-      conditions.push((0, import_drizzle_orm9.gte)(orders.createdAt, startDate));
+      conditions.push(gte(orders.createdAt, startDate));
     }
     if (endDate) {
-      conditions.push((0, import_drizzle_orm9.lte)(orders.createdAt, endDate));
+      conditions.push(lte(orders.createdAt, endDate));
     }
     const orderData = await db2.select({
       id: orders.id,
@@ -12881,13 +19586,13 @@ analyticsRoutes.get("/export", validateQuery(dateRangeSchema), async (req, res, 
       paymentStatus: orders.paymentStatus,
       total: orders.totalSnapshot,
       createdAt: orders.createdAt
-    }).from(orders).where(conditions.length > 0 ? (0, import_drizzle_orm9.and)(...conditions) : void 0).orderBy((0, import_drizzle_orm9.desc)(orders.createdAt));
+    }).from(orders).where(conditions.length > 0 ? and(...conditions) : void 0).orderBy(desc(orders.createdAt));
     const customerConditions = [];
     if (startDate) {
-      customerConditions.push((0, import_drizzle_orm9.gte)(customers.createdAt, startDate));
+      customerConditions.push(gte(customers.createdAt, startDate));
     }
     if (endDate) {
-      customerConditions.push((0, import_drizzle_orm9.lte)(customers.createdAt, endDate));
+      customerConditions.push(lte(customers.createdAt, endDate));
     }
     const customerData = await db2.select({
       id: customers.id,
@@ -12895,7 +19600,7 @@ analyticsRoutes.get("/export", validateQuery(dateRangeSchema), async (req, res, 
       isGuest: customers.isGuest,
       orderCount: customers.orderCount,
       createdAt: customers.createdAt
-    }).from(customers).where(customerConditions.length > 0 ? (0, import_drizzle_orm9.and)(...customerConditions) : void 0);
+    }).from(customers).where(customerConditions.length > 0 ? and(...customerConditions) : void 0);
     const exportData = {
       exportedAt: (/* @__PURE__ */ new Date()).toISOString(),
       dateRange: { startDate, endDate },
@@ -12942,7 +19647,7 @@ exportRoutes.get("/products", validateQuery(exportQuerySchema), async (req, res,
     const { format, status } = req.query;
     const conditions = [];
     if (status) {
-      conditions.push((0, import_drizzle_orm9.eq)(products.status, status));
+      conditions.push(eq(products.status, status));
     }
     const productList = await db2.select({
       id: products.id,
@@ -12982,7 +19687,7 @@ exportRoutes.get("/products", validateQuery(exportQuerySchema), async (req, res,
       externalUrl: products.externalUrl,
       createdAt: products.createdAt,
       updatedAt: products.updatedAt
-    }).from(products).leftJoin(categories, (0, import_drizzle_orm9.eq)(products.categoryId, categories.id)).where(conditions.length > 0 ? (0, import_drizzle_orm9.and)(...conditions) : void 0).orderBy((0, import_drizzle_orm9.desc)(products.createdAt));
+    }).from(products).leftJoin(categories, eq(products.categoryId, categories.id)).where(conditions.length > 0 ? and(...conditions) : void 0).orderBy(desc(products.createdAt));
     const { contentType, extension } = exportService.getContentType(format);
     const filename = exportService.getFilename("products", extension);
     setExportHeaders(res, filename, contentType);
@@ -13004,22 +19709,22 @@ exportRoutes.get("/orders", validateQuery(exportQuerySchema), async (req, res, n
     const { format, startDate, endDate, status } = req.query;
     const conditions = [];
     if (startDate) {
-      conditions.push((0, import_drizzle_orm9.gte)(orders.createdAt, new Date(startDate)));
+      conditions.push(gte(orders.createdAt, new Date(startDate)));
     }
     if (endDate) {
       const end = new Date(endDate);
       end.setHours(23, 59, 59, 999);
-      conditions.push((0, import_drizzle_orm9.lte)(orders.createdAt, end));
+      conditions.push(lte(orders.createdAt, end));
     }
     if (status) {
-      conditions.push((0, import_drizzle_orm9.eq)(orders.status, status));
+      conditions.push(eq(orders.status, status));
     }
     const orderList = await db2.select({
       id: orders.id,
       orderNumber: orders.orderNumber,
       customerId: orders.customerId,
       customerEmail: customers.email,
-      customerName: import_drizzle_orm9.sql`CONCAT(${customers.firstName}, ' ', ${customers.lastName})`,
+      customerName: sql`CONCAT(${customers.firstName}, ' ', ${customers.lastName})`,
       status: orders.status,
       paymentStatus: orders.paymentStatus,
       paymentMethod: orders.paymentMethod,
@@ -13044,7 +19749,7 @@ exportRoutes.get("/orders", validateQuery(exportQuerySchema), async (req, res, n
       adminNotes: orders.adminNotes,
       createdAt: orders.createdAt,
       updatedAt: orders.updatedAt
-    }).from(orders).leftJoin(customers, (0, import_drizzle_orm9.eq)(orders.customerId, customers.id)).where(conditions.length > 0 ? (0, import_drizzle_orm9.and)(...conditions) : void 0).orderBy((0, import_drizzle_orm9.desc)(orders.createdAt));
+    }).from(orders).leftJoin(customers, eq(orders.customerId, customers.id)).where(conditions.length > 0 ? and(...conditions) : void 0).orderBy(desc(orders.createdAt));
     const { contentType, extension } = exportService.getContentType(format);
     const filename = exportService.getFilename("orders", extension);
     setExportHeaders(res, filename, contentType);
@@ -13065,11 +19770,11 @@ exportRoutes.get("/orders/:id/items", async (req, res, next) => {
     const db2 = getDb();
     const id = req.params["id"];
     const format = req.query["format"] || "csv";
-    const [order] = await db2.select({ orderNumber: orders.orderNumber }).from(orders).where((0, import_drizzle_orm9.eq)(orders.id, id));
+    const [order] = await db2.select({ orderNumber: orders.orderNumber }).from(orders).where(eq(orders.id, id));
     const items = await db2.select({
       id: orderItems.id,
       orderId: orderItems.orderId,
-      orderNumber: import_drizzle_orm9.sql`${order?.orderNumber || ""}`,
+      orderNumber: sql`${order?.orderNumber || ""}`,
       productId: orderItems.productId,
       variantId: orderItems.variantId,
       productNameSnapshot: orderItems.productNameSnapshot,
@@ -13077,9 +19782,9 @@ exportRoutes.get("/orders/:id/items", async (req, res, next) => {
       variantOptionsSnapshot: orderItems.variantOptionsSnapshot,
       quantity: orderItems.quantity,
       unitPriceSnapshot: orderItems.unitPriceSnapshot,
-      lineTotal: import_drizzle_orm9.sql`CAST(${orderItems.unitPriceSnapshot} AS DECIMAL) * ${orderItems.quantity}`,
+      lineTotal: sql`CAST(${orderItems.unitPriceSnapshot} AS DECIMAL) * ${orderItems.quantity}`,
       createdAt: orderItems.createdAt
-    }).from(orderItems).where((0, import_drizzle_orm9.eq)(orderItems.orderId, id));
+    }).from(orderItems).where(eq(orderItems.orderId, id));
     const { contentType, extension } = exportService.getContentType(format);
     const filename = exportService.getFilename(`order-${order?.orderNumber || id}-items`, extension);
     setExportHeaders(res, filename, contentType);
@@ -13101,12 +19806,12 @@ exportRoutes.get("/order-items", validateQuery(exportQuerySchema), async (req, r
     const { format, startDate, endDate } = req.query;
     const conditions = [];
     if (startDate) {
-      conditions.push((0, import_drizzle_orm9.gte)(orders.createdAt, new Date(startDate)));
+      conditions.push(gte(orders.createdAt, new Date(startDate)));
     }
     if (endDate) {
       const end = new Date(endDate);
       end.setHours(23, 59, 59, 999);
-      conditions.push((0, import_drizzle_orm9.lte)(orders.createdAt, end));
+      conditions.push(lte(orders.createdAt, end));
     }
     const items = await db2.select({
       id: orderItems.id,
@@ -13119,9 +19824,9 @@ exportRoutes.get("/order-items", validateQuery(exportQuerySchema), async (req, r
       variantOptionsSnapshot: orderItems.variantOptionsSnapshot,
       quantity: orderItems.quantity,
       unitPriceSnapshot: orderItems.unitPriceSnapshot,
-      lineTotal: import_drizzle_orm9.sql`CAST(${orderItems.unitPriceSnapshot} AS DECIMAL) * ${orderItems.quantity}`,
+      lineTotal: sql`CAST(${orderItems.unitPriceSnapshot} AS DECIMAL) * ${orderItems.quantity}`,
       createdAt: orderItems.createdAt
-    }).from(orderItems).innerJoin(orders, (0, import_drizzle_orm9.eq)(orderItems.orderId, orders.id)).where(conditions.length > 0 ? (0, import_drizzle_orm9.and)(...conditions) : void 0).orderBy((0, import_drizzle_orm9.desc)(orders.createdAt));
+    }).from(orderItems).innerJoin(orders, eq(orderItems.orderId, orders.id)).where(conditions.length > 0 ? and(...conditions) : void 0).orderBy(desc(orders.createdAt));
     const { contentType, extension } = exportService.getContentType(format);
     const filename = exportService.getFilename("order-items", extension);
     setExportHeaders(res, filename, contentType);
@@ -13143,12 +19848,12 @@ exportRoutes.get("/customers", validateQuery(exportQuerySchema), async (req, res
     const { format, startDate, endDate } = req.query;
     const conditions = [];
     if (startDate) {
-      conditions.push((0, import_drizzle_orm9.gte)(customers.createdAt, new Date(startDate)));
+      conditions.push(gte(customers.createdAt, new Date(startDate)));
     }
     if (endDate) {
       const end = new Date(endDate);
       end.setHours(23, 59, 59, 999);
-      conditions.push((0, import_drizzle_orm9.lte)(customers.createdAt, end));
+      conditions.push(lte(customers.createdAt, end));
     }
     const customerList = await db2.select({
       id: customers.id,
@@ -13167,7 +19872,7 @@ exportRoutes.get("/customers", validateQuery(exportQuerySchema), async (req, res
       orderCount: customers.orderCount,
       createdAt: customers.createdAt,
       updatedAt: customers.updatedAt
-    }).from(customers).where(conditions.length > 0 ? (0, import_drizzle_orm9.and)(...conditions) : void 0).orderBy((0, import_drizzle_orm9.desc)(customers.createdAt));
+    }).from(customers).where(conditions.length > 0 ? and(...conditions) : void 0).orderBy(desc(customers.createdAt));
     const { contentType, extension } = exportService.getContentType(format);
     const filename = exportService.getFilename("customers", extension);
     setExportHeaders(res, filename, contentType);
@@ -13187,7 +19892,7 @@ exportRoutes.get("/promo-codes", validateQuery(exportQuerySchema), async (req, r
   try {
     const db2 = getDb();
     const { format } = req.query;
-    const promoCodeList = await db2.select().from(promoCodes).orderBy((0, import_drizzle_orm9.desc)(promoCodes.createdAt));
+    const promoCodeList = await db2.select().from(promoCodes).orderBy(desc(promoCodes.createdAt));
     const { contentType, extension } = exportService.getContentType(format);
     const filename = exportService.getFilename("promo-codes", extension);
     setExportHeaders(res, filename, contentType);
@@ -13209,17 +19914,17 @@ exportRoutes.get("/quotations", validateQuery(exportQuerySchema), async (req, re
     const { format, startDate, endDate, status } = req.query;
     const conditions = [];
     if (startDate) {
-      conditions.push((0, import_drizzle_orm9.gte)(quotations.createdAt, new Date(startDate)));
+      conditions.push(gte(quotations.createdAt, new Date(startDate)));
     }
     if (endDate) {
       const end = new Date(endDate);
       end.setHours(23, 59, 59, 999);
-      conditions.push((0, import_drizzle_orm9.lte)(quotations.createdAt, end));
+      conditions.push(lte(quotations.createdAt, end));
     }
     if (status) {
-      conditions.push((0, import_drizzle_orm9.eq)(quotations.status, status));
+      conditions.push(eq(quotations.status, status));
     }
-    const quotationList = await db2.select().from(quotations).where(conditions.length > 0 ? (0, import_drizzle_orm9.and)(...conditions) : void 0).orderBy((0, import_drizzle_orm9.desc)(quotations.createdAt));
+    const quotationList = await db2.select().from(quotations).where(conditions.length > 0 ? and(...conditions) : void 0).orderBy(desc(quotations.createdAt));
     const { contentType, extension } = exportService.getContentType(format);
     const filename = exportService.getFilename("quotations", extension);
     setExportHeaders(res, filename, contentType);
@@ -13241,12 +19946,12 @@ exportRoutes.get("/quotation-items", validateQuery(exportQuerySchema), async (re
     const { format, startDate, endDate } = req.query;
     const conditions = [];
     if (startDate) {
-      conditions.push((0, import_drizzle_orm9.gte)(quotations.createdAt, new Date(startDate)));
+      conditions.push(gte(quotations.createdAt, new Date(startDate)));
     }
     if (endDate) {
       const end = new Date(endDate);
       end.setHours(23, 59, 59, 999);
-      conditions.push((0, import_drizzle_orm9.lte)(quotations.createdAt, end));
+      conditions.push(lte(quotations.createdAt, end));
     }
     const items = await db2.select({
       id: quotationItems.id,
@@ -13259,9 +19964,9 @@ exportRoutes.get("/quotation-items", validateQuery(exportQuerySchema), async (re
       sku: quotationItems.sku,
       quantity: quotationItems.quantity,
       unitPrice: quotationItems.unitPrice,
-      lineTotal: import_drizzle_orm9.sql`CAST(${quotationItems.unitPrice} AS DECIMAL) * ${quotationItems.quantity}`,
+      lineTotal: sql`CAST(${quotationItems.unitPrice} AS DECIMAL) * ${quotationItems.quantity}`,
       createdAt: quotationItems.createdAt
-    }).from(quotationItems).innerJoin(quotations, (0, import_drizzle_orm9.eq)(quotationItems.quotationId, quotations.id)).where(conditions.length > 0 ? (0, import_drizzle_orm9.and)(...conditions) : void 0).orderBy((0, import_drizzle_orm9.desc)(quotations.createdAt));
+    }).from(quotationItems).innerJoin(quotations, eq(quotationItems.quotationId, quotations.id)).where(conditions.length > 0 ? and(...conditions) : void 0).orderBy(desc(quotations.createdAt));
     const { contentType, extension } = exportService.getContentType(format);
     const filename = exportService.getFilename("quotation-items", extension);
     setExportHeaders(res, filename, contentType);
@@ -13331,7 +20036,7 @@ importRoutes.post(
       let skippedCount = 0;
       for (const productData of result.data) {
         const data = productData;
-        const [existingProduct] = await db2.select({ id: products.id }).from(products).where((0, import_drizzle_orm9.eq)(products.sku, data.sku));
+        const [existingProduct] = await db2.select({ id: products.id }).from(products).where(eq(products.sku, data.sku));
         if (existingProduct) {
           if (updateExisting) {
             await db2.update(products).set({
@@ -13363,7 +20068,7 @@ importRoutes.post(
               supplierId: data.supplierId,
               supplierSku: data.supplierSku,
               updatedAt: /* @__PURE__ */ new Date()
-            }).where((0, import_drizzle_orm9.eq)(products.id, existingProduct.id));
+            }).where(eq(products.id, existingProduct.id));
             updatedCount++;
           } else {
             skippedCount++;
@@ -13372,7 +20077,7 @@ importRoutes.post(
         }
         let categoryId;
         if (data.categoryName) {
-          const [category] = await db2.select({ id: categories.id }).from(categories).where((0, import_drizzle_orm9.eq)(categories.name, data.categoryName));
+          const [category] = await db2.select({ id: categories.id }).from(categories).where(eq(categories.name, data.categoryName));
           if (category) {
             categoryId = category.id;
           }
@@ -13454,7 +20159,7 @@ importRoutes.post(
       let skippedCount = 0;
       for (const customerData of result.data) {
         const data = customerData;
-        const [existingCustomer] = await db2.select({ id: customers.id }).from(customers).where((0, import_drizzle_orm9.eq)(customers.email, data.email.toLowerCase()));
+        const [existingCustomer] = await db2.select({ id: customers.id }).from(customers).where(eq(customers.email, data.email.toLowerCase()));
         if (existingCustomer) {
           if (updateExisting) {
             const shippingAddress2 = importService.buildAddressFromFlatFields(data, "shipping");
@@ -13470,7 +20175,7 @@ importRoutes.post(
               defaultShippingAddress: shippingAddress2,
               defaultBillingAddress: billingAddress2,
               updatedAt: /* @__PURE__ */ new Date()
-            }).where((0, import_drizzle_orm9.eq)(customers.id, existingCustomer.id));
+            }).where(eq(customers.id, existingCustomer.id));
             updatedCount++;
           } else {
             skippedCount++;
@@ -13558,7 +20263,7 @@ importRoutes.get("/jobs/:id", async (req, res, next) => {
   try {
     const db2 = getDb();
     const { id } = req.params;
-    const [job] = await db2.select().from(productImportJobs).where((0, import_drizzle_orm9.eq)(productImportJobs.id, id));
+    const [job] = await db2.select().from(productImportJobs).where(eq(productImportJobs.id, id));
     if (!job) {
       throw new NotFoundError("Import job not found");
     }
@@ -13571,7 +20276,7 @@ importRoutes.post("/jobs/:id/retry", async (req, res, next) => {
   try {
     const db2 = getDb();
     const { id } = req.params;
-    const [job] = await db2.select().from(productImportJobs).where((0, import_drizzle_orm9.eq)(productImportJobs.id, id));
+    const [job] = await db2.select().from(productImportJobs).where(eq(productImportJobs.id, id));
     if (!job) {
       throw new NotFoundError("Import job not found");
     }
@@ -13581,7 +20286,7 @@ importRoutes.post("/jobs/:id/retry", async (req, res, next) => {
     await db2.update(productImportJobs).set({
       status: "pending",
       errorMessage: null
-    }).where((0, import_drizzle_orm9.eq)(productImportJobs.id, id));
+    }).where(eq(productImportJobs.id, id));
     sendSuccess(res, { message: "Job queued for retry" });
   } catch (error) {
     next(error);
@@ -13591,11 +20296,11 @@ importRoutes.delete("/jobs/:id", async (req, res, next) => {
   try {
     const db2 = getDb();
     const { id } = req.params;
-    const [job] = await db2.select({ id: productImportJobs.id }).from(productImportJobs).where((0, import_drizzle_orm9.eq)(productImportJobs.id, id));
+    const [job] = await db2.select({ id: productImportJobs.id }).from(productImportJobs).where(eq(productImportJobs.id, id));
     if (!job) {
       throw new NotFoundError("Import job not found");
     }
-    await db2.delete(productImportJobs).where((0, import_drizzle_orm9.eq)(productImportJobs.id, id));
+    await db2.delete(productImportJobs).where(eq(productImportJobs.id, id));
     sendSuccess(res, { message: "Import job deleted" });
   } catch (error) {
     next(error);
@@ -13653,7 +20358,7 @@ contactRoutes.post(
     try {
       const db2 = getDb();
       const { email, name, source = "footer" } = req.body;
-      const [existing] = await db2.select().from(newsletterSubscribers).where((0, import_drizzle_orm9.eq)(newsletterSubscribers.email, email.toLowerCase()));
+      const [existing] = await db2.select().from(newsletterSubscribers).where(eq(newsletterSubscribers.email, email.toLowerCase()));
       if (existing) {
         if (existing.status === "unsubscribed") {
           await db2.update(newsletterSubscribers).set({
@@ -13661,7 +20366,7 @@ contactRoutes.post(
             name: name || existing.name,
             unsubscribedAt: null,
             updatedAt: /* @__PURE__ */ new Date()
-          }).where((0, import_drizzle_orm9.eq)(newsletterSubscribers.id, existing.id));
+          }).where(eq(newsletterSubscribers.id, existing.id));
           return sendSuccess(res, {
             message: "Welcome back! You have been resubscribed to our newsletter.",
             subscribed: true
@@ -13695,7 +20400,7 @@ contactRoutes.get(
     try {
       const db2 = getDb();
       const { token } = req.params;
-      const [subscriber] = await db2.select({ email: newsletterSubscribers.email, status: newsletterSubscribers.status }).from(newsletterSubscribers).where((0, import_drizzle_orm9.eq)(newsletterSubscribers.unsubscribeToken, token));
+      const [subscriber] = await db2.select({ email: newsletterSubscribers.email, status: newsletterSubscribers.status }).from(newsletterSubscribers).where(eq(newsletterSubscribers.unsubscribeToken, token));
       if (!subscriber) {
         throw new NotFoundError("Invalid unsubscribe link");
       }
@@ -13714,7 +20419,7 @@ contactRoutes.post(
     try {
       const db2 = getDb();
       const { token } = req.params;
-      const [subscriber] = await db2.select().from(newsletterSubscribers).where((0, import_drizzle_orm9.eq)(newsletterSubscribers.unsubscribeToken, token));
+      const [subscriber] = await db2.select().from(newsletterSubscribers).where(eq(newsletterSubscribers.unsubscribeToken, token));
       if (!subscriber) {
         throw new NotFoundError("Invalid unsubscribe link");
       }
@@ -13728,7 +20433,7 @@ contactRoutes.post(
         status: "unsubscribed",
         unsubscribedAt: /* @__PURE__ */ new Date(),
         updatedAt: /* @__PURE__ */ new Date()
-      }).where((0, import_drizzle_orm9.eq)(newsletterSubscribers.id, subscriber.id));
+      }).where(eq(newsletterSubscribers.id, subscriber.id));
       sendSuccess(res, {
         message: "You have been successfully unsubscribed from our newsletter.",
         unsubscribed: true
@@ -13972,11 +20677,11 @@ async function checkDbHealth() {
   const startTime = Date.now();
   try {
     const db2 = getDb();
-    const versionResult = await db2.execute(import_drizzle_orm9.sql`SELECT version()`);
+    const versionResult = await db2.execute(sql`SELECT version()`);
     const rows = versionResult.rows;
-    const version = rows[0]?.version || "unknown";
+    const version2 = rows[0]?.version || "unknown";
     const latency = Date.now() - startTime;
-    const tablesResult = await db2.execute(import_drizzle_orm9.sql`
+    const tablesResult = await db2.execute(sql`
       SELECT table_name
       FROM information_schema.tables
       WHERE table_schema = 'public'
@@ -13987,7 +20692,7 @@ async function checkDbHealth() {
     return {
       connected: true,
       latency,
-      version,
+      version: version2,
       tables
     };
   } catch (error) {
@@ -14048,7 +20753,7 @@ async function verifySchema() {
 async function testConnection() {
   try {
     const db2 = getDb();
-    await db2.execute(import_drizzle_orm9.sql`SELECT 1`);
+    await db2.execute(sql`SELECT 1`);
     return true;
   } catch {
     return false;
@@ -14518,8 +21223,11 @@ googleImagesRoutes.get(
       };
       searchCache.set(cacheKey, { data: result, timestamp: Date.now() });
       if (searchCache.size > 100) {
-        const oldestKey = Array.from(searchCache.entries()).sort((a, b) => a[1].timestamp - b[1].timestamp)[0][0];
-        searchCache.delete(oldestKey);
+        const entries = Array.from(searchCache.entries()).sort((a, b) => a[1].timestamp - b[1].timestamp);
+        const oldestEntry = entries[0];
+        if (oldestEntry) {
+          searchCache.delete(oldestEntry[0]);
+        }
       }
       sendSuccess(res, result);
     } catch (error) {
@@ -14547,13 +21255,13 @@ googleImagesRoutes.post(
       }
       const ik = getImageKit2();
       const results = await Promise.all(
-        urls.map(async (url, index8) => {
+        urls.map(async (url, index2) => {
           try {
-            const timestamp20 = Date.now();
+            const timestamp2 = Date.now();
             const random = Math.random().toString(36).substring(2, 8);
             const urlPath = new URL(url).pathname;
             const extension = urlPath.split(".").pop()?.toLowerCase() || "jpg";
-            const fileName = `google-image-${timestamp20}-${index8}-${random}.${extension}`;
+            const fileName = `google-image-${timestamp2}-${index2}-${random}.${extension}`;
             const uploadResult = await ik.upload({
               file: url,
               // ImageKit accepts URL directly
@@ -14671,9 +21379,9 @@ pdfTemplatesRoutes.get("/", requireAuth, requireAdmin, async (req, res, next) =>
   try {
     const db2 = getDb();
     const { page, limit, offset } = parsePaginationParams(req.query);
-    const countResult = await db2.select({ count: import_drizzle_orm9.sql`count(*)` }).from(pdfTemplates);
+    const countResult = await db2.select({ count: sql`count(*)` }).from(pdfTemplates);
     const count2 = countResult[0]?.count ?? 0;
-    const templates = await db2.select().from(pdfTemplates).orderBy((0, import_drizzle_orm9.desc)(pdfTemplates.isDefault), (0, import_drizzle_orm9.desc)(pdfTemplates.createdAt)).limit(limit).offset(offset);
+    const templates = await db2.select().from(pdfTemplates).orderBy(desc(pdfTemplates.isDefault), desc(pdfTemplates.createdAt)).limit(limit).offset(offset);
     sendSuccess(res, templates, 200, createPaginationMeta(page, limit, Number(count2)));
   } catch (error) {
     next(error);
@@ -14682,7 +21390,7 @@ pdfTemplatesRoutes.get("/", requireAuth, requireAdmin, async (req, res, next) =>
 pdfTemplatesRoutes.get("/default", requireAuth, requireAdmin, async (_req, res, next) => {
   try {
     const db2 = getDb();
-    const [template] = await db2.select().from(pdfTemplates).where((0, import_drizzle_orm9.eq)(pdfTemplates.isDefault, true)).limit(1);
+    const [template] = await db2.select().from(pdfTemplates).where(eq(pdfTemplates.isDefault, true)).limit(1);
     if (!template) {
       return sendSuccess(res, {
         id: null,
@@ -14708,7 +21416,7 @@ pdfTemplatesRoutes.get("/:id", requireAuth, requireAdmin, async (req, res, next)
   try {
     const db2 = getDb();
     const id = req.params["id"];
-    const [template] = await db2.select().from(pdfTemplates).where((0, import_drizzle_orm9.eq)(pdfTemplates.id, id));
+    const [template] = await db2.select().from(pdfTemplates).where(eq(pdfTemplates.id, id));
     if (!template) {
       throw new NotFoundError("PDF template not found");
     }
@@ -14727,7 +21435,7 @@ pdfTemplatesRoutes.post(
       const db2 = getDb();
       const data = req.body;
       if (data.isDefault) {
-        await db2.update(pdfTemplates).set({ isDefault: false, updatedAt: /* @__PURE__ */ new Date() }).where((0, import_drizzle_orm9.eq)(pdfTemplates.isDefault, true));
+        await db2.update(pdfTemplates).set({ isDefault: false, updatedAt: /* @__PURE__ */ new Date() }).where(eq(pdfTemplates.isDefault, true));
       }
       const [template] = await db2.insert(pdfTemplates).values({
         name: data.name,
@@ -14759,53 +21467,53 @@ pdfTemplatesRoutes.put(
       const db2 = getDb();
       const id = req.params["id"];
       const data = req.body;
-      const [existing] = await db2.select({ id: pdfTemplates.id }).from(pdfTemplates).where((0, import_drizzle_orm9.eq)(pdfTemplates.id, id));
+      const [existing] = await db2.select({ id: pdfTemplates.id }).from(pdfTemplates).where(eq(pdfTemplates.id, id));
       if (!existing) {
         throw new NotFoundError("PDF template not found");
       }
-      if (data.isDefault) {
-        await db2.update(pdfTemplates).set({ isDefault: false, updatedAt: /* @__PURE__ */ new Date() }).where((0, import_drizzle_orm9.eq)(pdfTemplates.isDefault, true));
+      if (data["isDefault"]) {
+        await db2.update(pdfTemplates).set({ isDefault: false, updatedAt: /* @__PURE__ */ new Date() }).where(eq(pdfTemplates.isDefault, true));
       }
       const updateData = {
         updatedAt: /* @__PURE__ */ new Date()
       };
-      if (data.name !== void 0) {
-        updateData.name = data.name;
+      if (data["name"] !== void 0) {
+        updateData["name"] = data["name"];
       }
-      if (data.isDefault !== void 0) {
-        updateData.isDefault = data.isDefault;
+      if (data["isDefault"] !== void 0) {
+        updateData["isDefault"] = data["isDefault"];
       }
-      if (data.logoUrl !== void 0) {
-        updateData.logoUrl = data.logoUrl;
+      if (data["logoUrl"] !== void 0) {
+        updateData["logoUrl"] = data["logoUrl"];
       }
-      if (data.primaryColor !== void 0) {
-        updateData.primaryColor = data.primaryColor;
+      if (data["primaryColor"] !== void 0) {
+        updateData["primaryColor"] = data["primaryColor"];
       }
-      if (data.accentColor !== void 0) {
-        updateData.accentColor = data.accentColor;
+      if (data["accentColor"] !== void 0) {
+        updateData["accentColor"] = data["accentColor"];
       }
-      if (data.showCompanyLogo !== void 0) {
-        updateData.showCompanyLogo = data.showCompanyLogo;
+      if (data["showCompanyLogo"] !== void 0) {
+        updateData["showCompanyLogo"] = data["showCompanyLogo"];
       }
-      if (data.showLineItemImages !== void 0) {
-        updateData.showLineItemImages = data.showLineItemImages;
+      if (data["showLineItemImages"] !== void 0) {
+        updateData["showLineItemImages"] = data["showLineItemImages"];
       }
-      if (data.showLineItemDescription !== void 0) {
-        updateData.showLineItemDescription = data.showLineItemDescription;
+      if (data["showLineItemDescription"] !== void 0) {
+        updateData["showLineItemDescription"] = data["showLineItemDescription"];
       }
-      if (data.showSku !== void 0) {
-        updateData.showSku = data.showSku;
+      if (data["showSku"] !== void 0) {
+        updateData["showSku"] = data["showSku"];
       }
-      if (data.headerText !== void 0) {
-        updateData.headerText = data.headerText;
+      if (data["headerText"] !== void 0) {
+        updateData["headerText"] = data["headerText"];
       }
-      if (data.footerText !== void 0) {
-        updateData.footerText = data.footerText;
+      if (data["footerText"] !== void 0) {
+        updateData["footerText"] = data["footerText"];
       }
-      if (data.thankYouMessage !== void 0) {
-        updateData.thankYouMessage = data.thankYouMessage;
+      if (data["thankYouMessage"] !== void 0) {
+        updateData["thankYouMessage"] = data["thankYouMessage"];
       }
-      const [template] = await db2.update(pdfTemplates).set(updateData).where((0, import_drizzle_orm9.eq)(pdfTemplates.id, id)).returning();
+      const [template] = await db2.update(pdfTemplates).set(updateData).where(eq(pdfTemplates.id, id)).returning();
       sendSuccess(res, template);
     } catch (error) {
       next(error);
@@ -14816,14 +21524,14 @@ pdfTemplatesRoutes.delete("/:id", requireAuth, requireAdmin, async (req, res, ne
   try {
     const db2 = getDb();
     const id = req.params["id"];
-    const [existing] = await db2.select({ id: pdfTemplates.id, isDefault: pdfTemplates.isDefault }).from(pdfTemplates).where((0, import_drizzle_orm9.eq)(pdfTemplates.id, id));
+    const [existing] = await db2.select({ id: pdfTemplates.id, isDefault: pdfTemplates.isDefault }).from(pdfTemplates).where(eq(pdfTemplates.id, id));
     if (!existing) {
       throw new NotFoundError("PDF template not found");
     }
     if (existing.isDefault) {
       throw new BadRequestError("Cannot delete the default template. Set another template as default first.");
     }
-    await db2.delete(pdfTemplates).where((0, import_drizzle_orm9.eq)(pdfTemplates.id, id));
+    await db2.delete(pdfTemplates).where(eq(pdfTemplates.id, id));
     sendNoContent(res);
   } catch (error) {
     next(error);
@@ -14833,12 +21541,12 @@ pdfTemplatesRoutes.post("/:id/set-default", requireAuth, requireAdmin, async (re
   try {
     const db2 = getDb();
     const id = req.params["id"];
-    const [existing] = await db2.select({ id: pdfTemplates.id }).from(pdfTemplates).where((0, import_drizzle_orm9.eq)(pdfTemplates.id, id));
+    const [existing] = await db2.select({ id: pdfTemplates.id }).from(pdfTemplates).where(eq(pdfTemplates.id, id));
     if (!existing) {
       throw new NotFoundError("PDF template not found");
     }
-    await db2.update(pdfTemplates).set({ isDefault: false, updatedAt: /* @__PURE__ */ new Date() }).where((0, import_drizzle_orm9.eq)(pdfTemplates.isDefault, true));
-    const [template] = await db2.update(pdfTemplates).set({ isDefault: true, updatedAt: /* @__PURE__ */ new Date() }).where((0, import_drizzle_orm9.eq)(pdfTemplates.id, id)).returning();
+    await db2.update(pdfTemplates).set({ isDefault: false, updatedAt: /* @__PURE__ */ new Date() }).where(eq(pdfTemplates.isDefault, true));
+    const [template] = await db2.update(pdfTemplates).set({ isDefault: true, updatedAt: /* @__PURE__ */ new Date() }).where(eq(pdfTemplates.id, id)).returning();
     sendSuccess(res, template);
   } catch (error) {
     next(error);
@@ -14847,16 +21555,19 @@ pdfTemplatesRoutes.post("/:id/set-default", requireAuth, requireAdmin, async (re
 
 // src/routes/cron.routes.ts
 var import_express23 = require("express");
+var import_juice = __toESM(require("juice"));
 var cronRoutes = (0, import_express23.Router)();
 cronRoutes.use(cronLimiter);
 var verifyCronSecret = (req, res, next) => {
-  const cronSecret = req.headers["x-cron-secret"] || req.query.secret;
   const expectedSecret = process.env["CRON_SECRET"];
   if (!expectedSecret) {
     logger.error("CRON_SECRET not configured");
     return sendError(res, 503, "CRON_NOT_CONFIGURED", "Cron jobs not configured");
   }
-  if (cronSecret !== expectedSecret) {
+  const cronSecret = req.headers["x-cron-secret"] || req.query["secret"];
+  const authHeader = req.headers["authorization"];
+  const vercelCronSecret = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
+  if (cronSecret !== expectedSecret && vercelCronSecret !== expectedSecret) {
     logger.warn("Invalid cron secret attempt", { ip: req.ip });
     return sendError(res, 403, "FORBIDDEN", "Forbidden");
   }
@@ -14875,10 +21586,10 @@ cronRoutes.post("/quotation-expiry-check", verifyCronSecret, async (req, res, ne
       const targetDateEnd = new Date(targetDateStart);
       targetDateEnd.setHours(23, 59, 59, 999);
       const expiringQuotations = await db2.select().from(quotations).where(
-        (0, import_drizzle_orm9.and)(
-          (0, import_drizzle_orm9.eq)(quotations.status, "sent"),
-          (0, import_drizzle_orm9.gte)(quotations.validUntil, targetDateStart),
-          (0, import_drizzle_orm9.lte)(quotations.validUntil, targetDateEnd)
+        and(
+          eq(quotations.status, "sent"),
+          gte(quotations.validUntil, targetDateStart),
+          lte(quotations.validUntil, targetDateEnd)
         )
       );
       logger.info(`Found ${expiringQuotations.length} quotations expiring in ${days} day(s)`);
@@ -14923,9 +21634,9 @@ cronRoutes.post("/quotation-expiry-check", verifyCronSecret, async (req, res, ne
       status: "expired",
       updatedAt: now
     }).where(
-      (0, import_drizzle_orm9.and)(
-        (0, import_drizzle_orm9.eq)(quotations.status, "sent"),
-        (0, import_drizzle_orm9.lte)(quotations.validUntil, now)
+      and(
+        eq(quotations.status, "sent"),
+        lte(quotations.validUntil, now)
       )
     ).returning({ id: quotations.id, quotationNumber: quotations.quotationNumber });
     for (const expired of expiredResult) {
@@ -14976,12 +21687,12 @@ cronRoutes.post("/newsletter-send", verifyCronSecret, async (req, res, next) => 
     const startOfDay = new Date(now);
     startOfDay.setHours(0, 0, 0, 0);
     const results = [];
-    const activeCampaigns = await db2.select().from(newsletterCampaigns).where((0, import_drizzle_orm9.eq)(newsletterCampaigns.status, "sending"));
+    const activeCampaigns = await db2.select().from(newsletterCampaigns).where(eq(newsletterCampaigns.status, "sending"));
     logger.info(`Processing ${activeCampaigns.length} active newsletter campaigns`);
     for (const campaign of activeCampaigns) {
       const [todayStats] = await db2.select({
-        sentToday: import_drizzle_orm9.sql`count(*) filter (where ${newsletterSends.sentAt} >= ${startOfDay})`
-      }).from(newsletterSends).where((0, import_drizzle_orm9.eq)(newsletterSends.campaignId, campaign.id));
+        sentToday: sql`count(*) filter (where ${newsletterSends.sentAt} >= ${startOfDay})`
+      }).from(newsletterSends).where(eq(newsletterSends.campaignId, campaign.id));
       const sentToday = Number(todayStats?.sentToday || 0);
       const remainingToday = Math.max(0, campaign.dailyLimit - sentToday);
       if (remainingToday === 0) {
@@ -14993,17 +21704,17 @@ cronRoutes.post("/newsletter-send", verifyCronSecret, async (req, res, next) => 
         email: newsletterSends.email,
         subscriberId: newsletterSends.subscriberId
       }).from(newsletterSends).where(
-        (0, import_drizzle_orm9.and)(
-          (0, import_drizzle_orm9.eq)(newsletterSends.campaignId, campaign.id),
-          (0, import_drizzle_orm9.eq)(newsletterSends.status, "pending")
+        and(
+          eq(newsletterSends.campaignId, campaign.id),
+          eq(newsletterSends.status, "pending")
         )
-      ).orderBy((0, import_drizzle_orm9.asc)(newsletterSends.createdAt)).limit(remainingToday);
+      ).orderBy(asc(newsletterSends.createdAt)).limit(remainingToday);
       if (pendingSends.length === 0) {
         await db2.update(newsletterCampaigns).set({
           status: "completed",
           completedAt: now,
           updatedAt: now
-        }).where((0, import_drizzle_orm9.eq)(newsletterCampaigns.id, campaign.id));
+        }).where(eq(newsletterCampaigns.id, campaign.id));
         results.push({
           campaignId: campaign.id,
           campaignName: campaign.name,
@@ -15018,7 +21729,7 @@ cronRoutes.post("/newsletter-send", verifyCronSecret, async (req, res, next) => 
       let emailsFailed = 0;
       for (const send of pendingSends) {
         try {
-          const [subscriber] = await db2.select({ unsubscribeToken: newsletterSubscribers.unsubscribeToken }).from(newsletterSubscribers).where((0, import_drizzle_orm9.eq)(newsletterSubscribers.id, send.subscriberId));
+          const [subscriber] = await db2.select({ unsubscribeToken: newsletterSubscribers.unsubscribeToken }).from(newsletterSubscribers).where(eq(newsletterSubscribers.id, send.subscriberId));
           const baseUrl = process.env["WEBSITE_URL"] || "http://localhost:3000";
           const unsubscribeUrl = `${baseUrl}/unsubscribe/${subscriber?.unsubscribeToken || ""}`;
           const contentWithUnsubscribe = campaign.content + `
@@ -15029,23 +21740,28 @@ cronRoutes.post("/newsletter-send", verifyCronSecret, async (req, res, next) => 
               <a href="${unsubscribeUrl}" style="color: #666;">Unsubscribe</a>
             </p>
           `;
+          const inlinedHtml = (0, import_juice.default)(contentWithUnsubscribe, {
+            removeStyleTags: true,
+            preserveMediaQueries: true,
+            preserveFontFaces: true
+          });
           const success = await mailerService.sendEmail({
             to: send.email,
             subject: campaign.subject,
-            html: contentWithUnsubscribe
+            html: inlinedHtml
           });
           if (success) {
             await db2.update(newsletterSends).set({
               status: "sent",
               sentAt: now
-            }).where((0, import_drizzle_orm9.eq)(newsletterSends.id, send.id));
+            }).where(eq(newsletterSends.id, send.id));
             emailsSent++;
           } else {
             await db2.update(newsletterSends).set({
               status: "failed",
               errorMessage: "Email service returned failure",
-              retryCount: import_drizzle_orm9.sql`${newsletterSends.retryCount} + 1`
-            }).where((0, import_drizzle_orm9.eq)(newsletterSends.id, send.id));
+              retryCount: sql`${newsletterSends.retryCount} + 1`
+            }).where(eq(newsletterSends.id, send.id));
             emailsFailed++;
           }
         } catch (error) {
@@ -15053,17 +21769,17 @@ cronRoutes.post("/newsletter-send", verifyCronSecret, async (req, res, next) => 
           await db2.update(newsletterSends).set({
             status: "failed",
             errorMessage: error instanceof Error ? error.message : "Unknown error",
-            retryCount: import_drizzle_orm9.sql`${newsletterSends.retryCount} + 1`
-          }).where((0, import_drizzle_orm9.eq)(newsletterSends.id, send.id));
+            retryCount: sql`${newsletterSends.retryCount} + 1`
+          }).where(eq(newsletterSends.id, send.id));
           emailsFailed++;
         }
       }
       await db2.update(newsletterCampaigns).set({
-        sentCount: import_drizzle_orm9.sql`${newsletterCampaigns.sentCount} + ${emailsSent}`,
-        failedCount: import_drizzle_orm9.sql`${newsletterCampaigns.failedCount} + ${emailsFailed}`,
+        sentCount: sql`${newsletterCampaigns.sentCount} + ${emailsSent}`,
+        failedCount: sql`${newsletterCampaigns.failedCount} + ${emailsFailed}`,
         lastSentAt: emailsSent > 0 ? now : campaign.lastSentAt,
         updatedAt: now
-      }).where((0, import_drizzle_orm9.eq)(newsletterCampaigns.id, campaign.id));
+      }).where(eq(newsletterCampaigns.id, campaign.id));
       results.push({
         campaignId: campaign.id,
         campaignName: campaign.name,
@@ -15286,6 +22002,7 @@ adminRoutes.get("/abuse/stats", async (req, res, next) => {
 var import_express25 = require("express");
 var import_zod25 = require("zod");
 var import_crypto6 = __toESM(require("crypto"));
+var import_juice2 = __toESM(require("juice"));
 var newsletterRoutes = (0, import_express25.Router)();
 newsletterRoutes.use(requireAuth, requireAdmin);
 var subscriberFiltersSchema = import_zod25.z.object({
@@ -15316,21 +22033,21 @@ var campaignFiltersSchema = import_zod25.z.object({
 var createCampaignSchema = import_zod25.z.object({
   name: import_zod25.z.string().min(1).max(255),
   subject: import_zod25.z.string().min(1).max(255),
-  previewText: import_zod25.z.string().max(255).optional(),
+  previewText: import_zod25.z.string().max(255).optional().or(import_zod25.z.literal("")),
   content: import_zod25.z.string().min(1),
-  dailyLimit: import_zod25.z.number().int().min(1).max(1e4).optional().default(100),
-  sendTime: import_zod25.z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/).optional(),
-  // HH:MM format
-  scheduledAt: import_zod25.z.string().datetime().optional()
+  dailyLimit: import_zod25.z.coerce.number().int().min(1).max(1e4).optional().default(100),
+  sendTime: import_zod25.z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/).optional().or(import_zod25.z.literal("")),
+  // HH:MM format or empty
+  scheduledAt: import_zod25.z.string().datetime().optional().or(import_zod25.z.literal(""))
 });
 var updateCampaignSchema = import_zod25.z.object({
   name: import_zod25.z.string().min(1).max(255).optional(),
   subject: import_zod25.z.string().min(1).max(255).optional(),
-  previewText: import_zod25.z.string().max(255).optional(),
+  previewText: import_zod25.z.string().max(255).optional().or(import_zod25.z.literal("")),
   content: import_zod25.z.string().min(1).optional(),
-  dailyLimit: import_zod25.z.number().int().min(1).max(1e4).optional(),
-  sendTime: import_zod25.z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/).optional(),
-  scheduledAt: import_zod25.z.string().datetime().optional()
+  dailyLimit: import_zod25.z.coerce.number().int().min(1).max(1e4).optional(),
+  sendTime: import_zod25.z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/).optional().or(import_zod25.z.literal("")),
+  scheduledAt: import_zod25.z.string().datetime().optional().or(import_zod25.z.literal(""))
 });
 newsletterRoutes.get(
   "/subscribers",
@@ -15342,20 +22059,20 @@ newsletterRoutes.get(
       const { status, source, search } = req.query;
       const conditions = [];
       if (status) {
-        conditions.push((0, import_drizzle_orm9.eq)(newsletterSubscribers.status, status));
+        conditions.push(eq(newsletterSubscribers.status, status));
       }
       if (source) {
-        conditions.push((0, import_drizzle_orm9.eq)(newsletterSubscribers.source, source));
+        conditions.push(eq(newsletterSubscribers.source, source));
       }
       if (search) {
         conditions.push(
-          import_drizzle_orm9.sql`(${newsletterSubscribers.email} ILIKE ${`%${search}%`} OR ${newsletterSubscribers.name} ILIKE ${`%${search}%`})`
+          sql`(${newsletterSubscribers.email} ILIKE ${`%${search}%`} OR ${newsletterSubscribers.name} ILIKE ${`%${search}%`})`
         );
       }
-      const whereClause = conditions.length > 0 ? (0, import_drizzle_orm9.and)(...conditions) : void 0;
-      const countResult = await db2.select({ count: import_drizzle_orm9.sql`count(*)` }).from(newsletterSubscribers).where(whereClause);
+      const whereClause = conditions.length > 0 ? and(...conditions) : void 0;
+      const countResult = await db2.select({ count: sql`count(*)` }).from(newsletterSubscribers).where(whereClause);
       const total = Number(countResult[0]?.count ?? 0);
-      const subscribers = await db2.select().from(newsletterSubscribers).where(whereClause).orderBy((0, import_drizzle_orm9.desc)(newsletterSubscribers.subscribedAt)).limit(limit).offset(offset);
+      const subscribers = await db2.select().from(newsletterSubscribers).where(whereClause).orderBy(desc(newsletterSubscribers.subscribedAt)).limit(limit).offset(offset);
       sendSuccess(res, subscribers, 200, createPaginationMeta(page, limit, total));
     } catch (error) {
       next(error);
@@ -15365,25 +22082,26 @@ newsletterRoutes.get(
 newsletterRoutes.get("/subscribers/stats", async (_req, res, next) => {
   try {
     const db2 = getDb();
-    const [stats] = await db2.select({
-      total: import_drizzle_orm9.sql`count(*)`,
-      active: import_drizzle_orm9.sql`count(*) filter (where ${newsletterSubscribers.status} = 'active')`,
-      unsubscribed: import_drizzle_orm9.sql`count(*) filter (where ${newsletterSubscribers.status} = 'unsubscribed')`,
-      bounced: import_drizzle_orm9.sql`count(*) filter (where ${newsletterSubscribers.status} = 'bounced')`,
-      thisMonth: import_drizzle_orm9.sql`count(*) filter (where ${newsletterSubscribers.subscribedAt} >= date_trunc('month', current_date))`,
-      thisWeek: import_drizzle_orm9.sql`count(*) filter (where ${newsletterSubscribers.subscribedAt} >= date_trunc('week', current_date))`
+    const statsResult = await db2.select({
+      total: sql`count(*)`,
+      active: sql`count(*) filter (where ${newsletterSubscribers.status} = 'active')`,
+      unsubscribed: sql`count(*) filter (where ${newsletterSubscribers.status} = 'unsubscribed')`,
+      bounced: sql`count(*) filter (where ${newsletterSubscribers.status} = 'bounced')`,
+      thisMonth: sql`count(*) filter (where ${newsletterSubscribers.subscribedAt} >= date_trunc('month', current_date))`,
+      thisWeek: sql`count(*) filter (where ${newsletterSubscribers.subscribedAt} >= date_trunc('week', current_date))`
     }).from(newsletterSubscribers);
+    const stats = statsResult[0];
     const bySource = await db2.select({
       source: newsletterSubscribers.source,
-      count: import_drizzle_orm9.sql`count(*)`
-    }).from(newsletterSubscribers).where((0, import_drizzle_orm9.eq)(newsletterSubscribers.status, "active")).groupBy(newsletterSubscribers.source);
+      count: sql`count(*)`
+    }).from(newsletterSubscribers).where(eq(newsletterSubscribers.status, "active")).groupBy(newsletterSubscribers.source);
     sendSuccess(res, {
-      total: Number(stats.total),
-      active: Number(stats.active),
-      unsubscribed: Number(stats.unsubscribed),
-      bounced: Number(stats.bounced),
-      thisMonth: Number(stats.thisMonth),
-      thisWeek: Number(stats.thisWeek),
+      total: Number(stats?.total ?? 0),
+      active: Number(stats?.active ?? 0),
+      unsubscribed: Number(stats?.unsubscribed ?? 0),
+      bounced: Number(stats?.bounced ?? 0),
+      thisMonth: Number(stats?.thisMonth ?? 0),
+      thisWeek: Number(stats?.thisWeek ?? 0),
       bySource: bySource.reduce((acc, item) => {
         acc[item.source] = Number(item.count);
         return acc;
@@ -15399,9 +22117,9 @@ newsletterRoutes.get("/subscribers/export", async (req, res, next) => {
     const { status } = req.query;
     const conditions = [];
     if (status) {
-      conditions.push((0, import_drizzle_orm9.eq)(newsletterSubscribers.status, status));
+      conditions.push(eq(newsletterSubscribers.status, status));
     }
-    const whereClause = conditions.length > 0 ? (0, import_drizzle_orm9.and)(...conditions) : void 0;
+    const whereClause = conditions.length > 0 ? and(...conditions) : void 0;
     const subscribers = await db2.select({
       email: newsletterSubscribers.email,
       name: newsletterSubscribers.name,
@@ -15409,7 +22127,7 @@ newsletterRoutes.get("/subscribers/export", async (req, res, next) => {
       source: newsletterSubscribers.source,
       subscribedAt: newsletterSubscribers.subscribedAt,
       unsubscribedAt: newsletterSubscribers.unsubscribedAt
-    }).from(newsletterSubscribers).where(whereClause).orderBy((0, import_drizzle_orm9.desc)(newsletterSubscribers.subscribedAt));
+    }).from(newsletterSubscribers).where(whereClause).orderBy(desc(newsletterSubscribers.subscribedAt));
     const headers = ["Email", "Name", "Status", "Source", "Subscribed At", "Unsubscribed At"];
     const rows = subscribers.map((s) => [
       s.email,
@@ -15437,7 +22155,7 @@ newsletterRoutes.post(
     try {
       const db2 = getDb();
       const { email, name, source } = req.body;
-      const [existing] = await db2.select().from(newsletterSubscribers).where((0, import_drizzle_orm9.eq)(newsletterSubscribers.email, email.toLowerCase()));
+      const [existing] = await db2.select().from(newsletterSubscribers).where(eq(newsletterSubscribers.email, email.toLowerCase()));
       if (existing) {
         throw new BadRequestError("Email already subscribed");
       }
@@ -15502,8 +22220,8 @@ newsletterRoutes.post(
 newsletterRoutes.delete("/subscribers/:id", async (req, res, next) => {
   try {
     const db2 = getDb();
-    const { id } = req.params;
-    const [deleted] = await db2.delete(newsletterSubscribers).where((0, import_drizzle_orm9.eq)(newsletterSubscribers.id, id)).returning();
+    const id = req.params["id"];
+    const [deleted] = await db2.delete(newsletterSubscribers).where(eq(newsletterSubscribers.id, id)).returning();
     if (!deleted) {
       throw new NotFoundError("Subscriber not found");
     }
@@ -15519,7 +22237,7 @@ newsletterRoutes.post(
     try {
       const db2 = getDb();
       const { ids } = req.body;
-      const deleted = await db2.delete(newsletterSubscribers).where((0, import_drizzle_orm9.inArray)(newsletterSubscribers.id, ids)).returning();
+      const deleted = await db2.delete(newsletterSubscribers).where(inArray(newsletterSubscribers.id, ids)).returning();
       sendSuccess(res, { message: `${deleted.length} subscribers removed` });
     } catch (error) {
       next(error);
@@ -15536,12 +22254,12 @@ newsletterRoutes.get(
       const { status } = req.query;
       const conditions = [];
       if (status) {
-        conditions.push((0, import_drizzle_orm9.eq)(newsletterCampaigns.status, status));
+        conditions.push(eq(newsletterCampaigns.status, status));
       }
-      const whereClause = conditions.length > 0 ? (0, import_drizzle_orm9.and)(...conditions) : void 0;
-      const countResult = await db2.select({ count: import_drizzle_orm9.sql`count(*)` }).from(newsletterCampaigns).where(whereClause);
+      const whereClause = conditions.length > 0 ? and(...conditions) : void 0;
+      const countResult = await db2.select({ count: sql`count(*)` }).from(newsletterCampaigns).where(whereClause);
       const total = Number(countResult[0]?.count ?? 0);
-      const campaigns = await db2.select().from(newsletterCampaigns).where(whereClause).orderBy((0, import_drizzle_orm9.desc)(newsletterCampaigns.createdAt)).limit(limit).offset(offset);
+      const campaigns = await db2.select().from(newsletterCampaigns).where(whereClause).orderBy(desc(newsletterCampaigns.createdAt)).limit(limit).offset(offset);
       sendSuccess(res, campaigns, 200, createPaginationMeta(page, limit, total));
     } catch (error) {
       next(error);
@@ -15551,8 +22269,8 @@ newsletterRoutes.get(
 newsletterRoutes.get("/campaigns/:id", async (req, res, next) => {
   try {
     const db2 = getDb();
-    const { id } = req.params;
-    const [campaign] = await db2.select().from(newsletterCampaigns).where((0, import_drizzle_orm9.eq)(newsletterCampaigns.id, id));
+    const id = req.params["id"];
+    const [campaign] = await db2.select().from(newsletterCampaigns).where(eq(newsletterCampaigns.id, id));
     if (!campaign) {
       throw new NotFoundError("Campaign not found");
     }
@@ -15568,21 +22286,27 @@ newsletterRoutes.post(
     try {
       const db2 = getDb();
       const { name, subject, previewText, content, dailyLimit, sendTime, scheduledAt } = req.body;
-      const [{ count: count2 }] = await db2.select({ count: import_drizzle_orm9.sql`count(*)` }).from(newsletterSubscribers).where((0, import_drizzle_orm9.eq)(newsletterSubscribers.status, "active"));
+      const countResult = await db2.select({ count: sql`count(*)` }).from(newsletterSubscribers).where(eq(newsletterSubscribers.status, "active"));
+      const subscriberCount = Number(countResult[0]?.count ?? 0);
+      const userId = req.user?.id;
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      const createdBy = userId && uuidRegex.test(userId) ? userId : null;
       const [campaign] = await db2.insert(newsletterCampaigns).values({
         name,
         subject,
-        previewText,
+        previewText: previewText || null,
         content,
+        // Raw HTML preserved - admin-only content
         dailyLimit,
-        sendTime,
+        sendTime: sendTime || null,
         scheduledAt: scheduledAt ? new Date(scheduledAt) : null,
-        totalRecipients: Number(count2),
+        totalRecipients: subscriberCount,
         status: scheduledAt ? "scheduled" : "draft",
-        createdBy: req.user?.id
+        createdBy
       }).returning();
       sendSuccess(res, campaign, 201);
     } catch (error) {
+      console.error("Campaign creation error:", error);
       next(error);
     }
   }
@@ -15593,9 +22317,9 @@ newsletterRoutes.put(
   async (req, res, next) => {
     try {
       const db2 = getDb();
-      const { id } = req.params;
+      const id = req.params["id"];
       const updates = req.body;
-      const [existing] = await db2.select().from(newsletterCampaigns).where((0, import_drizzle_orm9.eq)(newsletterCampaigns.id, id));
+      const [existing] = await db2.select().from(newsletterCampaigns).where(eq(newsletterCampaigns.id, id));
       if (!existing) {
         throw new NotFoundError("Campaign not found");
       }
@@ -15603,21 +22327,21 @@ newsletterRoutes.put(
         throw new BadRequestError("Can only edit draft, scheduled, or paused campaigns");
       }
       const additionalUpdates = {};
-      if (updates.scheduledAt) {
-        additionalUpdates.scheduledAt = new Date(updates.scheduledAt);
+      if (updates["scheduledAt"]) {
+        additionalUpdates["scheduledAt"] = new Date(updates["scheduledAt"]);
         if (existing.status === "draft") {
-          additionalUpdates.status = "scheduled";
+          additionalUpdates["status"] = "scheduled";
         }
       }
-      if (updates.content) {
-        const [{ count: count2 }] = await db2.select({ count: import_drizzle_orm9.sql`count(*)` }).from(newsletterSubscribers).where((0, import_drizzle_orm9.eq)(newsletterSubscribers.status, "active"));
-        additionalUpdates.totalRecipients = Number(count2);
+      if (updates["content"]) {
+        const countResult = await db2.select({ count: sql`count(*)` }).from(newsletterSubscribers).where(eq(newsletterSubscribers.status, "active"));
+        additionalUpdates["totalRecipients"] = Number(countResult[0]?.count ?? 0);
       }
       const [campaign] = await db2.update(newsletterCampaigns).set({
         ...updates,
         ...additionalUpdates,
         updatedAt: /* @__PURE__ */ new Date()
-      }).where((0, import_drizzle_orm9.eq)(newsletterCampaigns.id, id)).returning();
+      }).where(eq(newsletterCampaigns.id, id)).returning();
       sendSuccess(res, campaign);
     } catch (error) {
       next(error);
@@ -15627,15 +22351,15 @@ newsletterRoutes.put(
 newsletterRoutes.delete("/campaigns/:id", async (req, res, next) => {
   try {
     const db2 = getDb();
-    const { id } = req.params;
-    const [existing] = await db2.select().from(newsletterCampaigns).where((0, import_drizzle_orm9.eq)(newsletterCampaigns.id, id));
+    const id = req.params["id"];
+    const [existing] = await db2.select().from(newsletterCampaigns).where(eq(newsletterCampaigns.id, id));
     if (!existing) {
       throw new NotFoundError("Campaign not found");
     }
     if (existing.status !== "draft") {
       throw new BadRequestError("Can only delete draft campaigns");
     }
-    await db2.delete(newsletterCampaigns).where((0, import_drizzle_orm9.eq)(newsletterCampaigns.id, id));
+    await db2.delete(newsletterCampaigns).where(eq(newsletterCampaigns.id, id));
     sendSuccess(res, { message: "Campaign deleted successfully" });
   } catch (error) {
     next(error);
@@ -15644,21 +22368,21 @@ newsletterRoutes.delete("/campaigns/:id", async (req, res, next) => {
 newsletterRoutes.post("/campaigns/:id/start", async (req, res, next) => {
   try {
     const db2 = getDb();
-    const { id } = req.params;
-    const [campaign] = await db2.select().from(newsletterCampaigns).where((0, import_drizzle_orm9.eq)(newsletterCampaigns.id, id));
+    const id = req.params["id"];
+    const [campaign] = await db2.select().from(newsletterCampaigns).where(eq(newsletterCampaigns.id, id));
     if (!campaign) {
       throw new NotFoundError("Campaign not found");
     }
     if (!["draft", "scheduled", "paused"].includes(campaign.status)) {
       throw new BadRequestError("Campaign cannot be started in its current state");
     }
-    const [{ count: count2 }] = await db2.select({ count: import_drizzle_orm9.sql`count(*)` }).from(newsletterSubscribers).where((0, import_drizzle_orm9.eq)(newsletterSubscribers.status, "active"));
-    const totalRecipients = Number(count2);
+    const countResult = await db2.select({ count: sql`count(*)` }).from(newsletterSubscribers).where(eq(newsletterSubscribers.status, "active"));
+    const totalRecipients = Number(countResult[0]?.count ?? 0);
     if (totalRecipients === 0) {
       throw new BadRequestError("No active subscribers to send to");
     }
-    const activeSubscribers = await db2.select({ id: newsletterSubscribers.id, email: newsletterSubscribers.email }).from(newsletterSubscribers).where((0, import_drizzle_orm9.eq)(newsletterSubscribers.status, "active"));
-    const existingSends = await db2.select({ subscriberId: newsletterSends.subscriberId }).from(newsletterSends).where((0, import_drizzle_orm9.eq)(newsletterSends.campaignId, id));
+    const activeSubscribers = await db2.select({ id: newsletterSubscribers.id, email: newsletterSubscribers.email }).from(newsletterSubscribers).where(eq(newsletterSubscribers.status, "active"));
+    const existingSends = await db2.select({ subscriberId: newsletterSends.subscriberId }).from(newsletterSends).where(eq(newsletterSends.campaignId, id));
     const existingSubscriberIds = new Set(existingSends.map((s) => s.subscriberId));
     const newSubscribers = activeSubscribers.filter((s) => !existingSubscriberIds.has(s.id));
     if (newSubscribers.length > 0) {
@@ -15680,7 +22404,7 @@ newsletterRoutes.post("/campaigns/:id/start", async (req, res, next) => {
       totalRecipients,
       startedAt: campaign.startedAt || /* @__PURE__ */ new Date(),
       updatedAt: /* @__PURE__ */ new Date()
-    }).where((0, import_drizzle_orm9.eq)(newsletterCampaigns.id, id)).returning();
+    }).where(eq(newsletterCampaigns.id, id)).returning();
     sendSuccess(res, {
       message: "Campaign started",
       campaign: updated,
@@ -15693,8 +22417,8 @@ newsletterRoutes.post("/campaigns/:id/start", async (req, res, next) => {
 newsletterRoutes.post("/campaigns/:id/pause", async (req, res, next) => {
   try {
     const db2 = getDb();
-    const { id } = req.params;
-    const [campaign] = await db2.select().from(newsletterCampaigns).where((0, import_drizzle_orm9.eq)(newsletterCampaigns.id, id));
+    const id = req.params["id"];
+    const [campaign] = await db2.select().from(newsletterCampaigns).where(eq(newsletterCampaigns.id, id));
     if (!campaign) {
       throw new NotFoundError("Campaign not found");
     }
@@ -15704,7 +22428,7 @@ newsletterRoutes.post("/campaigns/:id/pause", async (req, res, next) => {
     const [updated] = await db2.update(newsletterCampaigns).set({
       status: "paused",
       updatedAt: /* @__PURE__ */ new Date()
-    }).where((0, import_drizzle_orm9.eq)(newsletterCampaigns.id, id)).returning();
+    }).where(eq(newsletterCampaigns.id, id)).returning();
     sendSuccess(res, { message: "Campaign paused", campaign: updated });
   } catch (error) {
     next(error);
@@ -15713,8 +22437,8 @@ newsletterRoutes.post("/campaigns/:id/pause", async (req, res, next) => {
 newsletterRoutes.post("/campaigns/:id/cancel", async (req, res, next) => {
   try {
     const db2 = getDb();
-    const { id } = req.params;
-    const [campaign] = await db2.select().from(newsletterCampaigns).where((0, import_drizzle_orm9.eq)(newsletterCampaigns.id, id));
+    const id = req.params["id"];
+    const [campaign] = await db2.select().from(newsletterCampaigns).where(eq(newsletterCampaigns.id, id));
     if (!campaign) {
       throw new NotFoundError("Campaign not found");
     }
@@ -15722,15 +22446,15 @@ newsletterRoutes.post("/campaigns/:id/cancel", async (req, res, next) => {
       throw new BadRequestError("Campaign cannot be cancelled in its current state");
     }
     await db2.delete(newsletterSends).where(
-      (0, import_drizzle_orm9.and)(
-        (0, import_drizzle_orm9.eq)(newsletterSends.campaignId, id),
-        (0, import_drizzle_orm9.eq)(newsletterSends.status, "pending")
+      and(
+        eq(newsletterSends.campaignId, id),
+        eq(newsletterSends.status, "pending")
       )
     );
     const [updated] = await db2.update(newsletterCampaigns).set({
       status: "cancelled",
       updatedAt: /* @__PURE__ */ new Date()
-    }).where((0, import_drizzle_orm9.eq)(newsletterCampaigns.id, id)).returning();
+    }).where(eq(newsletterCampaigns.id, id)).returning();
     sendSuccess(res, { message: "Campaign cancelled", campaign: updated });
   } catch (error) {
     next(error);
@@ -15739,17 +22463,17 @@ newsletterRoutes.post("/campaigns/:id/cancel", async (req, res, next) => {
 newsletterRoutes.get("/campaigns/:id/sends", async (req, res, next) => {
   try {
     const db2 = getDb();
-    const { id } = req.params;
+    const id = req.params["id"];
     const { page, limit, offset } = parsePaginationParams(req.query);
     const { status } = req.query;
-    const conditions = [(0, import_drizzle_orm9.eq)(newsletterSends.campaignId, id)];
+    const conditions = [eq(newsletterSends.campaignId, id)];
     if (status) {
-      conditions.push((0, import_drizzle_orm9.eq)(newsletterSends.status, status));
+      conditions.push(eq(newsletterSends.status, status));
     }
-    const whereClause = (0, import_drizzle_orm9.and)(...conditions);
-    const countResult = await db2.select({ count: import_drizzle_orm9.sql`count(*)` }).from(newsletterSends).where(whereClause);
+    const whereClause = and(...conditions);
+    const countResult = await db2.select({ count: sql`count(*)` }).from(newsletterSends).where(whereClause);
     const total = Number(countResult[0]?.count ?? 0);
-    const sends = await db2.select().from(newsletterSends).where(whereClause).orderBy((0, import_drizzle_orm9.asc)(newsletterSends.createdAt)).limit(limit).offset(offset);
+    const sends = await db2.select().from(newsletterSends).where(whereClause).orderBy(asc(newsletterSends.createdAt)).limit(limit).offset(offset);
     sendSuccess(res, sends, 200, createPaginationMeta(page, limit, total));
   } catch (error) {
     next(error);
@@ -15761,17 +22485,35 @@ newsletterRoutes.post(
   async (req, res, next) => {
     try {
       const db2 = getDb();
-      const { id } = req.params;
+      const id = req.params["id"];
       const { email } = req.body;
-      const [campaign] = await db2.select().from(newsletterCampaigns).where((0, import_drizzle_orm9.eq)(newsletterCampaigns.id, id));
+      const [campaign] = await db2.select().from(newsletterCampaigns).where(eq(newsletterCampaigns.id, id));
       if (!campaign) {
         throw new NotFoundError("Campaign not found");
       }
-      console.log("Test email would be sent:", {
-        to: email,
-        subject: campaign.subject,
-        contentLength: campaign.content.length
+      const websiteUrl = process.env["WEBSITE_URL"] || "https://lab404.com";
+      const unsubscribeUrl = `${websiteUrl}/newsletter/unsubscribe?token=test-preview`;
+      const unsubscribeFooter = `
+        <hr style="margin-top: 40px; border: none; border-top: 1px solid #eee;">
+        <p style="font-size: 12px; color: #666; text-align: center;">
+          This is a test email preview.<br>
+          <a href="${unsubscribeUrl}">Unsubscribe</a>
+        </p>
+      `;
+      const contentWithFooter = campaign.content + unsubscribeFooter;
+      const inlinedHtml = (0, import_juice2.default)(contentWithFooter, {
+        removeStyleTags: true,
+        preserveMediaQueries: true,
+        preserveFontFaces: true
       });
+      const success = await mailerService.sendEmail({
+        to: email,
+        subject: `[TEST] ${campaign.subject}`,
+        html: inlinedHtml
+      });
+      if (!success) {
+        throw new BadRequestError("Failed to send test email. Check SMTP configuration.");
+      }
       sendSuccess(res, {
         message: `Test email sent to ${email}`,
         campaign: {

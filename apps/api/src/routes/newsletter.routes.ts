@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import crypto from 'crypto';
+import juice from 'juice';
 import {
   getDb,
   newsletterSubscribers,
@@ -17,6 +18,7 @@ import { validateBody, validateQuery } from '../middleware/validator';
 import { requireAuth, requireAdmin } from '../middleware/auth';
 import { sendSuccess, createPaginationMeta, parsePaginationParams } from '../utils/response';
 import { BadRequestError, NotFoundError } from '../utils/errors';
+import { mailerService } from '../services/mailer.service';
 
 export const newsletterRoutes = Router();
 
@@ -59,21 +61,21 @@ const campaignFiltersSchema = z.object({
 const createCampaignSchema = z.object({
   name: z.string().min(1).max(255),
   subject: z.string().min(1).max(255),
-  previewText: z.string().max(255).optional(),
+  previewText: z.string().max(255).optional().or(z.literal('')),
   content: z.string().min(1),
-  dailyLimit: z.number().int().min(1).max(10000).optional().default(100),
-  sendTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/).optional(), // HH:MM format
-  scheduledAt: z.string().datetime().optional(),
+  dailyLimit: z.coerce.number().int().min(1).max(10000).optional().default(100),
+  sendTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/).optional().or(z.literal('')), // HH:MM format or empty
+  scheduledAt: z.string().datetime().optional().or(z.literal('')),
 });
 
 const updateCampaignSchema = z.object({
   name: z.string().min(1).max(255).optional(),
   subject: z.string().min(1).max(255).optional(),
-  previewText: z.string().max(255).optional(),
+  previewText: z.string().max(255).optional().or(z.literal('')),
   content: z.string().min(1).optional(),
-  dailyLimit: z.number().int().min(1).max(10000).optional(),
-  sendTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/).optional(),
-  scheduledAt: z.string().datetime().optional(),
+  dailyLimit: z.coerce.number().int().min(1).max(10000).optional(),
+  sendTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/).optional().or(z.literal('')),
+  scheduledAt: z.string().datetime().optional().or(z.literal('')),
 });
 
 // ===========================================
@@ -142,7 +144,7 @@ newsletterRoutes.get('/subscribers/stats', async (_req, res, next) => {
   try {
     const db = getDb();
 
-    const [stats] = await db
+    const statsResult = await db
       .select({
         total: sql<number>`count(*)`,
         active: sql<number>`count(*) filter (where ${newsletterSubscribers.status} = 'active')`,
@@ -152,6 +154,8 @@ newsletterRoutes.get('/subscribers/stats', async (_req, res, next) => {
         thisWeek: sql<number>`count(*) filter (where ${newsletterSubscribers.subscribedAt} >= date_trunc('week', current_date))`,
       })
       .from(newsletterSubscribers);
+
+    const stats = statsResult[0];
 
     // Get by source
     const bySource = await db
@@ -164,12 +168,12 @@ newsletterRoutes.get('/subscribers/stats', async (_req, res, next) => {
       .groupBy(newsletterSubscribers.source);
 
     sendSuccess(res, {
-      total: Number(stats.total),
-      active: Number(stats.active),
-      unsubscribed: Number(stats.unsubscribed),
-      bounced: Number(stats.bounced),
-      thisMonth: Number(stats.thisMonth),
-      thisWeek: Number(stats.thisWeek),
+      total: Number(stats?.total ?? 0),
+      active: Number(stats?.active ?? 0),
+      unsubscribed: Number(stats?.unsubscribed ?? 0),
+      bounced: Number(stats?.bounced ?? 0),
+      thisMonth: Number(stats?.thisMonth ?? 0),
+      thisWeek: Number(stats?.thisWeek ?? 0),
       bySource: bySource.reduce((acc, item) => {
         acc[item.source] = Number(item.count);
         return acc;
@@ -341,7 +345,7 @@ newsletterRoutes.post(
 newsletterRoutes.delete('/subscribers/:id', async (req, res, next) => {
   try {
     const db = getDb();
-    const { id } = req.params;
+    const id = req.params['id'] as string;
 
     const [deleted] = await db
       .delete(newsletterSubscribers)
@@ -436,7 +440,7 @@ newsletterRoutes.get(
 newsletterRoutes.get('/campaigns/:id', async (req, res, next) => {
   try {
     const db = getDb();
-    const { id } = req.params;
+    const id = req.params['id'] as string;
 
     const [campaign] = await db
       .select()
@@ -466,29 +470,36 @@ newsletterRoutes.post(
       const { name, subject, previewText, content, dailyLimit, sendTime, scheduledAt } = req.body;
 
       // Get total active subscribers
-      const [{ count }] = await db
+      const countResult = await db
         .select({ count: sql<number>`count(*)` })
         .from(newsletterSubscribers)
         .where(eq(newsletterSubscribers.status, 'active'));
+      const subscriberCount = Number(countResult[0]?.count ?? 0);
+
+      // Only set createdBy if user ID is a valid UUID
+      const userId = (req as any).user?.id;
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      const createdBy = userId && uuidRegex.test(userId) ? userId : null;
 
       const [campaign] = await db
         .insert(newsletterCampaigns)
         .values({
           name,
           subject,
-          previewText,
-          content,
+          previewText: previewText || null,
+          content, // Raw HTML preserved - admin-only content
           dailyLimit,
-          sendTime,
+          sendTime: sendTime || null,
           scheduledAt: scheduledAt ? new Date(scheduledAt) : null,
-          totalRecipients: Number(count),
+          totalRecipients: subscriberCount,
           status: scheduledAt ? 'scheduled' : 'draft',
-          createdBy: (req as any).user?.id,
+          createdBy,
         })
         .returning();
 
       sendSuccess(res, campaign, 201);
     } catch (error) {
+      console.error('Campaign creation error:', error);
       next(error);
     }
   }
@@ -504,8 +515,8 @@ newsletterRoutes.put(
   async (req, res, next) => {
     try {
       const db = getDb();
-      const { id } = req.params;
-      const updates = req.body;
+      const id = req.params['id'] as string;
+      const updates = req.body as Record<string, unknown>;
 
       const [existing] = await db
         .select()
@@ -522,20 +533,21 @@ newsletterRoutes.put(
 
       // If updating scheduledAt, also update status
       const additionalUpdates: Record<string, unknown> = {};
-      if (updates.scheduledAt) {
-        additionalUpdates.scheduledAt = new Date(updates.scheduledAt);
+      if (updates['scheduledAt']) {
+        additionalUpdates['scheduledAt'] = new Date(updates['scheduledAt'] as string);
         if (existing.status === 'draft') {
-          additionalUpdates.status = 'scheduled';
+          additionalUpdates['status'] = 'scheduled';
         }
       }
 
       // If content changed, recalculate recipient count
-      if (updates.content) {
-        const [{ count }] = await db
+      if (updates['content']) {
+        // Raw HTML preserved - admin-only content
+        const countResult = await db
           .select({ count: sql<number>`count(*)` })
           .from(newsletterSubscribers)
           .where(eq(newsletterSubscribers.status, 'active'));
-        additionalUpdates.totalRecipients = Number(count);
+        additionalUpdates['totalRecipients'] = Number(countResult[0]?.count ?? 0);
       }
 
       const [campaign] = await db
@@ -562,7 +574,7 @@ newsletterRoutes.put(
 newsletterRoutes.delete('/campaigns/:id', async (req, res, next) => {
   try {
     const db = getDb();
-    const { id } = req.params;
+    const id = req.params['id'] as string;
 
     const [existing] = await db
       .select()
@@ -592,7 +604,7 @@ newsletterRoutes.delete('/campaigns/:id', async (req, res, next) => {
 newsletterRoutes.post('/campaigns/:id/start', async (req, res, next) => {
   try {
     const db = getDb();
-    const { id } = req.params;
+    const id = req.params['id'] as string;
 
     const [campaign] = await db
       .select()
@@ -608,12 +620,12 @@ newsletterRoutes.post('/campaigns/:id/start', async (req, res, next) => {
     }
 
     // Get active subscribers count
-    const [{ count }] = await db
+    const countResult = await db
       .select({ count: sql<number>`count(*)` })
       .from(newsletterSubscribers)
       .where(eq(newsletterSubscribers.status, 'active'));
 
-    const totalRecipients = Number(count);
+    const totalRecipients = Number(countResult[0]?.count ?? 0);
 
     if (totalRecipients === 0) {
       throw new BadRequestError('No active subscribers to send to');
@@ -681,7 +693,7 @@ newsletterRoutes.post('/campaigns/:id/start', async (req, res, next) => {
 newsletterRoutes.post('/campaigns/:id/pause', async (req, res, next) => {
   try {
     const db = getDb();
-    const { id } = req.params;
+    const id = req.params['id'] as string;
 
     const [campaign] = await db
       .select()
@@ -718,7 +730,7 @@ newsletterRoutes.post('/campaigns/:id/pause', async (req, res, next) => {
 newsletterRoutes.post('/campaigns/:id/cancel', async (req, res, next) => {
   try {
     const db = getDb();
-    const { id } = req.params;
+    const id = req.params['id'] as string;
 
     const [campaign] = await db
       .select()
@@ -765,7 +777,7 @@ newsletterRoutes.post('/campaigns/:id/cancel', async (req, res, next) => {
 newsletterRoutes.get('/campaigns/:id/sends', async (req, res, next) => {
   try {
     const db = getDb();
-    const { id } = req.params;
+    const id = req.params['id'] as string;
     const { page, limit, offset } = parsePaginationParams(req.query as Record<string, string>);
     const { status } = req.query;
 
@@ -808,7 +820,7 @@ newsletterRoutes.post(
   async (req, res, next) => {
     try {
       const db = getDb();
-      const { id } = req.params;
+      const id = req.params['id'] as string;
       const { email } = req.body;
 
       const [campaign] = await db
@@ -820,13 +832,36 @@ newsletterRoutes.post(
         throw new NotFoundError('Campaign not found');
       }
 
-      // TODO: Actually send test email via email service
-      // For now, just return success
-      console.log('Test email would be sent:', {
-        to: email,
-        subject: campaign.subject,
-        contentLength: campaign.content.length,
+      // Build test email with unsubscribe footer
+      const websiteUrl = process.env['WEBSITE_URL'] || 'https://lab404.com';
+      const unsubscribeUrl = `${websiteUrl}/newsletter/unsubscribe?token=test-preview`;
+      const unsubscribeFooter = `
+        <hr style="margin-top: 40px; border: none; border-top: 1px solid #eee;">
+        <p style="font-size: 12px; color: #666; text-align: center;">
+          This is a test email preview.<br>
+          <a href="${unsubscribeUrl}">Unsubscribe</a>
+        </p>
+      `;
+      const contentWithFooter = campaign.content + unsubscribeFooter;
+
+      // Inline CSS for email client compatibility
+      // This converts <style> tags to inline styles
+      const inlinedHtml = juice(contentWithFooter, {
+        removeStyleTags: true,
+        preserveMediaQueries: true,
+        preserveFontFaces: true,
       });
+
+      // Send actual test email
+      const success = await mailerService.sendEmail({
+        to: email,
+        subject: `[TEST] ${campaign.subject}`,
+        html: inlinedHtml,
+      });
+
+      if (!success) {
+        throw new BadRequestError('Failed to send test email. Check SMTP configuration.');
+      }
 
       sendSuccess(res, {
         message: `Test email sent to ${email}`,

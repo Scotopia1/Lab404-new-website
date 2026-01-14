@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import { getDb, breachChecks, eq } from '@lab404/database';
+import { getDb, breachChecks, eq, and } from '@lab404/database';
 
 /**
  * Have I Been Pwned (HIBP) Service
@@ -65,9 +65,11 @@ export class HIBPService {
       // Check if our hash suffix appears in the results
       let breachCount = 0;
       for (const line of lines) {
-        const [suffix, count] = line.split(':');
-        if (suffix.trim() === hashSuffix) {
-          breachCount = parseInt(count.trim(), 10);
+        const parts = line.split(':');
+        const suffix = parts[0];
+        const count = parts[1];
+        if (suffix && suffix.trim() === hashSuffix) {
+          breachCount = parseInt(count?.trim() || '0', 10);
           break;
         }
       }
@@ -108,15 +110,18 @@ export class HIBPService {
       const cached = await db
         .select()
         .from(breachChecks)
-        .where(eq(breachChecks.customerId, customerId))
-        .where(eq(breachChecks.passwordHashPrefix, hashPrefix))
+        .where(
+          and(
+            eq(breachChecks.customerId, customerId),
+            eq(breachChecks.passwordHashPrefix, hashPrefix)
+          )
+        )
         .limit(1);
 
-      if (cached.length === 0) {
+      const check = cached[0];
+      if (!check) {
         return null;
       }
-
-      const check = cached[0];
 
       // Check if cache is still valid
       if (new Date() > check.expiresAt) {

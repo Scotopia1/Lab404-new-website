@@ -1,6 +1,4 @@
-import { db } from '@lab404/database';
-import { ipReputation, type IpReputation, type NewIpReputation } from '@lab404/database';
-import { eq, and, lt, lte, gte } from 'drizzle-orm';
+import { db, ipReputation, type IpReputation, type NewIpReputation, eq, and, lt, lte, gte } from '@lab404/database';
 import { Request } from 'express';
 import { logger } from '../utils/logger';
 
@@ -408,17 +406,17 @@ class IpReputationService {
         conditions.push(lte(ipReputation.reputationScore, filters.maxScore));
       }
 
-      let query = db
-        .select()
-        .from(ipReputation)
-        .limit(filters.limit || 50)
-        .offset(filters.offset || 0);
+      const baseQuery = db.select().from(ipReputation);
 
-      if (conditions.length > 0) {
-        query = query.where(and(...conditions));
-      }
+      const results = conditions.length > 0
+        ? await baseQuery
+            .where(and(...conditions))
+            .limit(filters.limit || 50)
+            .offset(filters.offset || 0)
+        : await baseQuery
+            .limit(filters.limit || 50)
+            .offset(filters.offset || 0);
 
-      const results = await query;
       return results;
     } catch (error) {
       logger.error('Failed to query IP reputations', {
@@ -469,6 +467,10 @@ class IpReputationService {
 
       const [created] = await db.insert(ipReputation).values(newRecord).returning();
 
+      if (!created) {
+        throw new Error('Failed to create IP reputation record');
+      }
+
       return created;
     } catch (error) {
       logger.error('Failed to get or create IP', {
@@ -490,7 +492,8 @@ class IpReputationService {
   getClientIp(req: Request): string {
     const forwardedFor = req.get('x-forwarded-for');
     if (forwardedFor) {
-      return forwardedFor.split(',')[0].trim();
+      const firstIp = forwardedFor.split(',')[0];
+      return firstIp?.trim() || 'unknown';
     }
     return req.ip || req.socket.remoteAddress || 'unknown';
   }

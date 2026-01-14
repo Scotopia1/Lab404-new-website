@@ -14,8 +14,8 @@ const { Pool } = pg;
 // Load environment variables
 dotenv.config({ path: '../../.env' });
 
-const OLD_DATABASE_URL = process.env.OLD_DATABASE_URL;
-const NEW_DATABASE_URL = process.env.DATABASE_URL;
+const OLD_DATABASE_URL = process.env['OLD_DATABASE_URL'];
+const NEW_DATABASE_URL = process.env['DATABASE_URL'];
 
 if (!OLD_DATABASE_URL) {
   console.error('❌ OLD_DATABASE_URL not set in .env file');
