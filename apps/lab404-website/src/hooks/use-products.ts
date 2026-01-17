@@ -15,7 +15,8 @@ export interface Product {
     featured?: boolean;
     isFeatured?: boolean;
     thumbnailUrl?: string;
-    images?: { url: string; alt: string; isPrimary: boolean }[];
+    images?: { url: string; alt?: string; isPrimary?: boolean }[];
+    videos?: { url: string; title?: string }[];
     category?: { id: string; name: string; slug: string };
     categoryId?: string;
     inStock?: boolean;

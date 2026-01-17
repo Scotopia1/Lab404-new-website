@@ -51,7 +51,9 @@ import {
 } from "@/components/ui/collapsible";
 import { Breadcrumbs } from "@/components/layout/breadcrumbs";
 import { GoogleImageSearch } from "@/components/google-image-search";
+import { MediaUploader } from "@/components/media-uploader";
 import { useProduct, useUpdateProduct } from "@/hooks/use-products";
+import { toast } from "sonner";
 import { useCategories } from "@/hooks/use-categories";
 import { slugify } from "@/lib/utils";
 
@@ -757,6 +759,17 @@ export default function EditProductPage() {
                     </div>
                   </div>
 
+                  {/* Upload Dropzone */}
+                  <MediaUploader
+                    accept="image"
+                    maxFileSize={10485760} // 10MB
+                    onUploadComplete={(result) => {
+                      appendImage({ url: result.url, alt: "" });
+                      toast.success("Image uploaded successfully");
+                    }}
+                    onUploadError={(error) => toast.error(error)}
+                  />
+
                   {/* Image Preview Grid */}
                   {imageFields.length > 0 && (
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
@@ -887,8 +900,20 @@ export default function EditProductPage() {
                       <Video className="h-4 w-4 mr-1" /> Add Video
                     </Button>
                   </div>
+
+                  {/* Upload Dropzone for Videos */}
+                  <MediaUploader
+                    accept="video"
+                    maxFileSize={104857600} // 100MB
+                    onUploadComplete={(result) => {
+                      appendVideo({ url: result.url, title: "" });
+                      toast.success("Video uploaded successfully");
+                    }}
+                    onUploadError={(error) => toast.error(error)}
+                  />
+
                   {videoFields.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">No videos added yet</p>
+                    <p className="text-sm text-muted-foreground">No videos added yet. You can upload videos or paste YouTube/Vimeo URLs.</p>
                   ) : (
                     <div className="space-y-2">
                       {videoFields.map((field, index) => (

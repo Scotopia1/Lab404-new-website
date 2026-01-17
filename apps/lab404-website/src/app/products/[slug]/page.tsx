@@ -10,7 +10,7 @@ import { useCart } from '@/hooks/use-cart';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
     Loader2,
     Minus,
@@ -22,7 +22,8 @@ import {
     Truck,
     RefreshCw,
     Check,
-    Sparkles
+    Sparkles,
+    Play
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -34,7 +35,21 @@ export default function ProductPage() {
     const { addToCart } = useCart();
     const [quantity, setQuantity] = useState(1);
     const [isAdding, setIsAdding] = useState(false);
-    const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+    const [selectedIndex, setSelectedIndex] = useState(0);
+
+    // Combined media array with videos first, filtering out YouTube/Vimeo URLs
+    type MediaItem =
+        | { type: 'video'; url: string; title?: string }
+        | { type: 'image'; url: string; alt?: string };
+
+    const allMedia = useMemo((): MediaItem[] => {
+        const videos = (product?.videos || [])
+            .filter(v => v.url && !v.url.includes('youtube.com') && !v.url.includes('youtu.be') && !v.url.includes('vimeo.com'))
+            .map(v => ({ type: 'video' as const, url: v.url, title: v.title }));
+        const images = (product?.images || [])
+            .map(img => ({ type: 'image' as const, url: img.url, alt: img.alt }));
+        return [...videos, ...images]; // Videos first
+    }, [product?.videos, product?.images]);
 
     const handleAddToCart = async () => {
         if (!product) return;
@@ -56,17 +71,17 @@ export default function ProductPage() {
         }
     };
 
-    const handlePreviousImage = () => {
-        if (!product?.images?.length) return;
-        setSelectedImageIndex(prev =>
-            prev === 0 ? product.images!.length - 1 : prev - 1
+    const handlePreviousMedia = () => {
+        if (!allMedia.length) return;
+        setSelectedIndex(prev =>
+            prev === 0 ? allMedia.length - 1 : prev - 1
         );
     };
 
-    const handleNextImage = () => {
-        if (!product?.images?.length) return;
-        setSelectedImageIndex(prev =>
-            prev === product.images!.length - 1 ? 0 : prev + 1
+    const handleNextMedia = () => {
+        if (!allMedia.length) return;
+        setSelectedIndex(prev =>
+            prev === allMedia.length - 1 ? 0 : prev + 1
         );
     };
 
@@ -79,8 +94,9 @@ export default function ProductPage() {
     const comparePrice = product?.compareAtPrice ? parseFloat(product.compareAtPrice) : null;
     const savings = comparePrice ? comparePrice - price : 0;
 
-    // Get current image URL
-    const currentImageUrl = product?.images?.[selectedImageIndex]?.url || product?.thumbnailUrl;
+    // Get current media item
+    const currentMedia = allMedia[selectedIndex];
+    const fallbackImageUrl = product?.thumbnailUrl;
 
     if (isLoading) {
         return (
@@ -127,27 +143,45 @@ export default function ProductPage() {
             </nav>
 
             <div className="grid grid-cols-1 gap-6 md:gap-8 lg:grid-cols-2 lg:gap-12 xl:gap-16">
-                {/* Product Images */}
+                {/* Product Media (Images/Videos) */}
                 <div className="space-y-3 md:space-y-4">
                     <div className="aspect-square relative overflow-hidden rounded-xl bg-muted group">
-                        {currentImageUrl && (
+                        {currentMedia?.type === 'video' ? (
+                            <video
+                                key={currentMedia.url}
+                                src={currentMedia.url}
+                                controls
+                                playsInline
+                                autoPlay={false}
+                                className="w-full h-full object-contain bg-black"
+                            />
+                        ) : currentMedia?.type === 'image' ? (
                             <Image
-                                src={currentImageUrl}
+                                src={currentMedia.url}
+                                alt={currentMedia.alt || product.name}
+                                fill
+                                sizes="(max-width: 1024px) 100vw, 50vw"
+                                className="object-cover"
+                                priority
+                            />
+                        ) : fallbackImageUrl ? (
+                            <Image
+                                src={fallbackImageUrl}
                                 alt={product.name}
                                 fill
                                 sizes="(max-width: 1024px) 100vw, 50vw"
                                 className="object-cover"
                                 priority
                             />
-                        )}
+                        ) : null}
 
                         {/* Navigation Arrows - Always visible on mobile */}
-                        {product.images && product.images.length > 1 && (
+                        {allMedia.length > 1 && (
                             <>
                                 <Button
                                     variant="secondary"
                                     size="icon"
-                                    onClick={handlePreviousImage}
+                                    onClick={handlePreviousMedia}
                                     className="absolute left-2 md:left-3 top-1/2 -translate-y-1/2 bg-background/90 hover:bg-background shadow-lg lg:opacity-0 lg:group-hover:opacity-100 transition-opacity min-h-[44px] min-w-[44px]"
                                 >
                                     <ChevronLeft className="h-4 w-4 md:h-5 md:w-5" />
@@ -155,41 +189,59 @@ export default function ProductPage() {
                                 <Button
                                     variant="secondary"
                                     size="icon"
-                                    onClick={handleNextImage}
+                                    onClick={handleNextMedia}
                                     className="absolute right-2 md:right-3 top-1/2 -translate-y-1/2 bg-background/90 hover:bg-background shadow-lg lg:opacity-0 lg:group-hover:opacity-100 transition-opacity min-h-[44px] min-w-[44px]"
                                 >
                                     <ChevronRight className="h-4 w-4 md:h-5 md:w-5" />
                                 </Button>
                                 <div className="absolute bottom-3 right-3 bg-black/70 text-white px-2 py-1 rounded text-xs md:text-sm">
-                                    {selectedImageIndex + 1} / {product.images.length}
+                                    {selectedIndex + 1} / {allMedia.length}
                                 </div>
                             </>
                         )}
                     </div>
 
                     {/* Thumbnails */}
-                    {product.images && product.images.length > 1 && (
+                    {allMedia.length > 1 && (
                         <div className="flex gap-2 overflow-x-auto pb-2 snap-x snap-mandatory">
-                            {product.images.map((image, index) => (
+                            {allMedia.map((media, index) => (
                                 <button
-                                    key={index}
-                                    onClick={() => setSelectedImageIndex(index)}
-                                    className={`flex-shrink-0 w-16 h-16 md:w-20 md:h-20 rounded-lg overflow-hidden border-2 transition-colors snap-start ${
-                                        selectedImageIndex === index
+                                    key={media.url}
+                                    onClick={() => setSelectedIndex(index)}
+                                    className={`relative flex-shrink-0 w-16 h-16 md:w-20 md:h-20 rounded-lg overflow-hidden border-2 transition-colors snap-start ${
+                                        selectedIndex === index
                                             ? 'border-primary'
                                             : 'border-muted hover:border-muted-foreground/50'
                                     }`}
                                 >
-                                    <div className="relative w-full h-full bg-muted">
-                                        <Image
-                                            src={image.url}
-                                            alt={`${product.name} ${index + 1}`}
-                                            fill
-                                            sizes="80px"
-                                            className="object-cover"
-                                            loading="lazy"
-                                        />
-                                    </div>
+                                    {media.type === 'video' ? (
+                                        <>
+                                            {/* Video thumbnail - use video poster or first frame */}
+                                            <div className="relative w-full h-full bg-muted">
+                                                <video
+                                                    src={media.url}
+                                                    className="w-full h-full object-cover"
+                                                    muted
+                                                    preload="metadata"
+                                                />
+                                            </div>
+                                            {/* Play icon overlay */}
+                                            <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                                                <Play className="w-6 h-6 text-white fill-white" />
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <div className="relative w-full h-full bg-muted">
+                                            <Image
+                                                src={media.url}
+                                                alt={media.alt || `${product.name} ${index + 1}`}
+                                                fill
+                                                sizes="80px"
+                                                className="object-cover"
+                                                loading="lazy"
+                                            />
+                                        </div>
+                                    )}
                                 </button>
                             ))}
                         </div>
