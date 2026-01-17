@@ -688,7 +688,7 @@ export default function NewProductPage() {
                   {/* Upload Dropzone */}
                   <MediaUploader
                     accept="image"
-                    maxFileSize={10485760} // 10MB
+                    maxFileSize={52428800} // 50MB
                     onUploadComplete={(result) => {
                       appendImage({ url: result.url, alt: "" });
                       toast.success("Image uploaded successfully");
