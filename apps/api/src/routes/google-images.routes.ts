@@ -41,8 +41,8 @@ function getImageKit(): ImageKit {
 
 const searchQuerySchema = z.object({
   query: z.string().min(1, 'Search query is required').max(200, 'Query too long'),
-  limit: z.string().optional().transform(val => Math.min(parseInt(val || '10', 10), 10)),
-  start: z.string().optional().transform(val => Math.max(parseInt(val || '1', 10), 1)),
+  limit: z.string().optional().transform(val => Math.min(Math.max(parseInt(val || '10', 10), 1), 10)),
+  start: z.string().optional().transform(val => Math.min(Math.max(parseInt(val || '1', 10), 1), 91)),
   safeSearch: z.enum(['off', 'medium', 'high']).optional().default('medium'),
   imageSize: z.enum(['huge', 'icon', 'large', 'medium', 'small', 'xlarge', 'xxlarge']).optional(),
   imageType: z.enum(['clipart', 'face', 'lineart', 'stock', 'photo', 'animated']).optional(),
@@ -193,6 +193,9 @@ googleImagesRoutes.get(
       }
       if (error.code === 403) {
         return next(new BadRequestError('Invalid API credentials. Please check your Google API configuration.'));
+      }
+      if (error.code === 400 || error.message?.includes('invalid argument')) {
+        return next(new BadRequestError('Invalid search parameters. Google limits results to 100 total (pages 1-10).'));
       }
       next(error);
     }
